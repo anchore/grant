@@ -1,0 +1,46 @@
+# most likely a binary from ad hoc go build
+/grant
+
+# Editor specific files
+.vscode
+.idea
+
+# Build
+dist
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Swap
+[._]*.s[a-v][a-z]
+!*.svg  # comment out if you don't need vector files
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Session
+Session.vim
+Sessionx.vim
+
+# Temporary
+.netrwhist
+*~
+
+# Auto-generated tag files
+tags
+
+# sample sbom input
+test.json
+
+# Persistent undo
+[._]*.un~
+
+# MacOS Finder metadata
+.DS_STORE
+
+.tmp
+snapshot
