@@ -136,7 +136,7 @@ NPL-1.0
 
 List the latest version of the spdx license list
 ```
-grant spdx list
+grant spdx list <SOME_SPDX_ID>
 
 BSD Zero Clause License			0BSD		
 Attribution Assurance License	AAL		
@@ -166,8 +166,9 @@ grant spdx get <SPDX-LICENSE-ID> // full contents?
 
 // describe resource or just some ID from the list output?
 ```
-grant describe package <PACKAGE-ID>
-grant describe file <FILD-ID>
+grant describe package <package_name:version, package_id>
+grant describe license <license_name> <-- Show me all the packages for a license
+grant describe file <file_name, file_id>
 grant describe <SOME-ID>
 ```
 
@@ -179,6 +180,7 @@ grant search <SOME-QUERY> <--
 - SPDX Complex Expressions
 - License Confidence Query
 - Concluded vs Declared
+- I just want to see all GPL
 - Diffs between declared and concluded (inconsistencies - p1 declare MIT, p1 found ADOBE)
 - All source files that have declarations (divided by ecosystem or laguage?)
 - direct dependencies
