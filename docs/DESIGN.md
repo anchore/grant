@@ -7,7 +7,9 @@ It generates a pass or fail check depending on if the read licenses are in a den
 
 - [Google String Classifier License](https://github.com/google/licenseclassifier/tree/main/stringclassifier)
 
-Syft's core elements of files and packages should be enhanced to include more information for grant's processing.
+Syft's core elements of files and packages should be enhanced to include more information for grant's processing:
+
+For more details on this redesign see [Syft Licesnse Revamp](https://github.com/anchore/syft/issues/1577).
 
 It's important licenses be included in both core types. 
 
@@ -15,114 +17,38 @@ For image scans packages are most important. Syft can read a package managers de
 
 For direcotry scans files will be the most important. Directory scans have no concept of owned files from a package manager. Files should be read and licenses concluded based on the string classifer.
 
-#### Package data shape
-
-SyftJson:
-
-artifacts[0].licenses: from []string ==> to []license
-
-`license`:
-- name: required `string`
-- spdx-expression: optional `string`
-- location: required `location`
-- type: required [concluded, declared]
-- confidence: optional fusize
-
-See below sample for `license` shaes:
-```
-{
-   "spdx-expression": "GPL-2.0-only", // optional
-   "name": "output of classifer" // required
-   "location": {
-	   "path": "/lib/apk/SOMELICENSE",
-	   "layerID": "sha256:ded7a220bb058e28ee3254fbba04ca90b679070424424761a53a043b93b612bf"
-   },
-   "type": "concluded",
-   "confidence": 0.9
-},
-{
-   "spdxLicensEexpression": "GPL-2.0-only",
-   "name": "gpl-2", // required
-   "location": {
-	   "path": "/lib/apk/db/installed",
-	   "layerID": "sha256:ded7a220bb058e28ee3254fbba04ca90b679070424424761a53a043b93b612bf"
-   },
-   "type": "declared"
-},
-{
-   "spdxLicensExpression": "MIT AND (LGPL-2.1-or-later OR BSD-3-Clause)",
-   "name": "gpl-2",
-   "location": {
-	   "path": "/lib/apk/db/installed",
-	   "layerID": "sha256:ded7a220bb058e28ee3254fbba04ca90b679070424424761a53a043b93b612bf"
-   },
-   "type": "declared"
-}
-```
-
-#### File data shape proposal
-Licenses are added here and inherit from the above specification
-```
-{
-    "id": "9c35640b7261f6c0",
-    "location": {
-      "path": "/etc/crontabs/root",
-      "layerID": "sha256:ded7a220bb058e28ee3254fbba04ca90b679070424424761a53a043b93b612bf"
-    },
-	licenses: [
-	  {
-		   "spdx-expression": "GPL-2.0-only",
-		   "name": "<DOES THIS COME FROM CLASSIFER LIBRARY?>", // comes from classifier
-		   "location": {
-			   "path": "/lib/apk/SOMELICENSE",
-			   "layerID": "sha256:ded7a220bb058e28ee3254fbba04ca90b679070424424761a53a043b93b612bf"
-		   },
-		   "type": "concluded",
-		   "confidence": 0.9
-	  },
-	],
-    "metadata": {
-      "mode": 600,
-      "type": "RegularFile",
-      "userID": 0,
-      "groupID": 0,
-      "mimeType": "text/tab-separated-values"
-    },
-    "digests": [
-      {
-        "algorithm": "sha256",
-        "value": "575d810a9fae5f2f0671c9b2c0ce973e46c7207fbe5cb8d1b0d1836a6a0470e3"
-      }
-    ]
-}
-```
-
-#### Notes
+#### Grant Notes on data shape
 - Pay attention to syft compatibility when shape changes
 - Our decode implicitly knows all previous versions (check this)
 - cyclonedx format needs to be examined for compatibility (possibly show warning)
 
 ### Stories:
 
-As an operator, I would like my image's SBOM to be searched for permitted/denied licenses
+As a CI operator, I would like my image's SBOM to be searched for permitted/denied licenses
 so that I may gate software based on my organizations license compliance.
 
-I will provide a config of either allow list or deny list license
+I will provide a config of either allow list or deny list license.
 These license will be in the format of Identifiers found in the spdx license list:
 	- [spdx license list](https://spdx.org/licenses/)
+	
+I want grant to fail with a status code 1 and informative message when my SBOM contains licenses not permitted by my organization.
 
 ### Questions
 
-...... How do I want to see unowned files that are Forbidden for an image scan?
-...... I've been given an SBOM --- No concept of Directory or Image - are all license equal?
+- How do I want to see unowned files that are Forbidden for an image scan?
+- I've been given an SBOM and it does not illustrate the source (directory or OCI image). Are all license equal?
 
 
 ### Command CLI Design
-SOME-INPUT = sbom, dir:., registry:alpine:latest ...
+`SOME-INPUT = sbom, dir:., registry:alpine:latest`
 
 List all the license for a given input
+
+##### Grant List && Grant SPDX
+
+This shows all the licenses as identifiers from the SPDX license list with the packages and ID as children
 ```
-grant list <SOME-INPUT>
+grant license list <SOME-INPUT>
 MIT
 	ID p1 declared xxxxx
 	ID p2 concluded xxxx
@@ -155,9 +81,11 @@ grant spdx list --deprecated <-- show deprecated
 ...
 ```
 
-
+#### Notes
 // Latest SPDX license list <--- Might be incompatible
 // Compare my organization to an older license list
+
+#### SPDX Sub commmands for setting/using the correct list and getting license text
 ```
 grant spdx version set <VERSION-NUMBER> // sets version list
 grant spdx version //lists current license list version
