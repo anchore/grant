@@ -1,46 +1,41 @@
-# most likely a binary from ad hoc go build
-/grant
+# install dirs
+/.tmp
+/.tools
+/.tool
+/.task
 
-# Editor specific files
-.vscode
+# release locations
+/snapshot
+/dist
+CHANGELOG.md
+VERSION
+
+# IDEs
 .idea
+.vscode
 
-# Build
-dist
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# Test binary, build with `go test -c`
+# Test binary, built with `go test -c`
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Swap
-[._]*.s[a-v][a-z]
-!*.svg  # comment out if you don't need vector files
-[._]*.sw[a-p]
-[._]s[a-rt-v][a-z]
-[._]ss[a-gi-z]
-[._]sw[a-p]
+# Dependency directories (remove the comment below to include it)
+# vendor/
 
-# Session
-Session.vim
-Sessionx.vim
+# Go workspace file
+go.work
+go.work.sum
 
-# Temporary
-.netrwhist
-*~
-
-# Auto-generated tag files
-tags
-
-# sample sbom input
-test.json
-
-# Persistent undo
-[._]*.un~
-
-# MacOS Finder metadata
-.DS_STORE
-
-.tmp
-snapshot
+# mac
+.DS_Store
