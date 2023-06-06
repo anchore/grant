@@ -1,0 +1,6 @@
+#.grant.yaml
+precedence: [deny, allow]
+deny: "*"
+allow:
+  - MIT
+  - Apache-2

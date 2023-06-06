@@ -1,0 +1,71 @@
+release:
+  prerelease: auto
+  draft: false
+
+env:
+  - CGO_ENABLED=0
+
+builds:
+  - id: linux-build
+    dir: ./cmd/grant
+    binary: grant
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    # set the modified timestamp on the output binary to the git timestamp to ensure a reproducible build
+    mod_timestamp: &build-timestamp '{{ .CommitTimestamp }}'
+    ldflags: &build-ldflags |
+      -w
+      -s
+      -extldflags '-static'
+      -X main.version={{.Version}}
+      -X main.gitCommit={{.Commit}}
+      -X main.buildDate={{.Date}}
+      -X main.gitDescription={{.Summary}}
+
+  - id: darwin-build
+    dir: ./cmd/grant
+    binary: grant
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: *build-timestamp
+    ldflags: *build-ldflags
+# will probably be supported in the future
+#    hooks:
+#      post:
+#        - cmd: .tools/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
+#          env:
+#            - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
+
+# not supported yet
+#  - id: windows-build
+#    dir: ./cmd/grant
+#    binary: grant
+#    goos:
+#      - windows
+#    goarch:
+#      - amd64
+#    mod_timestamp: *build-timestamp
+#    ldflags: *build-ldflags
+
+archives:
+  - id: linux-archives
+    builds:
+      - linux-build
+
+  # note: the signing process is depending on tar.gz archives. If this format changes then .github/scripts/apple-signing/*.sh will need to be adjusted
+  - id: darwin-archives
+    builds:
+      - darwin-build
+
+# not supported yet
+#  - id: windows-archives
+#    format: zip
+#    builds:
+#      - windows-build
+

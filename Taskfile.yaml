@@ -1,0 +1,133 @@
+version: "3"
+vars:
+  TOOL_DIR: .tool
+
+  OWNER: anchore
+  PROJECT: grant
+
+  TMP_DIR: .tmp
+  SNAPSHOT_DIR: snapshot
+  CHANGELOG: CHANGELOG.md
+  NEXT_VERSION: VERSION
+
+tasks:
+  ## Bootstrap tasks #################################
+  binny:
+    internal: true
+    desc: Get the binny tool
+    generates:
+      - "{{ .TOOL_DIR }}/binny"
+    status:
+      - "test -f {{ .TOOL_DIR }}/binny"
+    # we just need a release of binny, doesn't matter which one (binny will update itself, this is just a bootstrap step)
+    cmd: "curl -sSfL https://raw.githubusercontent.com/{{ .OWNER }}/binny/main/install.sh | sh -s -- -b {{ .TOOL_DIR }}"
+    silent: true
+
+  tools:
+    desc: Install all tools needed for CI and local development
+    deps: [binny]
+    generates:
+      - "{{ .TOOL_DIR }}/binny"
+      - "{{ .TOOL_DIR }}/grant"
+      - "{{ .TOOL_DIR }}/task"
+      - "{{ .TOOL_DIR }}/gosimports"
+      - "{{ .TOOL_DIR }}/golangci-lint"
+      - "{{ .TOOL_DIR }}/chronicle"
+      - "{{ .TOOL_DIR }}/glow"
+      - "{{ .TOOL_DIR }}/goreleaser"
+    status:
+      - "{{ .TOOL_DIR }}/binny check -v"
+    cmd: "{{ .TOOL_DIR }}/binny install -v"
+    silent: true
+
+
+  ## Static analysis tasks #################################
+
+  format:
+    desc: Auto-format all source code
+    deps: [tools]
+    cmds:
+      - gofmt -w -s .
+      - "{{ .TOOL_DIR }}/gosimports -local github.com/anchore -w ."
+      - go mod tidy
+
+  lint-fix:
+    desc: Auto-format all source code + run golangci lint fixers
+    deps: [tools]
+    cmds:
+      - task: format
+      - "{{ .TOOL_DIR }}/golangci-lint run --tests=false --fix"
+
+  lint:
+    desc: Run gofmt + golangci lint checks
+    vars:
+      BAD_FMT_FILES:
+        sh: gofmt -l -s .
+      BAD_FILE_NAMES:
+        sh: "find . | grep -e ':' || true"
+    deps: [tools]
+    cmds:
+      # ensure there are no go fmt differences
+      - cmd: 'test -z "{{ .BAD_FMT_FILES }}" || (echo "files with gofmt issues: [{{ .BAD_FMT_FILES }}]"; exit 1)'
+        silent: true
+      # ensure there are no files with ":" in it (a known back case in the go ecosystem)
+      - cmd: 'test -z "{{ .BAD_FILE_NAMES }}" || (echo "files with bad names: [{{ .BAD_FILE_NAMES }}]"; exit 1)'
+        silent: true
+      # run linting
+      - "{{ .TOOL_DIR }}/golangci-lint run --tests=false"
+
+
+  check-licenses:
+    # desc: Ensure transitive dependencies are compliant with the current license policy
+    deps: [tools]
+    cmd: "{{ .TOOL_DIR }}/grant check ./..."
+
+  check-go-mod-tidy:
+    # desc: Ensure go.mod and go.sum are up to date
+    cmds:
+      - .github/scripts/go-mod-tidy-check.sh && echo "go.mod and go.sum are tidy!"
+
+  ## Testing tasks #################################
+
+  unit:
+    desc: Run all unit tests
+    vars:
+      TEST_PKGS:
+          sh: "go list ./... | grep -v {{ .OWNER }}/{{ .PROJECT }}/test | tr '\n' ' '"
+
+      # unit test coverage threshold (in % coverage)
+      COVERAGE_THRESHOLD: 50
+    cmds:
+      - cmd: "mkdir -p {{ .TMP_DIR }}"
+        silent: true
+      - "go test -coverprofile {{ .TMP_DIR }}/unit-coverage-details.txt {{ .TEST_PKGS }}"
+      - cmd: ".github/scripts/coverage.py {{ .COVERAGE_THRESHOLD }} {{ .TMP_DIR }}/unit-coverage-details.txt"
+        silent: true
+
+  ## Build-related targets #################################
+
+  changelog:
+    desc: Generate a changelog
+    deps: [tools]
+    generates:
+      - "{{ .CHANGELOG }}"
+      - "{{ .NEXT_VERSION }}"
+    cmds:
+      - "{{ .TOOL_DIR }}/chronicle -vv -n --version-file {{ .NEXT_VERSION }} > {{ .CHANGELOG }}"
+      - "{{ .TOOL_DIR }}/glow {{ .CHANGELOG }}"
+
+  snapshot:
+    desc: Create a snapshot release
+    aliases:
+      - build
+    deps: [tools]
+    cmds:
+      - silent: true
+        cmd: |        
+          echo "dist: {{ .SNAPSHOT_DIR }}" > {{ .TMP_DIR }}/goreleaser.yaml
+          cat .goreleaser.yaml >> {{ .TMP_DIR }}/goreleaser.yaml
+
+      - "{{ .TOOL_DIR }}/goreleaser release --clean --skip=publish --skip=sign --snapshot --config {{ .TMP_DIR }}/goreleaser.yaml"
+
+
+  ## TODO Release targets #################################
