@@ -9,7 +9,16 @@ $ grant check alpine:latest
 [return code 1]
 ```
 
-By default grant is configured to deny all licenses out of the box.
+```bash
+$ grant check alpine.spdx.json
+[return code 0]
+```
+
+```bash
+$ syft -o spdx-json alpine:latest | grant check
+[return code 0]
+```
+
 
 ## Installation
 ```bash
@@ -24,6 +33,11 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grant/main/install.sh | sh 
 ```
 
 ## Usage
+
+Grant can be used with any OCI image or sbom document to check for license compliance.
+
+By default grant is configured to deny all licenses out of the box.
+
 
 Grant can be used to deny specific licenses, allowing all others.
 It can also be used to allow specific licenses, denying all others.
