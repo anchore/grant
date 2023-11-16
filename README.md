@@ -9,7 +9,16 @@ $ grant check alpine:latest
 [return code 1]
 ```
 
-By default it's configured to deny all licenses out of the box.
+```bash
+$ grant check alpine.spdx.json
+[return code 0]
+```
+
+```bash
+$ syft -o spdx-json alpine:latest | grant check
+[return code 0]
+```
+
 
 ## Installation
 ```bash
@@ -25,7 +34,15 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grant/main/install.sh | sh 
 
 ## Usage
 
-The following is an example of a `deny` oriented configuration:
+Grant can be used with any OCI image or sbom document to check for license compliance.
+
+By default grant is configured to deny all licenses out of the box.
+
+
+Grant can be used to deny specific licenses, allowing all others.
+It can also be used to allow specific licenses, denying all others.
+
+The following is an example of a `deny` oriented configuration which will deny `*` and allow `MIT` and `Apache-2`:
 
 ```yaml
 #.grant.yaml
@@ -36,11 +53,12 @@ allow:
   - Apache-2
 ```
 
-If licenses are found that are not in the allow list grant will return status code 1.
+If licenses are found that are not in the allow list, grant will return status code 1.
 
-The IDs that are considered are sourced from the most recent 
+Valid IDs that are considered are by default sourced from the most recent 
 [SPDX license list](https://spdx.org/licenses/).
 
+## TODO
 In the future it will be possible for users to configure which license list
 they would like to use for their `grant check` run.
 
@@ -62,4 +80,14 @@ they would like to use for their `grant check` run.
 
 }
 [return code 1]
+```
+
+## Configuration
+```yaml
+#.grant.yaml
+precedence: [deny, allow]
+deny: *
+allow:
+  - MIT
+  - Apache-2
 ```

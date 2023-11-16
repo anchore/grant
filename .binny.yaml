@@ -6,35 +6,32 @@ tools:
     with:
       module: .
       entrypoint: cmd/grant
-
+      ldflags:
+        - -X main.version={{ .Version }}
+        - -X main.gitCommit={{ .Version }}
+        - -X main.gitDescription={{ .Version }}
+        # note: sprig functions are available: http://masterminds.github.io/sprig/
+        - -X main.buildDate={{ now | date "2006-01-02T15:04:05Z07:00" }}
   - name: binny
     version:
-      # can be 'main', 'latest', or a specific version
-      want: v0.3.0
+      want: v0.6.2
     method: github-release
     with:
       repo: anchore/binny
 
-  - name: task
+  - name: gh
     version:
-      want: v3.30.1
+      want: v2.35.0
     method: github-release
     with:
-      repo: go-task/task
+      repo: cli/cli
 
-  - name: gosimports
+  - name: quill
     version:
-      want: v0.3.8
+      want: v0.4.1
     method: github-release
     with:
-      repo: rinchsan/gosimports
-
-  - name: golangci-lint
-    version:
-      want: v1.54.2
-    method: github-release
-    with:
-      repo: golangci/golangci-lint
+      repo: anchore/quill
 
   - name: chronicle
     version:
@@ -42,6 +39,13 @@ tools:
     method: github-release
     with:
       repo: anchore/chronicle
+
+  - name: gosimports
+    version:
+      want: v0.3.8
+    method: github-release
+    with:
+      repo: rinchsan/gosimports
 
   - name: glow
     version:
@@ -56,3 +60,31 @@ tools:
     method: github-release
     with:
       repo: goreleaser/goreleaser
+
+  - name: golangci-lint
+    version:
+      want: v1.54.2
+    method: github-release
+    with:
+      repo: golangci/golangci-lint
+
+  - name: bouncer
+    version:
+      want: v0.1.0
+    method: github-release
+    with:
+      repo: wagoodman/go-bouncer
+
+  - name: task
+    version:
+      want: v3.30.1
+    method: github-release
+    with:
+      repo: go-task/task
+
+  - name: syft
+    version:
+      want: v0.95.0
+    method: github-release
+    with:
+      repo: anchore/syft
