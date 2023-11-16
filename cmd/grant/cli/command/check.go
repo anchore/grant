@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/list"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grant/cmd/grant/cli/option"
-	"github.com/anchore/grant/event"
 	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/internal/bus"
 	"github.com/anchore/grant/internal/input"
@@ -46,6 +44,8 @@ func Check(app clio.Application) *cobra.Command {
 	}, cfg)
 }
 
+// TODO: upgrade the ui a bit with monitors for SBOM generation and license checking
+// Progress can be incremented used on a per package basis when grant.Check is called
 func runCheck(cfg CheckConfig, sources []string) (errs error) {
 	var reports []*grant.Report
 	// check if user provided source by stdin
@@ -56,29 +56,7 @@ func runCheck(cfg CheckConfig, sources []string) (errs error) {
 		sources = append(sources, "-")
 	}
 
-	monitor := bus.PublishTask(
-		event.Title{
-			Default:      "Check licenses from sources for non-compliance",
-			WhileRunning: "Checking licenses from sources for non-compliance",
-			OnSuccess:    "Checked licenses from sources for non-compliance",
-		},
-		"",
-		len(sources),
-	)
-
-	defer func() {
-		if errs != nil {
-			monitor.SetError(errs)
-		} else {
-			monitor.AtomicStage.Set(strings.Join(sources, ", "))
-			monitor.SetCompleted()
-		}
-	}()
-
 	for _, src := range sources {
-		monitor.Increment()
-		monitor.AtomicStage.Set(src)
-
 		// TODO: branch into source detection here to generate the sbom
 		reader, err := input.GetReader(src)
 		if err != nil {
@@ -92,10 +70,11 @@ func runCheck(cfg CheckConfig, sources []string) (errs error) {
 		}
 
 		log.Debugf("found sbom format: %s, version: %s; checking licenses...", formatID, version)
-		report := grant.NewReport(sbom.Source.Name, cfg.Check)
+		report := grant.NewReport(fmt.Sprintf("%s %s", sbom.Source.Name, sbom.Source.Version), cfg.Check)
 		for p := range sbom.Artifacts.Packages.Enumerate() {
 			log.Debugf("checking package: %s for non compliant licenses...", p.Name)
-			report.Check(p.Name, p.Licenses)
+			licenses := grant.ConvertSyftLicenses(p.Licenses)
+			report.Check(p.Name, licenses)
 		}
 		reports = append(reports, report)
 	}
@@ -107,16 +86,11 @@ func runCheck(cfg CheckConfig, sources []string) (errs error) {
 }
 
 func presentReports(reports []*grant.Report) error {
-	if len(reports) == 0 {
-		bus.Report("no license compliance reports to show")
-		return nil
-	}
-
-	l := list.NewWriter()
+	l := list.NewWriter() // TODO: style me
 	customStyle := list.Style{
 		Format:           text.FormatTitle,
 		CharItemSingle:   "",
-		CharItemTop:      "▶",
+		CharItemTop:      "",
 		CharItemFirst:    "",
 		CharItemMiddle:   "",
 		CharItemVertical: "  ",
@@ -127,38 +101,21 @@ func presentReports(reports []*grant.Report) error {
 	}
 	l.SetStyle(customStyle)
 	for _, report := range reports {
-		l.AppendItem(fmt.Sprintf("Source: %s", report.Source))
-		l.Indent()
-		for pkg, _ := range report.CheckedPackages {
-			l.AppendItem(fmt.Sprintf("Package: %s", pkg))
-			l.AppendItem("Licenses: ")
-			violations := report.Violations[pkg]
-			compliance := report.Compliant[pkg]
-			ignored := report.Ignored[pkg]
-			if len(compliance) > 0 {
+		if len(report.PackageViolations) == 0 {
+			l.AppendItem("No License Violations: ✅")
+			continue
+		}
+
+		l.AppendItem("License Violations:")
+		for license, pkg := range report.LicenseViolations {
+			l.AppendItem(fmt.Sprintf("%s %s", fmt.Sprint("-"), license))
+			// TODO: we probably want a flag that can turn this on
+			for _, p := range pkg {
 				l.Indent()
-				for _, lic := range compliance {
-					// green emoji check mark append
-					l.AppendItem(fmt.Sprintf("%s %s", text.FgGreen.Sprint("- ✅"), lic))
-				}
+				l.AppendItem(fmt.Sprintf("%s %s", fmt.Sprint("-"), p))
 				l.UnIndent()
 			}
-			if len(violations) > 0 {
-				l.Indent()
-				for _, lic := range violations {
-					// red emoji x mark append
-					l.AppendItem(fmt.Sprintf("%s %s", text.FgRed.Sprint("- ❌"), lic))
-				}
-				l.UnIndent()
-			}
-			if len(ignored) > 0 {
-				// grey emoji question mark append
-				l.Indent()
-				for _, lic := range ignored {
-					l.AppendItem(fmt.Sprintf("%s %s", text.FgHiBlack.Sprint("- ❓"), lic))
-				}
-				l.UnIndent()
-			}
+			l.UnIndent()
 		}
 	}
 
