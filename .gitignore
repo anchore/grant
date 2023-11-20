@@ -39,3 +39,4 @@ go.work.sum
 
 # mac
 .DS_Store
+*.json
