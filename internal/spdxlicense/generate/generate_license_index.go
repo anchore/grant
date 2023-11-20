@@ -34,7 +34,7 @@ const Version = {{ printf "%q" .Version }}
 
 const ReleaseData = {{ printf "%q" .ReleaseDate }}
 
-var licenseIndex = map[string]SPDXLicense{
+var Index = map[string]SPDXLicense{
 {{- range .Licenses }}
 	{{ ToLower "%q" .LicenseID }}: {
 		Reference: {{ printf "%q" .Reference }},
@@ -65,6 +65,11 @@ func main() {
 func generate() error {
 	spdxLicenseResposne, err := fetchLicenses(url)
 	if err != nil {
+		return err
+	}
+
+	if err := os.Remove(generates); err != nil && !os.IsNotExist(err) {
+		fmt.Println("Error deleting existing file:", err)
 		return err
 	}
 
