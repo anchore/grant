@@ -7,7 +7,7 @@ const Version = "3.22"
 
 const ReleaseData = "2023-10-05"
 
-var Index = map[string]SPDXLicense{
+var index = map[string]SPDXLicense{
 	"qhull": {
 		Reference: "https://spdx.org/licenses/Qhull.html",
 		IsDeprecatedLicenseID: false,

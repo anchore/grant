@@ -1,5 +1,10 @@
 package spdxlicense
 
+import (
+	"fmt"
+	"strings"
+)
+
 // SPDXLicenseResponse is the response from the SPDX license list endpoint
 // https://spdx.org/licenses/licenses.json
 type SPDXLicenseResponse struct {
@@ -17,4 +22,17 @@ type SPDXLicense struct {
 	LicenseID             string   `json:"licenseId"`
 	SeeAlso               []string `json:"seeAlso"`
 	IsOsiApproved         bool     `json:"isOsiApproved"`
+}
+
+func GetLicenseByID(id string) (license SPDXLicense, err error) {
+	if index == nil {
+		return license, fmt.Errorf("SPDX license index is nil")
+	}
+
+	license, ok := index[strings.ToLower(id)]
+	if !ok {
+		return license, fmt.Errorf("SPDX license %s not found", id)
+	}
+
+	return license, nil
 }

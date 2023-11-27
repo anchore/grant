@@ -15,7 +15,7 @@ import (
 	"github.com/anchore/grant/internal/bus"
 	"github.com/anchore/grant/internal/input"
 	"github.com/anchore/grant/internal/log"
-	"github.com/anchore/syft/syft/format"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 type CheckConfig struct {
@@ -63,13 +63,6 @@ func runCheck(cfg CheckConfig, sources []string) (errs error) {
 			return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not get reader for source: %s ", src))
 		}
 
-		sbomDecoders := format.NewDecoderCollection(format.Decoders()...)
-		sbom, formatID, version, err := sbomDecoders.Decode(reader)
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not decode sbom: %s ", src))
-		}
-
-		log.Debugf("found sbom format: %s, version: %s; checking licenses...", formatID, version)
 		report := grant.NewReport(fmt.Sprintf("%s %s", sbom.Source.Name, sbom.Source.Version), cfg.Check)
 		for p := range sbom.Artifacts.Packages.Enumerate() {
 			log.Debugf("checking package: %s for non compliant licenses...", p.Name)

@@ -36,6 +36,40 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grant/main/install.sh | sh 
 
 Grant can be used with any OCI image or sbom document to check for license compliance.
 
+Matching Rules:
+- Deny licenses take precedence over allow licenses
+- Licenses are matched on a case-insensitive basis.
+- If a license is in both lists it is denied. 
+- If a license is in neither list it is denied.
+
+Supplied patterns follow a standard globbing syntax:
+```
+pattern:
+{ term }
+
+term:
+`*`         matches any sequence of non-separator characters
+`**`        matches any sequence of characters
+`?`         matches any single non-separator character
+`[` [ `!` ] { character-range } `]`
+character class (must be non-empty)
+`{` pattern-list `}`
+pattern alternatives
+c           matches character c (c != `*`, `**`, `?`, `\`, `[`, `{`, `}`)
+`\` c       matches character c
+
+character-range:
+c           matches character c (c != `\\`, `-`, `]`)
+`\` c       matches character c
+lo `-` hi   matches character c for lo <= c <= hi
+
+pattern-list:
+pattern { `,` pattern }
+comma-separated (without spaces) patterns
+```
+
+```bash
+
 By default grant is configured to deny all licenses out of the box.
 
 
@@ -46,11 +80,10 @@ The following is an example of a `deny` oriented configuration which will deny `
 
 ```yaml
 #.grant.yaml
-precedence: [deny, allow]
 deny: *
 allow:
   - MIT
-  - Apache-2
+  - Apache-*
 ```
 
 If licenses are found that are not in the allow list, grant will return status code 1.
