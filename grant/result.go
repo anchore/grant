@@ -56,10 +56,14 @@ func NewResult(policy *Policy, src string, sbom *sbom.SBOM, formatID string, ver
 // Generate will fill in the Result with the violations, compliant, and ignored packages and licenses
 func (r *Result) Generate() error {
 	for pkg := range r.sbom.Artifacts.Packages.Enumerate() {
-		// TODO: since we're using the syft library to generate the sbom we need to convert pkgs/licenses to our own type
+		// TODO: since we use syft to generate the sbom we need to convert packages/licenses to grant types
 		// this feels like a code smell; we should consider a refactor where we use an interface so different sbom
-		// providers can be plugged in where we can convert their licenses to grant's License type
+		// providers can be plugged in where we can convert their licenses/packages to grant's types
 		grantPkg := ConvertSyftPackage(pkg, r.Source)
+		if len(grantPkg.Licenses) == 0 {
+			// no licenses found for this package
+			r.addCompliant(grantPkg, nil)
+		}
 		for _, license := range grantPkg.Licenses {
 			// if the license is not SPDX compliant, ignore it
 			// TODO: add a flag to allow non-SPDX compliant licenses to be checked against the policy
@@ -72,10 +76,30 @@ func (r *Result) Generate() error {
 				continue
 			}
 			// otherwise, the license is allowed
-			r.addCompliant(grantPkg, license)
+			r.addCompliant(grantPkg, &license)
 		}
 	}
 	return nil
+}
+
+type ResultSummary struct {
+	CompliantPackages int `json:"compliant_packages" yaml:"compliant_packages"`
+	PackageViolations int `json:"package_violations" yaml:"package_violations"`
+	IgnoredPackages   int `json:"ignored_packages" yaml:"ignored_packages"`
+	LicenseViolations int `json:"license_violations" yaml:"license_violations"`
+	CompliantLicenses int `json:"compliant_licenses" yaml:"compliant_licenses"`
+	IgnoredLicenses   int `json:"ignored_licenses" yaml:"ignored_licenses"`
+}
+
+func (r *Result) Summary() ResultSummary {
+	return ResultSummary{
+		CompliantPackages: len(r.CompliantPackages),
+		PackageViolations: len(r.PackageViolations),
+		IgnoredPackages:   len(r.IgnoredPackages),
+		LicenseViolations: len(r.LicenseViolations),
+		CompliantLicenses: len(r.CompliantLicenses),
+		IgnoredLicenses:   len(r.IgnoredLicenses),
+	}
 }
 
 func (r *Result) addViolation(grantPkg Package, license License) {
@@ -83,8 +107,16 @@ func (r *Result) addViolation(grantPkg Package, license License) {
 	r.LicenseViolations[license.SPDXExpression] = append(r.LicenseViolations[license.SPDXExpression], grantPkg)
 }
 
-func (r *Result) addCompliant(grantPkg Package, license License) {
-	r.CompliantPackages[grantPkg.Name] = append(r.CompliantPackages[grantPkg.Name], license)
+func (r *Result) addCompliant(grantPkg Package, license *License) {
+	// a package with no licenses is compliant
+	if license == nil {
+		if _, ok := r.CompliantPackages[grantPkg.Name]; !ok {
+			r.CompliantPackages[grantPkg.Name] = make([]License, 0)
+		}
+		// we already know this package is compliant and has been set from a previous call
+		return
+	}
+	r.CompliantPackages[grantPkg.Name] = append(r.CompliantPackages[grantPkg.Name], *license)
 	r.CompliantLicenses[license.SPDXExpression] = append(r.CompliantLicenses[license.SPDXExpression], grantPkg)
 }
 
