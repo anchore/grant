@@ -34,7 +34,7 @@ const Version = {{ printf "%q" .Version }}
 
 const ReleaseData = {{ printf "%q" .ReleaseDate }}
 
-var Index = map[string]SPDXLicense{
+var index = map[string]SPDXLicense{
 {{- range .Licenses }}
 	{{ ToLower "%q" .LicenseID }}: {
 		Reference: {{ printf "%q" .Reference }},

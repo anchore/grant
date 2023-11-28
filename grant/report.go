@@ -1,116 +1,153 @@
 package grant
 
 import (
-	"strings"
+	"errors"
+	"fmt"
+	"io"
+	"time"
 
-	"github.com/github/go-spdx/v2/spdxexp"
-
-	"github.com/anchore/grant/cmd/grant/cli/option"
-	"github.com/anchore/grant/internal/log"
+	"github.com/anchore/grant/internal/input"
+	syftFormat "github.com/anchore/syft/syft/format"
 )
 
+// Report tracks the results of a license check.
+// For each source a report will generate a Result. A report can have multiple results.
+// The report will track the policy used to generate the report and apply it to all results.
+//
+// Multiple sources can be configured for a report. A source can be one of the following
+// Single Sources Provider:
+// - a path to a sbom file (uses the given SBOM (spdx, cyclonedx, etc))
+// TODO: - a path to a directory (generates an SBOM for the given directory)
+// TODO: - a path to some archive (generates an SBOM for the given archive)
+// TODO: - a path to a container image (generates an SBOM for the given image)
+//
+// Multiple Source Provider:
+// - multiple paths to sbom files
+// TODO: - a path to a directory containing sbom files
+// TODO: - a path to a container image with sbom files
+// TODO: - a path to a directory containing container images
+// TODO: - a path to a directory containing container images and sbom files
 type Report struct {
-	// The source of the report
-	Source string `json:"source" yaml:"source"`
-	// Track packages and their licenses that violated the policy
-	PackageViolations map[string][]string `json:"violations" yaml:"violations"`
-	// Track packages with licenses that were compliant to the policy
-	PackageCompliant map[string][]string `json:"compliant" yaml:"compliant"`
-	// ignored is used to track packages with licenses that were not SPDX compliant
-	PackageIgnored  map[string][]string `json:"ignored" yaml:"ignored"`
-	CheckedPackages map[string]struct{}
-
-	// Track licenses that were not allowed by the policy and the packages that contained them
-	LicenseViolations map[string][]string `json:"license_violations" yaml:"license_violations"`
-	// Track licenses that were allowed by the policy and the packages that contained them
-	LicenseCompliant map[string][]string `json:"license_compliant" yaml:"license_compliant"`
-	// Track licenses that were not SPDX compliant and the packages that contained them
-	LicenseIgnored map[string][]string `json:"license_ignored" yaml:"license_ignored"`
-	// Track list of licenses that were checked for the above two maps
-	CheckedLicenses map[string]struct{}
-	Config          option.Check `json:"config" yaml:"config"`
+	// Results of the report for each source
+	Results []Result `json:"results" yaml:"results"`
+	// Sources included in the report
+	Sources []string `json:"sources" yaml:"sources"`
+	// Policy used to generate the report. Applies to all results
+	Policy    *Policy `json:"policy" yaml:"policy"`
+	Format    Format  `json:"format" yaml:"format"`
+	Timestamp string  `json:"timestamp" yaml:"timestamp"`
+	errors    []error
 }
 
-func NewReport(src string, cfg option.Check) *Report {
-	// lowercase all the licenses in the config for case-insensitive matching
-	for i, lic := range cfg.AllowLicenses {
-		cfg.AllowLicenses[i] = strings.ToLower(lic)
+type Format string
+
+const (
+	JSON  Format = "json"
+	Table Format = "table"
+)
+
+// NewReport will generate a new report for the given format, policy and sources
+// If no policy is provided, the default policy will be used
+// If no sources are provided, an empty report will be generated
+// If a source is provided, but the sbom cannot be generated, the source will be ignored
+// If a source is provided, but the sbom cannot be decoded, the source will be ignored
+// Results will be generated and evaluated for each source that is successfully processed
+func NewReport(f Format, policy *Policy, srcs ...string) *Report {
+	if policy == nil || policy.IsEmpty() {
+		policy = DefaultPolicy()
 	}
 
-	for i, lic := range cfg.DenyLicenses {
-		cfg.DenyLicenses[i] = strings.ToLower(lic)
-	}
-	return &Report{
-		Source:            src,
-		PackageViolations: make(map[string][]string),
-		PackageCompliant:  make(map[string][]string),
-		PackageIgnored:    make(map[string][]string),
-		CheckedPackages:   make(map[string]struct{}),
-		LicenseViolations: make(map[string][]string),
-		LicenseCompliant:  make(map[string][]string),
-		LicenseIgnored:    make(map[string][]string),
-		CheckedLicenses:   make(map[string]struct{}),
-		Config:            cfg,
-	}
-}
-
-// Check will check the licenses in the given package against the config in the report
-func (r *Report) Check(packageName string, licenses []License) {
-	// track the package as checked
-	r.CheckedPackages[packageName] = struct{}{}
-
-	for _, license := range licenses {
-		if license.SPDXExpression == "" {
-			// TODO: we may want to enhance this behavior to allow for a "best guess" SPDX expression
-			log.Debugf("package: %s has a license with no SPDX license ID; found possible license: %s", packageName, license.Value)
-			r.addIgnored(packageName, license.Value)
-			continue
-		}
-
-		// if there is an SPDX expression, extract the licenses and break them into their own License objects
-		// note: we still treat expressions with OR as a potential violation that users would need to manually review
-		// TODO: grant command that will "fix" the SPDX expression to be a single license (letting the author chose)
-		// this should modify the config file in some way that the user can review and commit
-		licenses, err := spdxexp.ExtractLicenses(license.SPDXExpression)
+	format := validateFormat(f)
+	results := make([]Result, 0)
+	errs := make([]error, 0)
+	for _, src := range srcs {
+		reader, err := input.GetReader(src)
 		if err != nil {
-			log.Debugf("package: %s has a license with an invalid SPDX license ID: %s", packageName, license.SPDXExpression)
-			r.addIgnored(packageName, license.SPDXExpression)
+			errs = append(errs, fmt.Errorf("%w; could not check licenses; could not get reader for source: %s ", err, src))
 			continue
 		}
 
-		for _, lic := range licenses {
-			// check if the license is denied
-			if !IsAllowed(r.Config, lic) {
-				r.addViolation(packageName, lic)
-				continue
-			}
-			// otherwise, the license is allowed
-			r.addCompliant(packageName, lic)
+		sbomDecoders := syftFormat.NewDecoderCollection(syftFormat.Decoders()...)
+		sbom, formatID, version, err := sbomDecoders.Decode(reader)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%w; could not build result; could not decode sbom: %s ", err, src))
+			continue
+		}
+		results = append(results, NewResult(policy, src, sbom, formatID.String(), version))
+	}
+
+	return &Report{
+		Results:   results,
+		Sources:   srcs,
+		Policy:    policy,
+		Format:    format,
+		Timestamp: time.Now().Format(time.RFC3339),
+		errors:    errs,
+	}
+}
+
+// Run will call Generate on each result in the report and return the report
+func (r *Report) Run() *Report {
+	for _, result := range r.Results {
+		err := result.Generate()
+		if err != nil {
+			r.errors = append(r.errors, fmt.Errorf("%w; failed to generate result for source: %s", err, result.Source))
 		}
 	}
-	return
+	return r
 }
 
-func (r *Report) addViolation(packageName string, violatingLicenses ...string) {
-	for _, violatingLicense := range violatingLicenses {
-		r.LicenseViolations[violatingLicense] = append(r.LicenseViolations[violatingLicense], packageName)
-	}
-
-	r.PackageViolations[packageName] = append(r.PackageViolations[packageName], violatingLicenses...)
+// Render will call Render on each result in the report and return the report
+func (r *Report) Render(out io.Writer) error {
+	return errors.Join(r.errors...)
 }
 
-func (r *Report) addCompliant(packageName string, compliantLicenses ...string) {
-	for _, compliantLicense := range compliantLicenses {
-		r.LicenseCompliant[compliantLicense] = append(r.LicenseCompliant[compliantLicense], packageName)
+//func presentReports(reports []*grant.Report) error {
+//	l := list.NewWriter() // TODO: style me
+//	customStyle := list.Style{
+//		Format:           text.FormatTitle,
+//		CharItemSingle:   "",
+//		CharItemTop:      "",
+//		CharItemFirst:    "",
+//		CharItemMiddle:   "",
+//		CharItemVertical: "  ",
+//		CharItemBottom:   "",
+//		CharNewline:      "\n",
+//		LinePrefix:       "",
+//		Name:             "customStyle",
+//	}
+//	l.SetStyle(customStyle)
+//	for _, report := range reports {
+//		if len(report.PackageViolations) == 0 {
+//			l.AppendItem("No License Violations: ✅")
+//			continue
+//		}
+//
+//		l.AppendItem("License Violations:")
+//		for license, pkg := range report.LicenseViolations {
+//			l.AppendItem(fmt.Sprintf("%s %s", fmt.Sprint("-"), license))
+//			// TODO: we probably want a flag that can turn this on
+//			for _, p := range pkg {
+//				l.Indent()
+//				l.AppendItem(fmt.Sprintf("%s %s", fmt.Sprint("-"), p))
+//				l.UnIndent()
+//			}
+//			l.UnIndent()
+//		}
+//	}
+//
+//	bus.Report(l.Render())
+//	return nil
+//}
+
+// validFormat returns a valid format or the default format if the given format is invalid
+func validateFormat(f Format) Format {
+	switch f {
+	case "json":
+		return JSON
+	case "table":
+		return Table
+	default:
+		return Table
 	}
-
-	r.PackageCompliant[packageName] = append(r.PackageCompliant[packageName], compliantLicenses...)
-}
-
-func (r *Report) addIgnored(packageName string, ignoredLicenses ...string) {
-	for _, ignoredLicense := range ignoredLicenses {
-		r.LicenseIgnored[ignoredLicense] = append(r.LicenseIgnored[ignoredLicense], packageName)
-	}
-
-	r.PackageIgnored[packageName] = append(r.PackageIgnored[packageName], ignoredLicenses...)
 }

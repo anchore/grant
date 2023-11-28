@@ -1,0 +1,966 @@
+SPDXVersion: SPDX-2.3
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: alpine
+DocumentNamespace: https://anchore.com/syft/image/alpine-2e0e5850-a787-4602-8c28-b01e6e6084d6
+LicenseListVersion: 3.22
+Creator: Organization: Anchore, Inc
+Creator: Tool: syft-0.97.0
+Created: 2023-11-27T21:58:11Z
+
+##### Unpackaged files
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-4a6a0840.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-4a6a0840.rsa.pub-20cf9f534085e945
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/apk/keys/alpine-devel@lists.alpinelinux.org-4a6a0840.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-4a6a0840.rsa.pub-226fc2b8b6074102
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/apk/keys/alpine-devel@lists.alpinelinux.org-5243ef4b.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5243ef4b.rsa.pub-5d6524ee4773578a
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-5243ef4b.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5243ef4b.rsa.pub-bbeee289b81a6de1
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-524d27bb.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-524d27bb.rsa.pub-e8cbb99b9dbeb702
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/apk/keys/alpine-devel@lists.alpinelinux.org-5261cecb.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5261cecb.rsa.pub-87948a20075367f4
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-5261cecb.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5261cecb.rsa.pub-b39e246556a04c03
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-58199dcc.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-58199dcc.rsa.pub-360e05c12ed554b6
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-58cbb476.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-58cbb476.rsa.pub-d01a44792268e5f6
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-58e4f17d.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-58e4f17d.rsa.pub-c48d48e07e4c25b9
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-5e69ca50.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5e69ca50.rsa.pub-90c0673ef43c9544
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-60ac2099.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-60ac2099.rsa.pub-f6a9952fe04a43cb
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-6165ee59.rsa.pub-2fa33bb12e442749
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/apk/keys/alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-6165ee59.rsa.pub-307958a4bdf894b4
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/apk/keys/alpine-devel@lists.alpinelinux.org-61666e3f.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-61666e3f.rsa.pub-8e66c869e0661398
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-61666e3f.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-61666e3f.rsa.pub-f5e77bd57361cd38
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616a9724.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616a9724.rsa.pub-0993a63e07e545a9
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616abc23.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616abc23.rsa.pub-84b5a3118c077c5a
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616ac3bc.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616ac3bc.rsa.pub-a434518c6ae434c2
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616adfeb.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616adfeb.rsa.pub-c7135dd21091c6e8
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616ae350.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616ae350.rsa.pub-8fda3ed0d1961b6e
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616db30d.rsa.pub
+SPDXID: SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616db30d.rsa.pub-6d2a56af87faa2c1
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /bin/busybox
+SPDXID: SPDXRef-File-bin-busybox-e202ef7be7af94bd
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/busybox-paths.d/busybox
+SPDXID: SPDXRef-File-etc-busybox-paths.d-busybox-a705ce53d9d4474d
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/crontabs/root
+SPDXID: SPDXRef-File-etc-crontabs-root-9850dad7b8733f02
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/fstab
+SPDXID: SPDXRef-File-etc-fstab-506f85b9b76b9930
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/group
+SPDXID: SPDXRef-File-etc-group-2ac3006bd085faf9
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/hostname
+SPDXID: SPDXRef-File-etc-hostname-41cef59949d5f5c8
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/hosts
+SPDXID: SPDXRef-File-etc-hosts-2d9a8fa5e934baa8
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/inittab
+SPDXID: SPDXRef-File-etc-inittab-f7231334aef4225c
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/logrotate.d/acpid
+SPDXID: SPDXRef-File-etc-logrotate.d-acpid-9375f7051f97fba1
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/modprobe.d/aliases.conf
+SPDXID: SPDXRef-File-etc-modprobe.d-aliases.conf-0159b9221b8998e2
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/modprobe.d/blacklist.conf
+SPDXID: SPDXRef-File-etc-modprobe.d-blacklist.conf-8dca6592d27d8e79
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/modprobe.d/i386.conf
+SPDXID: SPDXRef-File-etc-modprobe.d-i386.conf-18a59d24c6ecd1a2
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/modprobe.d/kms.conf
+SPDXID: SPDXRef-File-etc-modprobe.d-kms.conf-1629ecb847e16269
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/modules
+SPDXID: SPDXRef-File-etc-modules-1d478710c75b2a14
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/motd
+SPDXID: SPDXRef-File-etc-motd-ab0a5b2efc0d83b6
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/network/if-up.d/dad
+SPDXID: SPDXRef-File-etc-network-if-up.d-dad-0028f6f9cd570ecc
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/nsswitch.conf
+SPDXID: SPDXRef-File-etc-nsswitch.conf-d357372a90ca7132
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/passwd
+SPDXID: SPDXRef-File-etc-passwd-8d8f419d8f464088
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/profile
+SPDXID: SPDXRef-File-etc-profile-588a0d6834114aba
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/profile.d/20locale.sh
+SPDXID: SPDXRef-File-etc-profile.d-20locale.sh-32bb1cb0e72dea3f
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/profile.d/README
+SPDXID: SPDXRef-File-etc-profile.d-README-be0ca5be9d9e0df6
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/profile.d/color_prompt.sh.disabled
+SPDXID: SPDXRef-File-etc-profile.d-color-prompt.sh.disabled-a3ad33156b1b3289
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/protocols
+SPDXID: SPDXRef-File-etc-protocols-b012ec88417e7d37
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/securetty
+SPDXID: SPDXRef-File-etc-securetty-6da069df002af5fa
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/services
+SPDXID: SPDXRef-File-etc-services-72c8d02c8efd8324
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/shadow
+SPDXID: SPDXRef-File-etc-shadow-3c9a7deb1d0266b7
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/shells
+SPDXID: SPDXRef-File-etc-shells-271c29cce586f3fc
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/ssl/certs/ca-certificates.crt
+SPDXID: SPDXRef-File-etc-ssl-certs-ca-certificates.crt-4dfa0b7cc6ad42d7
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/ssl/ct_log_list.cnf
+SPDXID: SPDXRef-File-etc-ssl-ct-log-list.cnf-c00cb9333b24c15d
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/ssl/ct_log_list.cnf.dist
+SPDXID: SPDXRef-File-etc-ssl-ct-log-list.cnf.dist-54893d0879f9fc83
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/ssl/misc/CA.pl
+SPDXID: SPDXRef-File-etc-ssl-misc-CA.pl-78284be2bba966f4
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/ssl/misc/tsget.pl
+SPDXID: SPDXRef-File-etc-ssl-misc-tsget.pl-bfa68bd5a9a3a6b3
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/ssl/openssl.cnf
+SPDXID: SPDXRef-File-etc-ssl-openssl.cnf-f8817538017cf529
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/ssl/openssl.cnf.dist
+SPDXID: SPDXRef-File-etc-ssl-openssl.cnf.dist-e596e3053e9ec56f
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/sysctl.conf
+SPDXID: SPDXRef-File-etc-sysctl.conf-734e42619a3909c3
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /etc/udhcpd.conf
+SPDXID: SPDXRef-File-etc-udhcpd.conf-96c57c4a578011fc
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /lib/apk/db/installed
+SPDXID: SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /lib/ld-musl-x86_64.so.1
+SPDXID: SPDXRef-File-lib-ld-musl-x86-64.so.1-5ad847e8604b23e1
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /lib/libapk.so.2.14.0
+SPDXID: SPDXRef-File-lib-libapk.so.2.14.0-129245a9da03e559
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /lib/libcrypto.so.3
+SPDXID: SPDXRef-File-lib-libcrypto.so.3-cb26d83cd4c10f96
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /lib/libssl.so.3
+SPDXID: SPDXRef-File-lib-libssl.so.3-7eb6eb3999549e5f
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /lib/libz.so.1.2.13
+SPDXID: SPDXRef-File-lib-libz.so.1.2.13-0b003b776e515a4d
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /lib/sysctl.d/00-alpine.conf
+SPDXID: SPDXRef-File-lib-sysctl.d-00-alpine.conf-a778fbf3d8e12100
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /sbin/apk
+SPDXID: SPDXRef-File-sbin-apk-9b57c4594cbb1250
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /sbin/ldconfig
+SPDXID: SPDXRef-File-sbin-ldconfig-f9eb672d705c4ffb
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/bin/getconf
+SPDXID: SPDXRef-File-usr-bin-getconf-7cadf888d599b703
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/bin/getent
+SPDXID: SPDXRef-File-usr-bin-getent-9c2b285b89b30224
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/bin/iconv
+SPDXID: SPDXRef-File-usr-bin-iconv-7b57b994c8fad373
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/bin/ldd
+SPDXID: SPDXRef-File-usr-bin-ldd-f96cd15718733827
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/bin/scanelf
+SPDXID: SPDXRef-File-usr-bin-scanelf-fe66356749c377eb
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/bin/ssl_client
+SPDXID: SPDXRef-File-usr-bin-ssl-client-193d485e3137505e
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/lib/engines-3/afalg.so
+SPDXID: SPDXRef-File-usr-lib-engines-3-afalg.so-5aa1f569f30b12cf
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/lib/engines-3/capi.so
+SPDXID: SPDXRef-File-usr-lib-engines-3-capi.so-9de259d9b03018b7
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/lib/engines-3/loader_attic.so
+SPDXID: SPDXRef-File-usr-lib-engines-3-loader-attic.so-d359b4b95c6101c5
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/lib/engines-3/padlock.so
+SPDXID: SPDXRef-File-usr-lib-engines-3-padlock.so-07d4d8d187bef761
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/lib/ossl-modules/legacy.so
+SPDXID: SPDXRef-File-usr-lib-ossl-modules-legacy.so-8792d9f748c697b8
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+FileName: /usr/share/udhcpc/default.script
+SPDXID: SPDXRef-File-usr-share-udhcpc-default.script-e751aa77624bdf12
+FileChecksum: SHA1: 0000000000000000000000000000000000000000
+LicenseConcluded: NOASSERTION
+FileComment: layerID: sha256:cc2447e1835a40530975ab80bb1f872fbab0f2a0faecf2ab16fbbb89b3589438
+
+##### Package: alpine
+
+PackageName: alpine
+SPDXID: SPDXRef-DocumentRoot-Image-alpine
+PackageVersion: sha256:48d9183eb12a05c99bcc0bf44a003607b8e941e1d4f41f9ad12bdcc4b5672f86
+PackageSupplier: NOASSERTION
+PackageDownloadLocation: NOASSERTION
+PrimaryPackagePurpose: CONTAINER
+FilesAnalyzed: false
+PackageChecksum: SHA256: 48d9183eb12a05c99bcc0bf44a003607b8e941e1d4f41f9ad12bdcc4b5672f86
+ExternalRef: PACKAGE-MANAGER purl pkg:oci/alpine@sha256:48d9183eb12a05c99bcc0bf44a003607b8e941e1d4f41f9ad12bdcc4b5672f86?arch=amd64&tag=latest
+
+##### Package: alpine-baselayout
+
+PackageName: alpine-baselayout
+SPDXID: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63
+PackageVersion: 3.4.3-r1
+PackageSupplier: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageOriginator: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageDownloadLocation: https://git.alpinelinux.org/cgit/aports/tree/main/alpine-baselayout
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: GPL-2.0-only
+PackageCopyrightText: NOASSERTION
+PackageDescription: Alpine base dir structure and init scripts
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine-baselayout:alpine-baselayout:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine-baselayout:alpine_baselayout:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine_baselayout:alpine-baselayout:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine_baselayout:alpine_baselayout:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine:alpine-baselayout:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine:alpine_baselayout:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/alpine-baselayout@3.4.3-r1?arch=x86_64&distro=alpine-3.18.4
+
+##### Package: alpine-baselayout-data
+
+PackageName: alpine-baselayout-data
+SPDXID: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c
+PackageVersion: 3.4.3-r1
+PackageSupplier: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageOriginator: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageDownloadLocation: https://git.alpinelinux.org/cgit/aports/tree/main/alpine-baselayout
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: GPL-2.0-only
+PackageCopyrightText: NOASSERTION
+PackageDescription: Alpine base dir structure and init scripts
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine-baselayout-data:alpine-baselayout-data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine-baselayout-data:alpine_baselayout_data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine_baselayout_data:alpine-baselayout-data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine_baselayout_data:alpine_baselayout_data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine-baselayout:alpine-baselayout-data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine-baselayout:alpine_baselayout_data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine_baselayout:alpine-baselayout-data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine_baselayout:alpine_baselayout_data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine:alpine-baselayout-data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine:alpine_baselayout_data:3.4.3-r1:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/alpine-baselayout-data@3.4.3-r1?arch=x86_64&upstream=alpine-baselayout&distro=alpine-3.18.4
+
+##### Package: alpine-keys
+
+PackageName: alpine-keys
+SPDXID: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8
+PackageVersion: 2.4-r1
+PackageSupplier: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageOriginator: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageDownloadLocation: https://alpinelinux.org
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: MIT
+PackageCopyrightText: NOASSERTION
+PackageDescription: Public keys for Alpine Linux packages
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine-keys:alpine-keys:2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine-keys:alpine_keys:2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine_keys:alpine-keys:2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine_keys:alpine_keys:2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine:alpine-keys:2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:alpine:alpine_keys:2.4-r1:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/alpine-keys@2.4-r1?arch=x86_64&distro=alpine-3.18.4
+
+##### Package: apk-tools
+
+PackageName: apk-tools
+SPDXID: SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e
+PackageVersion: 2.14.0-r2
+PackageSupplier: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageOriginator: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageDownloadLocation: https://gitlab.alpinelinux.org/alpine/apk-tools
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: GPL-2.0-only
+PackageCopyrightText: NOASSERTION
+PackageDescription: Alpine Package Keeper - package manager for alpine
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:apk-tools:apk-tools:2.14.0-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:apk-tools:apk_tools:2.14.0-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:apk_tools:apk-tools:2.14.0-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:apk_tools:apk_tools:2.14.0-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:apk:apk-tools:2.14.0-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:apk:apk_tools:2.14.0-r2:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/apk-tools@2.14.0-r2?arch=x86_64&distro=alpine-3.18.4
+
+##### Package: busybox-binsh
+
+PackageName: busybox-binsh
+SPDXID: SPDXRef-Package-apk-busybox-binsh-b8384340b5c5b8ca
+PackageVersion: 1.36.1-r2
+PackageSupplier: Person: Sören Tempel <soeren+alpine@soeren-tempel.net>
+PackageOriginator: Person: Sören Tempel <soeren+alpine@soeren-tempel.net>
+PackageDownloadLocation: https://busybox.net/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: GPL-2.0-only
+PackageCopyrightText: NOASSERTION
+PackageDescription: busybox ash /bin/sh
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:busybox-binsh:busybox-binsh:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:busybox-binsh:busybox_binsh:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:busybox_binsh:busybox-binsh:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:busybox_binsh:busybox_binsh:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:busybox:busybox-binsh:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:busybox:busybox_binsh:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/busybox-binsh@1.36.1-r2?arch=x86_64&upstream=busybox&distro=alpine-3.18.4
+
+##### Package: busybox
+
+PackageName: busybox
+SPDXID: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5
+PackageVersion: 1.36.1-r2
+PackageSupplier: Person: Sören Tempel <soeren+alpine@soeren-tempel.net>
+PackageOriginator: Person: Sören Tempel <soeren+alpine@soeren-tempel.net>
+PackageDownloadLocation: https://busybox.net/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: GPL-2.0-only
+PackageCopyrightText: NOASSERTION
+PackageDescription: Size optimized toolbox of many common UNIX utilities
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:busybox:busybox:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/busybox@1.36.1-r2?arch=x86_64&distro=alpine-3.18.4
+
+##### Package: ca-certificates-bundle
+
+PackageName: ca-certificates-bundle
+SPDXID: SPDXRef-Package-apk-ca-certificates-bundle-e6d1b63d5a046c55
+PackageVersion: 20230506-r0
+PackageSupplier: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageOriginator: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageDownloadLocation: https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: (MPL-2.0 AND MIT)
+PackageCopyrightText: NOASSERTION
+PackageDescription: Pre generated bundle of Mozilla certificates
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca-certificates-bundle:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca-certificates-bundle:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca_certificates_bundle:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca_certificates_bundle:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca-certificates:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca-certificates:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca_certificates:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca_certificates:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:mozilla:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:mozilla:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ca:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/ca-certificates-bundle@20230506-r0?arch=x86_64&upstream=ca-certificates&distro=alpine-3.18.4
+
+##### Package: libc-utils
+
+PackageName: libc-utils
+SPDXID: SPDXRef-Package-apk-libc-utils-caef79f1fe0b500a
+PackageVersion: 0.7.2-r5
+PackageSupplier: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageOriginator: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageDownloadLocation: https://alpinelinux.org
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: (BSD-2-Clause AND BSD-3-Clause)
+PackageCopyrightText: NOASSERTION
+PackageDescription: Meta package to pull in correct libc
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libc-utils:libc-utils:0.7.2-r5:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libc-utils:libc_utils:0.7.2-r5:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libc_utils:libc-utils:0.7.2-r5:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libc_utils:libc_utils:0.7.2-r5:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libc:libc-utils:0.7.2-r5:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libc:libc_utils:0.7.2-r5:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/libc-utils@0.7.2-r5?arch=x86_64&upstream=libc-dev&distro=alpine-3.18.4
+
+##### Package: libcrypto3
+
+PackageName: libcrypto3
+SPDXID: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9
+PackageVersion: 3.1.3-r0
+PackageSupplier: Person: Ariadne Conill <ariadne@dereferenced.org>
+PackageOriginator: Person: Ariadne Conill <ariadne@dereferenced.org>
+PackageDownloadLocation: https://www.openssl.org/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: Apache-2.0
+PackageCopyrightText: NOASSERTION
+PackageDescription: Crypto library from openssl
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libcrypto3:libcrypto3:3.1.3-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libcrypto3:libcrypto:3.1.3-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libcrypto:libcrypto3:3.1.3-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libcrypto:libcrypto:3.1.3-r0:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/libcrypto3@3.1.3-r0?arch=x86_64&upstream=openssl&distro=alpine-3.18.4
+
+##### Package: libssl3
+
+PackageName: libssl3
+SPDXID: SPDXRef-Package-apk-libssl3-68a3488610dc68e4
+PackageVersion: 3.1.3-r0
+PackageSupplier: Person: Ariadne Conill <ariadne@dereferenced.org>
+PackageOriginator: Person: Ariadne Conill <ariadne@dereferenced.org>
+PackageDownloadLocation: https://www.openssl.org/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: Apache-2.0
+PackageCopyrightText: NOASSERTION
+PackageDescription: SSL shared libraries
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libssl3:libssl3:3.1.3-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libssl3:libssl:3.1.3-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libssl:libssl3:3.1.3-r0:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:libssl:libssl:3.1.3-r0:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/libssl3@3.1.3-r0?arch=x86_64&upstream=openssl&distro=alpine-3.18.4
+
+##### Package: musl
+
+PackageName: musl
+SPDXID: SPDXRef-Package-apk-musl-cb940afce7c7e0d3
+PackageVersion: 1.2.4-r1
+PackageSupplier: Person: Timo Teräs <timo.teras@iki.fi>
+PackageOriginator: Person: Timo Teräs <timo.teras@iki.fi>
+PackageDownloadLocation: https://musl.libc.org/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: MIT
+PackageCopyrightText: NOASSERTION
+PackageDescription: the musl c library (libc) implementation
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl-libc:musl:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl_libc:musl:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl:musl:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/musl@1.2.4-r1?arch=x86_64&distro=alpine-3.18.4
+
+##### Package: musl-utils
+
+PackageName: musl-utils
+SPDXID: SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6
+PackageVersion: 1.2.4-r1
+PackageSupplier: Person: Timo Teräs <timo.teras@iki.fi>
+PackageOriginator: Person: Timo Teräs <timo.teras@iki.fi>
+PackageDownloadLocation: https://musl.libc.org/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: (MIT AND BSD-2-Clause AND GPL-2.0-or-later)
+PackageCopyrightText: NOASSERTION
+PackageDescription: the musl c library (libc) implementation
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl-utils:musl-utils:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl-utils:musl_utils:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl_utils:musl-utils:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl_utils:musl_utils:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl-libc:musl-utils:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl-libc:musl_utils:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl:musl-utils:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:musl:musl_utils:1.2.4-r1:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/musl-utils@1.2.4-r1?arch=x86_64&upstream=musl&distro=alpine-3.18.4
+
+##### Package: scanelf
+
+PackageName: scanelf
+SPDXID: SPDXRef-Package-apk-scanelf-701300eef0967970
+PackageVersion: 1.3.7-r1
+PackageSupplier: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageOriginator: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageDownloadLocation: https://wiki.gentoo.org/wiki/Hardened/PaX_Utilities
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: GPL-2.0-only
+PackageCopyrightText: NOASSERTION
+PackageDescription: Scan ELF binaries for stuff
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:scanelf:scanelf:1.3.7-r1:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/scanelf@1.3.7-r1?arch=x86_64&upstream=pax-utils&distro=alpine-3.18.4
+
+##### Package: ssl_client
+
+PackageName: ssl_client
+SPDXID: SPDXRef-Package-apk-ssl-client-bdbab9ee97709e2f
+PackageVersion: 1.36.1-r2
+PackageSupplier: Person: Sören Tempel <soeren+alpine@soeren-tempel.net>
+PackageOriginator: Person: Sören Tempel <soeren+alpine@soeren-tempel.net>
+PackageDownloadLocation: https://busybox.net/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: GPL-2.0-only
+PackageCopyrightText: NOASSERTION
+PackageDescription: EXternal ssl_client for busybox wget
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ssl-client:ssl-client:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ssl-client:ssl_client:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ssl_client:ssl-client:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ssl_client:ssl_client:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ssl:ssl-client:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:ssl:ssl_client:1.36.1-r2:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/ssl_client@1.36.1-r2?arch=x86_64&upstream=busybox&distro=alpine-3.18.4
+
+##### Package: zlib
+
+PackageName: zlib
+SPDXID: SPDXRef-Package-apk-zlib-c8e7fc9f117e52bc
+PackageVersion: 1.2.13-r1
+PackageSupplier: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageOriginator: Person: Natanael Copa <ncopa@alpinelinux.org>
+PackageDownloadLocation: https://zlib.net/
+FilesAnalyzed: false
+PackageSourceInfo: acquired package info from APK DB: /lib/apk/db/installed
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: Zlib
+PackageCopyrightText: NOASSERTION
+PackageDescription: A compression/decompression Library
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:zlib:zlib:1.2.13-r1:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:apk/alpine/zlib@1.2.13-r1?arch=x86_64&distro=alpine-3.18.4
+
+##### Relationships
+
+Relationship: SPDXRef-Package-apk-libssl3-68a3488610dc68e4 CONTAINS SPDXRef-File-lib-libssl.so.3-7eb6eb3999549e5f
+Relationship: SPDXRef-Package-apk-libssl3-68a3488610dc68e4 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-libssl3-68a3488610dc68e4 DEPENDENCY_OF SPDXRef-Package-apk-ssl-client-bdbab9ee97709e2f
+Relationship: SPDXRef-Package-apk-libssl3-68a3488610dc68e4 DEPENDENCY_OF SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e
+Relationship: SPDXRef-Package-apk-scanelf-701300eef0967970 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-scanelf-701300eef0967970 DEPENDENCY_OF SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6
+Relationship: SPDXRef-Package-apk-scanelf-701300eef0967970 CONTAINS SPDXRef-File-usr-bin-scanelf-fe66356749c377eb
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-modules-1d478710c75b2a14
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-shells-271c29cce586f3fc
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-group-2ac3006bd085faf9
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-hosts-2d9a8fa5e934baa8
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-shadow-3c9a7deb1d0266b7
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-hostname-41cef59949d5f5c8
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-fstab-506f85b9b76b9930
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-profile-588a0d6834114aba
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-services-72c8d02c8efd8324
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-sysctl.conf-734e42619a3909c3
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-passwd-8d8f419d8f464088
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-protocols-b012ec88417e7d37
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c DEPENDENCY_OF SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-nsswitch.conf-d357372a90ca7132
+Relationship: SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c CONTAINS SPDXRef-File-etc-inittab-f7231334aef4225c
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-usr-lib-engines-3-padlock.so-07d4d8d187bef761
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-etc-ssl-ct-log-list.cnf.dist-54893d0879f9fc83
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-usr-lib-engines-3-afalg.so-5aa1f569f30b12cf
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 DEPENDENCY_OF SPDXRef-Package-apk-libssl3-68a3488610dc68e4
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-etc-ssl-misc-CA.pl-78284be2bba966f4
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-usr-lib-ossl-modules-legacy.so-8792d9f748c697b8
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-usr-lib-engines-3-capi.so-9de259d9b03018b7
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 DEPENDENCY_OF SPDXRef-Package-apk-ssl-client-bdbab9ee97709e2f
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-etc-ssl-misc-tsget.pl-bfa68bd5a9a3a6b3
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-etc-ssl-ct-log-list.cnf-c00cb9333b24c15d
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-lib-libcrypto.so.3-cb26d83cd4c10f96
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-usr-lib-engines-3-loader-attic.so-d359b4b95c6101c5
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 DEPENDENCY_OF SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-etc-ssl-openssl.cnf.dist-e596e3053e9ec56f
+Relationship: SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9 CONTAINS SPDXRef-File-etc-ssl-openssl.cnf-f8817538017cf529
+Relationship: SPDXRef-Package-apk-busybox-binsh-b8384340b5c5b8ca OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-busybox-binsh-b8384340b5c5b8ca DEPENDENCY_OF SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63
+Relationship: SPDXRef-Package-apk-busybox-binsh-b8384340b5c5b8ca CONTAINS SPDXRef-File-bin-busybox-e202ef7be7af94bd
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-modprobe.d-aliases.conf-0159b9221b8998e2
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-modprobe.d-kms.conf-1629ecb847e16269
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-modprobe.d-i386.conf-18a59d24c6ecd1a2
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-profile.d-20locale.sh-32bb1cb0e72dea3f
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-modprobe.d-blacklist.conf-8dca6592d27d8e79
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-crontabs-root-9850dad7b8733f02
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-profile.d-color-prompt.sh.disabled-a3ad33156b1b3289
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-lib-sysctl.d-00-alpine.conf-a778fbf3d8e12100
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-motd-ab0a5b2efc0d83b6
+Relationship: SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63 CONTAINS SPDXRef-File-etc-profile.d-README-be0ca5be9d9e0df6
+Relationship: SPDXRef-Package-apk-ssl-client-bdbab9ee97709e2f CONTAINS SPDXRef-File-usr-bin-ssl-client-193d485e3137505e
+Relationship: SPDXRef-Package-apk-ssl-client-bdbab9ee97709e2f OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616a9724.rsa.pub-0993a63e07e545a9
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-4a6a0840.rsa.pub-20cf9f534085e945
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-4a6a0840.rsa.pub-226fc2b8b6074102
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-6165ee59.rsa.pub-2fa33bb12e442749
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-6165ee59.rsa.pub-307958a4bdf894b4
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-58199dcc.rsa.pub-360e05c12ed554b6
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5243ef4b.rsa.pub-5d6524ee4773578a
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616db30d.rsa.pub-6d2a56af87faa2c1
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616abc23.rsa.pub-84b5a3118c077c5a
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5261cecb.rsa.pub-87948a20075367f4
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-61666e3f.rsa.pub-8e66c869e0661398
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616ae350.rsa.pub-8fda3ed0d1961b6e
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5e69ca50.rsa.pub-90c0673ef43c9544
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616ac3bc.rsa.pub-a434518c6ae434c2
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5261cecb.rsa.pub-b39e246556a04c03
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-5243ef4b.rsa.pub-bbeee289b81a6de1
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-58e4f17d.rsa.pub-c48d48e07e4c25b9
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-616adfeb.rsa.pub-c7135dd21091c6e8
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-58cbb476.rsa.pub-d01a44792268e5f6
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-524d27bb.rsa.pub-e8cbb99b9dbeb702
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-61666e3f.rsa.pub-f5e77bd57361cd38
+Relationship: SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8 CONTAINS SPDXRef-File-...alpine-devel-lists.alpinelinux.org-60ac2099.rsa.pub-f6a9952fe04a43cb
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 CONTAINS SPDXRef-File-etc-network-if-up.d-dad-0028f6f9cd570ecc
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 CONTAINS SPDXRef-File-etc-securetty-6da069df002af5fa
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 CONTAINS SPDXRef-File-etc-logrotate.d-acpid-9375f7051f97fba1
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 CONTAINS SPDXRef-File-etc-udhcpd.conf-96c57c4a578011fc
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 CONTAINS SPDXRef-File-etc-busybox-paths.d-busybox-a705ce53d9d4474d
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 DEPENDENCY_OF SPDXRef-Package-apk-busybox-binsh-b8384340b5c5b8ca
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 CONTAINS SPDXRef-File-bin-busybox-e202ef7be7af94bd
+Relationship: SPDXRef-Package-apk-busybox-c4df3b964f3b98b5 CONTAINS SPDXRef-File-usr-share-udhcpc-default.script-e751aa77624bdf12
+Relationship: SPDXRef-Package-apk-zlib-c8e7fc9f117e52bc CONTAINS SPDXRef-File-lib-libz.so.1.2.13-0b003b776e515a4d
+Relationship: SPDXRef-Package-apk-zlib-c8e7fc9f117e52bc OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-zlib-c8e7fc9f117e52bc DEPENDENCY_OF SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e
+Relationship: SPDXRef-Package-apk-libc-utils-caef79f1fe0b500a OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 CONTAINS SPDXRef-File-lib-ld-musl-x86-64.so.1-5ad847e8604b23e1
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-libssl3-68a3488610dc68e4
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-scanelf-701300eef0967970
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-ssl-client-bdbab9ee97709e2f
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-busybox-c4df3b964f3b98b5
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-zlib-c8e7fc9f117e52bc
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e
+Relationship: SPDXRef-Package-apk-musl-cb940afce7c7e0d3 DEPENDENCY_OF SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e
+Relationship: SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6 CONTAINS SPDXRef-File-usr-bin-iconv-7b57b994c8fad373
+Relationship: SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6 CONTAINS SPDXRef-File-usr-bin-getconf-7cadf888d599b703
+Relationship: SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6 CONTAINS SPDXRef-File-usr-bin-getent-9c2b285b89b30224
+Relationship: SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6 DEPENDENCY_OF SPDXRef-Package-apk-libc-utils-caef79f1fe0b500a
+Relationship: SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6 CONTAINS SPDXRef-File-usr-bin-ldd-f96cd15718733827
+Relationship: SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6 CONTAINS SPDXRef-File-sbin-ldconfig-f9eb672d705c4ffb
+Relationship: SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e CONTAINS SPDXRef-File-lib-libapk.so.2.14.0-129245a9da03e559
+Relationship: SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e CONTAINS SPDXRef-File-sbin-apk-9b57c4594cbb1250
+Relationship: SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-ca-certificates-bundle-e6d1b63d5a046c55 CONTAINS SPDXRef-File-etc-ssl-certs-ca-certificates.crt-4dfa0b7cc6ad42d7
+Relationship: SPDXRef-Package-apk-ca-certificates-bundle-e6d1b63d5a046c55 OTHER SPDXRef-File-lib-apk-db-installed-a01260b4bb11b576
+RelationshipComment: evident-by: indicates the package's existence is evident by the given file
+Relationship: SPDXRef-Package-apk-ca-certificates-bundle-e6d1b63d5a046c55 DEPENDENCY_OF SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-alpine-baselayout-baca676b3df82a63
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-alpine-baselayout-data-85e34641ddeca26c
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-alpine-keys-c3e1269ff75aa1d8
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-apk-tools-e54b9e6921a9482e
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-busybox-c4df3b964f3b98b5
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-busybox-binsh-b8384340b5c5b8ca
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-ca-certificates-bundle-e6d1b63d5a046c55
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-libc-utils-caef79f1fe0b500a
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-libcrypto3-99fa7f052e54ddb9
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-libssl3-68a3488610dc68e4
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-musl-cb940afce7c7e0d3
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-musl-utils-d4ae8261cf0671f6
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-scanelf-701300eef0967970
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-ssl-client-bdbab9ee97709e2f
+Relationship: SPDXRef-DocumentRoot-Image-alpine CONTAINS SPDXRef-Package-apk-zlib-c8e7fc9f117e52bc
+Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-DocumentRoot-Image-alpine
