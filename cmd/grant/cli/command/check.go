@@ -2,24 +2,21 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"slices"
 
-	"github.com/jedib0t/go-pretty/v6/list"
-	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grant/cmd/grant/cli/option"
 	"github.com/anchore/grant/grant"
-	"github.com/anchore/grant/internal/bus"
 	"github.com/anchore/grant/internal/input"
-	"github.com/anchore/grant/internal/log"
-	"github.com/anchore/syft/syft/sbom"
 )
 
 type CheckConfig struct {
 	Config       string `json:"config" yaml:"config" mapstructure:"config"`
+	Format       string `json:"format" yaml:"format" mapstructure:"format"`
 	option.Check `json:"" yaml:",inline" mapstructure:",squash"`
 }
 
@@ -47,71 +44,21 @@ func Check(app clio.Application) *cobra.Command {
 // TODO: upgrade the ui a bit with monitors for SBOM generation and license checking
 // Progress can be incremented used on a per package basis when grant.Check is called
 func runCheck(cfg CheckConfig, sources []string) (errs error) {
-	var reports []*grant.Report
 	// check if user provided source by stdin
 	// note: cat sbom.json | grant check spdx.json - is supported
-	// it will generate reports for both stdin and spdx.json
+	// it will generate results for both stdin and spdx.json
 	isStdin, _ := input.IsStdinPipeOrRedirect()
 	if isStdin && !slices.Contains(sources, "-") {
 		sources = append(sources, "-")
 	}
 
-	for _, src := range sources {
-		// TODO: branch into source detection here to generate the sbom
-		reader, err := input.GetReader(src)
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not get reader for source: %s ", src))
-		}
-
-		report := grant.NewReport(fmt.Sprintf("%s %s", sbom.Source.Name, sbom.Source.Version), cfg.Check)
-		for p := range sbom.Artifacts.Packages.Enumerate() {
-			log.Debugf("checking package: %s for non compliant licenses...", p.Name)
-			licenses := grant.ConvertSyftLicenses(p.Licenses)
-			report.Check(p.Name, licenses)
-		}
-		reports = append(reports, report)
+	policy, err := grant.NewPolicy(cfg.AllowLicenses, cfg.DenyLicenses)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
 	}
 
-	// TODO: we need to return a non-zero exit code if any of the reports have a failure
-	// Reports should have a custom render function for the default command usage
-	// A machine readable json output should be available as well
-	return presentReports(reports)
-}
-
-func presentReports(reports []*grant.Report) error {
-	l := list.NewWriter() // TODO: style me
-	customStyle := list.Style{
-		Format:           text.FormatTitle,
-		CharItemSingle:   "",
-		CharItemTop:      "",
-		CharItemFirst:    "",
-		CharItemMiddle:   "",
-		CharItemVertical: "  ",
-		CharItemBottom:   "",
-		CharNewline:      "\n",
-		LinePrefix:       "",
-		Name:             "customStyle",
-	}
-	l.SetStyle(customStyle)
-	for _, report := range reports {
-		if len(report.PackageViolations) == 0 {
-			l.AppendItem("No License Violations: ✅")
-			continue
-		}
-
-		l.AppendItem("License Violations:")
-		for license, pkg := range report.LicenseViolations {
-			l.AppendItem(fmt.Sprintf("%s %s", fmt.Sprint("-"), license))
-			// TODO: we probably want a flag that can turn this on
-			for _, p := range pkg {
-				l.Indent()
-				l.AppendItem(fmt.Sprintf("%s %s", fmt.Sprint("-"), p))
-				l.UnIndent()
-			}
-			l.UnIndent()
-		}
-	}
-
-	bus.Report(l.Render())
-	return nil
+	// TODO: we need to support the ability to write the report to a file without redirecting stdout
+	return grant.NewReport(grant.Format(cfg.Format), policy, sources...).
+		Run().
+		Render(os.Stdout)
 }

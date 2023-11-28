@@ -12,6 +12,7 @@ func Test_NewReport(t *testing.T) {
 		name           string
 		srcs           []string
 		policy         *Policy
+		format         Format
 		want           *Report
 		wantErr        bool
 		compareOptions []cmp.Option
@@ -20,6 +21,7 @@ func Test_NewReport(t *testing.T) {
 			name:   "grant report constructor builds a new report, with the default policy, for a single source",
 			srcs:   []string{"fixtures/test.spdx.json"},
 			policy: DefaultPolicy(),
+			format: Table,
 			want: &Report{
 				Sources: []string{"fixtures/test.spdx.json"},
 				Policy:  DefaultPolicy(),
@@ -47,6 +49,7 @@ func Test_NewReport(t *testing.T) {
 			name:   "grant report constructor builds a new report, with the default policy, for multiple sources",
 			srcs:   []string{"fixtures/test.spdx.json", "fixtures/alpine.spdx"},
 			policy: DefaultPolicy(),
+			format: Table,
 			want: &Report{
 				Sources: []string{"fixtures/test.spdx.json", "fixtures/alpine.spdx"},
 				Policy:  DefaultPolicy(),
@@ -84,7 +87,7 @@ func Test_NewReport(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewReport(tt.policy, tt.srcs...)
+			got := NewReport(tt.format, tt.policy, tt.srcs...)
 			if got == nil {
 				t.Errorf("NewReport() = %v, want %v", got, tt.want)
 			}

@@ -1,6 +1,6 @@
 module github.com/anchore/grant
 
-go 1.21.1
+go 1.21.3
 
 require (
 	github.com/anchore/bubbly v0.0.0-20230801194016-acdb4981b461
