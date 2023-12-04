@@ -8,27 +8,28 @@ import (
 
 // Policy is a structure of glob patterns that represent either allowed or denied licenses
 type Policy struct {
-	AllowLicenses []glob.Glob `json:"allowLicenses" yaml:"allowLicenses" mapstructure:"allowLicenses"`
-	DenyLicenses  []glob.Glob `json:"denyLicenses" yaml:"denyLicenses" mapstructure:"denyLicenses"`
-	denyAll       bool
-	allowAll      bool
+	AllowLicenses  []glob.Glob `json:"allowLicenses" yaml:"allowLicenses" mapstructure:"allowLicenses"`
+	DenyLicenses   []glob.Glob `json:"denyLicenses" yaml:"denyLicenses" mapstructure:"denyLicenses"`
+	IgnoreLicenses []glob.Glob `json:"ignoreLicenses" yaml:"ignoreLicenses" mapstructure:"ignoreLicenses"`
+	denyAll        bool
+	allowAll       bool
 }
 
 // DefaultPolicy returns a policy that denies all licenses
-func DefaultPolicy() *Policy {
-	return &Policy{
+func DefaultPolicy() Policy {
+	return Policy{
 		AllowLicenses: make([]glob.Glob, 0),
 		DenyLicenses: []glob.Glob{
 			glob.MustCompile("*"),
 		},
-		denyAll: true,
+		IgnoreLicenses: make([]glob.Glob, 0),
+		denyAll:        true,
 	}
 }
 
 // NewPolicy builds a policy from lists of allow and deny glob patterns
 // It lower cases all patterns to make matching against the spdx license set case-insensitive
-// The grant.Result.Evaluate() function found under grant/result.go will lower case all licenses for matching
-func NewPolicy(allowLicenses []string, denyLicenses []string) (*Policy, error) {
+func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (Policy, error) {
 	if len(allowLicenses) == 0 && len(denyLicenses) == 0 {
 		return DefaultPolicy(), nil
 	}
@@ -43,7 +44,7 @@ func NewPolicy(allowLicenses []string, denyLicenses []string) (*Policy, error) {
 		deny = strings.ToLower(deny)
 		denyGlob, err := glob.Compile(deny)
 		if err != nil {
-			return nil, err
+			return Policy{}, err
 		}
 		denyGlobs = append(denyGlobs, denyGlob)
 		if deny == "*" {
@@ -56,7 +57,7 @@ func NewPolicy(allowLicenses []string, denyLicenses []string) (*Policy, error) {
 		allow = strings.ToLower(allow)
 		allowGlob, err := glob.Compile(allow)
 		if err != nil {
-			return nil, err
+			return Policy{}, err
 		}
 		allowGlobs = append(allowGlobs, allowGlob)
 		if allow == "*" {
@@ -64,7 +65,17 @@ func NewPolicy(allowLicenses []string, denyLicenses []string) (*Policy, error) {
 		}
 	}
 
-	return &Policy{
+	ignoreGlobs := make([]glob.Glob, 0)
+	for _, ignore := range ignoreLicenses {
+		ignore = strings.ToLower(ignore)
+		ignoreGlob, err := glob.Compile(ignore)
+		if err != nil {
+			return Policy{}, err
+		}
+		ignoreGlobs = append(ignoreGlobs, ignoreGlob)
+	}
+
+	return Policy{
 		AllowLicenses: allowGlobs,
 		DenyLicenses:  denyGlobs,
 		denyAll:       denyAll,
@@ -77,11 +88,12 @@ func (p Policy) IsEmpty() bool {
 	return len(p.AllowLicenses) == 0 && len(p.DenyLicenses) == 0
 }
 
-// Deny returns true if the given license is denied by the policy
+// IsDenied returns true if the given license is denied by the policy
 // If the policy has a "*" deny all, then the allow list is checked first
 // If the policy has no "*" deny all, then the deny list is checked first
 // If the license is not denied by the policy, but deny all is not set, then the allow list is checked
-func (p Policy) Deny(license License) bool {
+// TODO: how does this work with ignore?
+func (p Policy) IsDenied(license License) bool {
 	// deny is superior to allow
 	if p.denyAll && p.allowAll {
 		return true
@@ -125,7 +137,7 @@ func (p Policy) Deny(license License) bool {
 	return false
 }
 
-// Allow is a convenience function for library consumers
-func (p Policy) Allow(license License) bool {
-	return !p.Deny(license)
+// IsAllowed is a convenience function for library consumers
+func (p Policy) IsAllowed(license License) bool {
+	return !p.IsDenied(license)
 }

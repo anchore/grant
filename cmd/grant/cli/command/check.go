@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grant/cmd/grant/cli/option"
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/grant/report"
 	"github.com/anchore/grant/internal/input"
 )
 
@@ -58,7 +59,7 @@ func runCheck(cfg CheckConfig, sources []string) (errs error) {
 	}
 
 	// TODO: we need to support the ability to write the report to a file without redirecting stdout
-	return grant.NewReport(grant.Format(cfg.Format), policy, sources...).
+	return report.NewReport(report.Format(cfg.Format), policy, sources...).
 		Run().
 		Render(os.Stdout)
 }

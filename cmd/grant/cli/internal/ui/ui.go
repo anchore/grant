@@ -150,7 +150,8 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		for _, newModel := range m.handler.Handle(msg) {
+		handlerModels, _ := m.handler.Handle(msg)
+		for _, newModel := range handlerModels {
 			if newModel == nil {
 				continue
 			}

@@ -122,12 +122,12 @@ tasks:
       - build
     deps: [tools]
     cmds:
-      - silent: true
-        cmd: |        
-          echo "dist: {{ .SNAPSHOT_DIR }}" > {{ .TMP_DIR }}/goreleaser.yaml
+      - cmd: "mkdir -p {{ .TMP_DIR }}"
+        silent: true
+      - cmd: |
           cat .goreleaser.yaml >> {{ .TMP_DIR }}/goreleaser.yaml
-
-      - "{{ .TOOL_DIR }}/goreleaser release --clean --skip=publish --skip=sign --snapshot --config {{ .TMP_DIR }}/goreleaser.yaml"
+          echo "dist: {{ .SNAPSHOT_DIR }}" >> {{ .TMP_DIR }}/goreleaser.yaml
+      - cmd: "{{ .TOOL_DIR }}/goreleaser release --clean --skip=publish --skip=sign --snapshot --config {{ .TMP_DIR }}/goreleaser.yaml"
 
 
   ## TODO Release targets #################################
