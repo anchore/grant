@@ -1,12 +1,14 @@
 #.grant.yaml
-precedence: [deny, allow]
-deny-licenses: "*"
-allow-licenses:
- - MPL-2.0
- - BSD-2-Clause
- - BSD-3-Clause
- - GPL-2.0-Or-Later+
- - Zlib
- - MIT
- - Apache-2.0
+format: json
+import:
+ - ../local-policy.json
+ - git@githubcom:anchore/central-policy.git@main#./org/*.policy.json
+ - allowed: []
+   denied: []
+# grant -o json alpine:latest=osi.arrpoved.json enterprisesystemsengineering:latest=special.approved.json
+# grant myimage:latest ./local-policy.json
 
+# .gitignore vs .gitconfig distinction (don't mix the what and how)
+
+# .grantpolicy.yaml
+# .grantpolicy/*.yaml

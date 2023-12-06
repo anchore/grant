@@ -1,6 +1,8 @@
 package option
 
-import "github.com/anchore/grant/grant"
+import (
+	"github.com/anchore/grant/grant"
+)
 
 type Check struct {
 	AllowLicenses []string `json:"allow-licenses" yaml:"allow-licenses" mapstructure:"allow-licenses"`

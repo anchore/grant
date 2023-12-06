@@ -16,14 +16,14 @@ import (
 
 var _ tea.Model = (*checkViewModel)(nil)
 
-func (m *Handler) handleCLICheckCmdStarted(e partybus.Event) []tea.Model {
+func (m *Handler) handleCLICheckCmdStarted(e partybus.Event) ([]tea.Model, tea.Cmd) {
 	sourceNames, prog, err := event.ParseCheckCommandStarted(e)
 	if err != nil {
 		log.WithFields("error", err).Warn("unable to parse event")
-		return nil
+		return nil, nil
 	}
 
-	return []tea.Model{newCheckViewModel(sourceNames, prog, m.WindowSize)}
+	return []tea.Model{newCheckViewModel(sourceNames, prog, m.WindowSize)}, nil
 }
 
 type checkViewModel struct {

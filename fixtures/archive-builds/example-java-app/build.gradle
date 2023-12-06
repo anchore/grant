@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'application'
+}
+
+mainClassName = 'hello.HelloWorld'
+
+dependencyLocking {
+    lockAllConfigurations()
+}
+// tag::repositories[]
+repositories {
+    mavenCentral()
+}
+// end::repositories[]
+
+// tag::dependencies[]
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+    implementation "joda-time:joda-time:2.2"
+    testImplementation "junit:junit:4.12"
+}
+// end::dependencies[]
+
+// tag::jar[]
+jar {
+    archivesBaseName = 'example-java-app-gradle'
+    version =  '0.1.0'
+    manifest {
+        attributes(
+        'Main-Class': 'hello.HelloWorld'
+        )
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+// end::jar[]
+
+// tag::wrapper[]
+// end::wrapper[]
+
+// to invoke: gradle resolveAndLockAll --write-locks
+tasks.register('resolveAndLockAll') {
+    notCompatibleWithConfigurationCache("Filters configurations at execution time")
+    doFirst {
+        assert gradle.startParameter.writeDependencyLocks
+    }
+    doLast {
+        configurations.findAll {
+            // Add any custom filtering on the configurations to be resolved
+            it.canBeResolved
+        }.each { it.resolve() }
+    }
+}
