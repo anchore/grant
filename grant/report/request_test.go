@@ -33,13 +33,16 @@ func Test_determineRequest(t *testing.T) {
 		},
 		{
 			name:            "grant can determine a request for an archive (single sbom)",
-			userRequest:     "../../fixtures/java.tar.gz",
+			userRequest:     "../../fixtures/archive-builds/packages/example-java-app-maven-0.1.0.zip",
 			expectedSBOM:    1,
 			expectedLicense: 0,
 		},
-		//{
-		//	name: "grant can determine a request for a container image (single sbom)",
-		//},
+		{
+			name:            "grant can determine a request for a container image (single sbom)",
+			userRequest:     "alpine:latest",
+			expectedSBOM:    1,
+			expectedLicense: 0,
+		},
 	}
 
 	for _, tt := range tests {

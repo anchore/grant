@@ -13,9 +13,13 @@ import (
 	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
 
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal"
 	"github.com/anchore/grant/internal/log"
+	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/format"
+	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
+	"github.com/anchore/syft/syft/source"
 )
 
 func handleFile(path string) (r *requestBreakdown, err error) {
@@ -120,7 +124,42 @@ func handleDir(root string) (r *requestBreakdown, err error) {
 }
 
 func handleContainer(image string) (r *requestBreakdown, err error) {
-	return r, err
+	detection, err := source.Detect("alpine:latest", source.DefaultDetectConfig())
+	if err != nil {
+		return nil, err
+	}
+
+	src, err := detection.NewSource(source.DefaultDetectionSourceConfig())
+	if err != nil {
+		return nil, err
+	}
+
+	collection, relationships, release, err := syft.CatalogPackages(src, cataloger.DefaultConfig())
+	if err != nil {
+		return nil, err
+	}
+
+	sb := sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			Packages:          collection,
+			LinuxDistribution: release,
+		},
+		Relationships: relationships,
+		Source:        src.Describe(),
+		Descriptor: sbom.Descriptor{
+			Name:    internal.ApplicationName, // Your Program rather than syft
+			Version: internal.ApplicationVersion,
+			// the application configuration can be persisted here
+			Configuration: map[string]string{
+				"config-key": "config-value",
+			},
+		},
+	}
+
+	return &requestBreakdown{
+		sboms:    []sbom.SBOM{sb},
+		licenses: make([]grant.License, 0),
+	}, nil
 }
 
 func isDirectory(path string) bool {

@@ -60,7 +60,7 @@ func (i *evalIndex) GetViolations() []Violation {
 		for _, pkg := range packages {
 			violations = append(violations, Violation{
 				License: license,
-				Package: &pkg,
+				Package: pkg,
 			})
 		}
 	}

@@ -27,7 +27,7 @@ type EvaluationConfig struct {
 type Violation struct {
 	RequestID string
 	License   grant.License
-	Package   *grant.Package
+	Package   grant.Package
 	Reason    string
 }
 
