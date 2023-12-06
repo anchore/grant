@@ -32,14 +32,14 @@ import (
 // TODO: - a path to a directory containing container images and sbom files
 type Report struct {
 	ReportID string
-	Requests []Request `json:"results" yaml:"results"`
-
+	//Requests []Request `json:"results" yaml:"results"`
+	Results []Result
 	// Evaluation is a pass/fail for the entire report;
 	// It rolls up violations from all the requests
-	Evaluation Evaluation `json:"evaluation" yaml:"evaluation"`
-	Format     Format     `json:"format" yaml:"format"`
-	Timestamp  string     `json:"timestamp" yaml:"timestamp"`
-	errors     []error
+	//Evaluation Evaluation `json:"evaluation" yaml:"evaluation"`
+	Format    Format `json:"format" yaml:"format"`
+	Timestamp string `json:"timestamp" yaml:"timestamp"`
+	errors    []error
 }
 
 // NewReport will generate a new report for the given format.

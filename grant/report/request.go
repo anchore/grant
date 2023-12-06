@@ -14,6 +14,10 @@ import (
 
 type RequestID string
 
+// Report
+// userRequest
+//
+//	[]Evaluation}
 type Request struct {
 	RequestID RequestID
 
@@ -26,8 +30,8 @@ type Request struct {
 	// - ./image.tar.gz Generated SBOM
 	UserInput string
 
-	// Evaluation is a pass/fail for the entire request;
-	Evaluations []Evaluation
+	//// Evaluation is a pass/fail for the entire request;
+	//Evalutations []Evaluation
 }
 
 // NewRequest will generate a new request for the given userInput
@@ -38,12 +42,15 @@ type Request struct {
 // - a path to an archive
 // - a path to a directory (with any of the above)
 // - or some container image
+
+// type Result []Evaluation
 func NewRequest(userInput string, p grant.Policy) (r Request, err error) {
-	evaluations := make([]Evaluation, 0)
+	determinations := make([]Determination, 0)
 
 	// TODO: we need to inject the user config here and convert it into a evaluation config
 	ec := EvaluationConfig{Policy: p}
 
+	// Report contains requests
 	requestBreakdown, err := determineRequest(userInput)
 	if err != nil {
 		log.Errorf("unable to determine SBOM or licenses for %s: %+v", userInput, err)
@@ -53,18 +60,18 @@ func NewRequest(userInput string, p grant.Policy) (r Request, err error) {
 	// results are broken down into SBOMs (pkg -> license)
 	// or raw licenses that were detected with no package association
 	for _, sb := range requestBreakdown.sboms {
-		evaluations = append(evaluations, NewEvaluationFromSBOM(ec, sb))
+		determinations = append(determinations, NewDeterminationFromSBOM(ec, sb))
 	}
 
 	for _, license := range requestBreakdown.licenses {
-		evaluations = append(evaluations, NewEvaluationFromLicense(ec, license))
+		determinations = append(determinations, NewDeterminationFromLicense(ec, license))
 	}
 
 	// TODO: generate stable request ID
 	return Request{
-		RequestID:   "",
-		UserInput:   userInput,
-		Evaluations: evaluations,
+		RequestID:      "",
+		UserInput:      userInput,
+		Determinations: determinations,
 	}, nil
 }
 
