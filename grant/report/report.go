@@ -48,7 +48,7 @@ type Report struct {
 // If no requests are provided, an empty report will be generated
 // If a request is provided, but the sbom cannot be generated, the source will be ignored
 // Results will be generated and evaluated for each user request that is successfully processed
-func NewReport(f Format, p grant.Policy, userRequest ...string) *Report {
+func NewReport(f Format, p grant.Policy, userRequests ...string) *Report {
 	if p.IsEmpty() {
 		p = grant.DefaultPolicy()
 	}
@@ -56,9 +56,13 @@ func NewReport(f Format, p grant.Policy, userRequest ...string) *Report {
 
 	requests := make([]Request, 0)
 	errs := make([]error, 0)
-	for _, src := range userRequest {
-		// TODO: we need to come up with a way to map policy to request
-		requests = append(requests, NewRequest(src, p))
+	for _, r := range userRequests {
+		request, err := NewRequest(r, p)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		requests = append(requests, request)
 	}
 
 	return &Report{

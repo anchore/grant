@@ -8,7 +8,8 @@ type LicenseID string
 // Locations are the relative paths for a license that show evidence of its detection.
 type License struct {
 	// SPDXExpression is the SPDX expression for the license
-	SPDXExpression string `json:"spdxExpression"`
+	ID             LicenseID `json:"id"`
+	SPDXExpression string    `json:"spdxExpression"`
 	// Name is the name of the individual license if SPDXExpression is unset
 	Name string `json:"name"`
 	// Contents are the text of the license

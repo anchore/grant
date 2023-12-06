@@ -16,21 +16,21 @@ type evalIndex struct {
 	packages map[grant.PackageID]grant.Package
 
 	// packageViolations and their licenses that violated the policy
-	packageViolations map[grant.PackageID][]grant.License `json:"package_violations" yaml:"violations"`
+	packageViolations map[grant.PackageID][]grant.License
 	// compliantPackages and their licenses that were compliant to the policy
-	compliantPackages map[grant.PackageID][]grant.License `json:"compliant_packages" yaml:"compliant"`
+	compliantPackages map[grant.PackageID][]grant.License
 	// ignoredPackages tracks packages with licenses that were not SPDX compliant
-	ignoredPackages map[grant.PackageID][]grant.License `json:"ignored_packages" yaml:"ignored"`
+	ignoredPackages map[grant.PackageID][]grant.License
 
 	licenses map[grant.LicenseID]grant.License
 
 	// licenseViolations not allowed by the policy and the packages that contained them
 	// The key for these is the all lowercase SPDX license ID found in internal/spdxlicense/license.go
-	licenseViolations map[grant.LicenseID][]grant.Package `json:"license_violations" yaml:"license_violations"`
+	licenseViolations map[grant.LicenseID][]grant.Package
 	// compliantLicenses that were allowed by the policy and the packages that contained them
-	compliantLicenses map[grant.LicenseID][]grant.Package `json:"compliant_licenses" yaml:"license_compliant"`
+	compliantLicenses map[grant.LicenseID][]grant.Package
 	// ignoredLicenses that were not SPDX compliant and the packages that contained them
-	ignoredLicenses map[grant.LicenseID][]grant.Package `json:"ignored_licenses" yaml:"license_ignored"`
+	ignoredLicenses map[grant.LicenseID][]grant.Package
 
 	// policy is the policy used to generate this evaluation
 	policy grant.Policy
@@ -91,9 +91,30 @@ func newEvalIndex(p grant.Policy) *evalIndex {
 }
 
 func (i *evalIndex) addViolation(grantPkg grant.Package, license grant.License) {
+	if _, ok := i.packages[grantPkg.ID]; !ok {
+		i.packages[grantPkg.ID] = grantPkg
+	}
+	if _, ok := i.licenses[license.ID]; !ok {
+		i.licenses[license.ID] = license
+	}
+
+	i.packageViolations[grantPkg.ID] = append(i.packageViolations[grantPkg.ID], license)
+	i.licenseViolations[license.ID] = append(i.licenseViolations[license.ID], grantPkg)
 }
 
 func (i *evalIndex) addCompliant(grantPkg grant.Package, license *grant.License) {
+	i.packages[grantPkg.ID] = grantPkg
+	if license != nil {
+		i.licenses[license.ID] = *license
+		i.compliantPackages[grantPkg.ID] = append(i.compliantPackages[grantPkg.ID], *license)
+		i.compliantLicenses[license.ID] = append(i.compliantLicenses[license.ID], grantPkg)
+		return
+	}
+
+	// no license was provided, so we'll just add the package
+	if _, ok := i.compliantPackages[grantPkg.ID]; !ok {
+		i.compliantPackages[grantPkg.ID] = make([]grant.License, 0)
+	}
 }
 
 // Note: if a license has been ignored, it means the SPDX expression was invalid
@@ -111,12 +132,13 @@ func evalFromSBOM(ec EvaluationConfig, s sbom.SBOM) *evalIndex {
 			index.addCompliant(grantPkg, nil)
 		}
 		for _, license := range grantPkg.Licenses {
-			// TODO: check if the license is in the ignore list
+			// TODO: check if the license is in the config ignore list
 			// TODO: check if the config wants us to check for non-SPDX licenses
 			if !license.IsSPDX() {
 				index.addIgnored(grantPkg, license)
 				continue
 			}
+
 			if ec.Policy.IsDenied(license) {
 				index.addViolation(grantPkg, license)
 				continue

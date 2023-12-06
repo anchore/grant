@@ -76,10 +76,11 @@ func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (Policy, er
 	}
 
 	return Policy{
-		AllowLicenses: allowGlobs,
-		DenyLicenses:  denyGlobs,
-		denyAll:       denyAll,
-		allowAll:      allowAll,
+		AllowLicenses:  allowGlobs,
+		DenyLicenses:   denyGlobs,
+		IgnoreLicenses: ignoreGlobs,
+		denyAll:        denyAll,
+		allowAll:       allowAll,
 	}, nil
 }
 

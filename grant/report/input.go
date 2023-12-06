@@ -124,22 +124,36 @@ func handleDir(root string) (r *requestBreakdown, err error) {
 }
 
 func handleContainer(image string) (r *requestBreakdown, err error) {
+	sb, err := generateSyftSBOM(image)
+	if err != nil {
+		// We bail here since we can't generate an SBOM for the image
+		return nil, err
+	}
+
+	return &requestBreakdown{
+		sboms:    []sbom.SBOM{sb},
+		licenses: make([]grant.License, 0),
+	}, nil
+}
+
+// TODO: is the default syft config good enough here?
+// we definitely need at least all the non default license magic turned on
+func generateSyftSBOM(path string) (sb sbom.SBOM, err error) {
 	detection, err := source.Detect("alpine:latest", source.DefaultDetectConfig())
 	if err != nil {
-		return nil, err
+		return sb, err
 	}
 
 	src, err := detection.NewSource(source.DefaultDetectionSourceConfig())
 	if err != nil {
-		return nil, err
+		return sb, err
 	}
-
 	collection, relationships, release, err := syft.CatalogPackages(src, cataloger.DefaultConfig())
 	if err != nil {
-		return nil, err
+		return sb, err
 	}
 
-	sb := sbom.SBOM{
+	sb = sbom.SBOM{
 		Artifacts: sbom.Artifacts{
 			Packages:          collection,
 			LinuxDistribution: release,
@@ -147,19 +161,11 @@ func handleContainer(image string) (r *requestBreakdown, err error) {
 		Relationships: relationships,
 		Source:        src.Describe(),
 		Descriptor: sbom.Descriptor{
-			Name:    internal.ApplicationName, // Your Program rather than syft
+			Name:    internal.ApplicationName,
 			Version: internal.ApplicationVersion,
-			// the application configuration can be persisted here
-			Configuration: map[string]string{
-				"config-key": "config-value",
-			},
 		},
 	}
-
-	return &requestBreakdown{
-		sboms:    []sbom.SBOM{sb},
-		licenses: make([]grant.License, 0),
-	}, nil
+	return sb, nil
 }
 
 func isDirectory(path string) bool {
