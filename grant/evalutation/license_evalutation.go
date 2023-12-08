@@ -62,19 +62,27 @@ func (le LicenseEvaluations) Packages() []grant.Package {
 
 func (le LicenseEvaluations) Licenses() []grant.License {
 	licenses := make([]grant.License, 0)
+	licenseMap := make(map[string]struct{})
 	// get the set of unique licenses from the list...
 	for _, e := range le {
-		licenses = append(licenses, e.License)
+		if _, ok := licenseMap[e.License.LicenseID]; !ok {
+			licenseMap[e.License.LicenseID] = struct{}{}
+			licenses = append(licenses, e.License)
+		}
 	}
 	return licenses
 }
 
 func (le LicenseEvaluations) FailedLicenses() []grant.License {
 	licenses := make([]grant.License, 0)
+	licenseMap := make(map[string]struct{})
 	// get the set of unique licenses from the list...
 	for _, e := range le {
 		if !e.Pass {
-			licenses = append(licenses, e.License)
+			if _, ok := licenseMap[e.License.LicenseID]; !ok && e.License.LicenseID != "" {
+				licenseMap[e.License.LicenseID] = struct{}{}
+				licenses = append(licenses, e.License)
+			}
 		}
 	}
 	return licenses
