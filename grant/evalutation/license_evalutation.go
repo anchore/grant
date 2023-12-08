@@ -2,84 +2,94 @@ package evalutation
 
 import (
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 func NewLicenseEvaluations(ec EvaluationConfig, c grant.Case) LicenseEvaluations {
 	evaluations := make([]LicenseEvaluation, 0)
-	// TODO: probably want to use some concurrency here
 	for _, sb := range c.SBOMS {
-		for pkg := range sb.Artifacts.Packages.Enumerate() {
-			grantPkg := convertSyftPackage(pkg)
-			// since we use syft as a library to generate the sbom we need to convert its packages/licenses to grant types
-			if len(grantPkg.Licenses) == 0 {
-				evaluations = append(evaluations, LicenseEvaluation{
-					License: grant.License{},
-					Package: grantPkg,
-					Policy:  ec.Policy,
-					Reason:  []Reason{ReasonNoLicenseFound},
-					Pass:    true,
-				})
-				continue
-			}
-
-			for _, l := range grantPkg.Licenses {
-				if !l.IsSPDX() {
-					// TODO: check if the config wants us to check for non-SPDX licenses
-				}
-				if ec.Policy.IsDenied(l) {
-					evaluations = append(evaluations, LicenseEvaluation{
-						License: l,
-						Package: grantPkg,
-						Policy:  ec.Policy,
-						Reason:  []Reason{ReasonLicenseDenied},
-						Pass:    false,
-					})
-					continue
-				}
-				// otherwise, the license is allowed
-				evaluations = append(evaluations, LicenseEvaluation{
-					License: l,
-					Package: grantPkg,
-					Policy:  ec.Policy,
-					Reason:  []Reason{ReasonLicenseAllowed},
-					Pass:    true,
-				})
-			}
-		}
+		evaluations = checkSBOM(ec, c, sb, evaluations)
 	}
 
 	for _, l := range c.Licenses {
-		if !l.IsSPDX() {
-			// TODO: check if the config wants us to check for non-SPDX licenses
-		}
-		if ec.Policy.IsDenied(l) {
-			evaluations = append(evaluations, LicenseEvaluation{
-				License: l,
-				Package: nil,
-				Policy:  ec.Policy,
-				Reason:  []Reason{ReasonLicenseDenied},
-				Pass:    false,
-			})
-			continue
-		}
-		// otherwise, the license is allowed
-		evaluations = append(evaluations, LicenseEvaluation{
-			License: l,
-			Package: nil,
-			Policy:  ec.Policy,
-			Reason:  []Reason{ReasonLicenseAllowed},
-			Pass:    true,
-		})
+		evaluations = checkLicense(ec, nil, l, evaluations)
 	}
 
 	return evaluations
 }
 
+func checkSBOM(ec EvaluationConfig, c grant.Case, sb sbom.SBOM, evaluations []LicenseEvaluation) []LicenseEvaluation {
+	for pkg := range sb.Artifacts.Packages.Enumerate() {
+		// since we use syft as a library to generate the sbom we need to convert its packages/licenses to grant types
+		grantPkg := convertSyftPackage(pkg)
+		if len(grantPkg.Licenses) == 0 {
+			le := NewLicenseEvaluation(grant.License{}, grantPkg, ec.Policy, []Reason{ReasonNoLicenseFound}, true)
+			evaluations = append(evaluations, le)
+			continue
+		}
+
+		for _, l := range grantPkg.Licenses {
+			evaluations = checkLicense(ec, grantPkg, l, evaluations)
+		}
+	}
+	return evaluations
+}
+
+func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License, evaluations []LicenseEvaluation) []LicenseEvaluation {
+	if !l.IsSPDX() {
+		// TODO: check if the config wants us to check for non-SPDX licenses
+	}
+	if ec.Policy.IsDenied(l) {
+		le := NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{ReasonLicenseDenied}, false)
+		return append(evaluations, le)
+	}
+	le := NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{ReasonLicenseAllowed}, true)
+	return append(evaluations, le)
+}
+
 type LicenseEvaluations []LicenseEvaluation
 
-type LicenseEvaluation struct {
-	RequestID string
+func (le LicenseEvaluations) Packages() []grant.Package {
+	packages := make([]grant.Package, 0)
+	// get the set of unique packages from the list...
+	for _, e := range le {
+		if e.Package != nil {
+			packages = append(packages, *e.Package)
+		}
+	}
+	return packages
+}
 
+func (le LicenseEvaluations) Licenses() []grant.License {
+	licenses := make([]grant.License, 0)
+	// get the set of unique licenses from the list...
+	for _, e := range le {
+		licenses = append(licenses, e.License)
+	}
+	return licenses
+}
+
+func (le LicenseEvaluations) FailedLicenses() []grant.License {
+	licenses := make([]grant.License, 0)
+	// get the set of unique licenses from the list...
+	for _, e := range le {
+		if !e.Pass {
+			licenses = append(licenses, e.License)
+		}
+	}
+	return licenses
+}
+
+func (le LicenseEvaluations) IsFailed() bool {
+	for _, e := range le {
+		if !e.Pass {
+			return true
+		}
+	}
+	return false
+}
+
+type LicenseEvaluation struct {
 	// inputs into evaluation...
 	License grant.License  // the license that we evaluated
 	Package *grant.Package // any artifact license is evaluated with
@@ -92,23 +102,12 @@ type LicenseEvaluation struct {
 	Pass   bool     // The final evaluation
 }
 
-func (ds LicenseEvaluations) Packages() []grant.Package {
-	// get the set of unique packages from the list...
-	panic("not implemented")
-
-}
-
-func (ds LicenseEvaluations) Licenses() []grant.License {
-	// get the set of unique license from the list...
-	panic("not implemented")
-
-}
-
-func (ds LicenseEvaluations) Policies() []grant.Policy {
-	// get the set of unique policies from the list...
-	panic("not implemented")
-}
-
-func (ds LicenseEvaluations) IsFailed() bool {
-	panic("not implemented")
+func NewLicenseEvaluation(license grant.License, pkg *grant.Package, policy grant.Policy, reasons []Reason, pass bool) LicenseEvaluation {
+	return LicenseEvaluation{
+		License: license,
+		Package: pkg,
+		Policy:  policy,
+		Reason:  reasons,
+		Pass:    pass,
+	}
 }

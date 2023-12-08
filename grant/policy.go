@@ -16,8 +16,8 @@ type Policy struct {
 }
 
 // DefaultPolicy returns a policy that denies all licenses
-func DefaultPolicy() *Policy {
-	return &Policy{
+func DefaultPolicy() Policy {
+	return Policy{
 		AllowLicenses: make([]glob.Glob, 0),
 		DenyLicenses: []glob.Glob{
 			glob.MustCompile("*"),
@@ -31,7 +31,8 @@ func DefaultPolicy() *Policy {
 // It lower cases all patterns to make matching against the spdx license set case-insensitive
 func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (p *Policy, err error) {
 	if len(allowLicenses) == 0 && len(denyLicenses) == 0 {
-		return DefaultPolicy(), nil
+		defaultPolicy := DefaultPolicy()
+		return &defaultPolicy, nil
 	}
 
 	var (

@@ -31,5 +31,10 @@ func NewResults(ec EvaluationConfig, cases ...grant.Case) (r Results) {
 // Pass T/F + reasons for failure
 // Validate() error ([]string reasons)
 func (rs Results) Pass() bool {
-	panic("not implemented")
+	for _, r := range rs {
+		if r.Evaluations.IsFailed() {
+			return false
+		}
+	}
+	return true
 }
