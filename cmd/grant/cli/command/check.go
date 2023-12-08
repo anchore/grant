@@ -23,7 +23,8 @@ type CheckConfig struct {
 
 func Check(app clio.Application) *cobra.Command {
 	cfg := &CheckConfig{
-		Check: option.DefaultCheck(),
+		Check:  option.DefaultCheck(),
+		Format: string(check.Table),
 	}
 
 	// sources are the oci images, sboms, or directories/files to check
@@ -61,7 +62,7 @@ func runCheck(cfg CheckConfig, userInput []string) (errs error) {
 		Policy: policy,
 	}
 
-	rep, err := check.NewReport(check.Format(cfg.Format), checkConfig, userInput...)
+	rep, err := check.NewReport(check.Table, checkConfig, userInput...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("unable to create report for inputs %s", userInput))
 	}
