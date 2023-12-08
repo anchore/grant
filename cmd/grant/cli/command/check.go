@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grant/cmd/grant/cli/internal/check"
 	"github.com/anchore/grant/cmd/grant/cli/option"
 	"github.com/anchore/grant/grant"
-	"github.com/anchore/grant/grant/report"
 	"github.com/anchore/grant/internal/input"
 )
 
@@ -44,22 +44,29 @@ func Check(app clio.Application) *cobra.Command {
 
 // TODO: upgrade the ui a bit with monitors for SBOM generation and license checking
 // Progress can be incremented used on a per package basis when grant.Check is called
-func runCheck(cfg CheckConfig, sources []string) (errs error) {
+func runCheck(cfg CheckConfig, userInput []string) (errs error) {
 	// check if user provided source by stdin
 	// note: cat sbom.json | grant check spdx.json - is supported
 	// it will generate results for both stdin and spdx.json
 	isStdin, _ := input.IsStdinPipeOrRedirect()
-	if isStdin && !slices.Contains(sources, "-") {
-		sources = append(sources, "-")
+	if isStdin && !slices.Contains(userInput, "-") {
+		userInput = append(userInput, "-")
 	}
 
-	policy, err := grant.NewPolicy(cfg.AllowLicenses, cfg.DenyLicenses)
+	policy, err := grant.NewPolicy(cfg.AllowLicenses, cfg.DenyLicenses, cfg.IgnoreLicenses)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
 	}
 
 	// TODO: we need to support the ability to write the report to a file without redirecting stdout
-	return report.NewReport(report.Format(cfg.Format), policy, sources...).
-		Run().
-		Render(os.Stdout)
+	checkConfig := check.Config{
+		Policy: policy,
+	}
+
+	rep, err := check.NewReport(check.Format(cfg.Format), checkConfig, userInput...)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("unable to create report for inputs %s", userInput))
+	}
+
+	return rep.Render(os.Stdout)
 }

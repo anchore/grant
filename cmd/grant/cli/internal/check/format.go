@@ -1,4 +1,4 @@
-package report
+package check
 
 type Format string
 

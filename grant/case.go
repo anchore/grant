@@ -1,4 +1,4 @@
-package report
+package grant
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
+	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
 
-	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/internal"
 	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/syft/syft"
@@ -22,20 +22,75 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-func handleFile(path string) (r *requestBreakdown, err error) {
+// Case is a collection of SBOMs and Licenses that are evaluated against a policy
+
+type Case struct {
+	// CaseID is the unique identifier for the case
+	CaseID string
+	// SBOMS is a list of SBOMs that have licenses checked against the policy
+	SBOMS []sbom.SBOM
+
+	// Licenses is a list of licenses that are checked against the policy
+	Licenses []License
+
+	// UserInput is the string that was supplied by the user to build the case
+	UserInput string
+
+	// Policy is the policy that is evaluated against the case
+	Policy *Policy
+}
+
+func NewCases(p *Policy, userInputs ...string) []Case {
+	cases := make([]Case, 0)
+	for _, userInput := range userInputs {
+		c, err := determineRequestCase(userInput)
+		if err != nil {
+			log.Errorf("unable to determine case for %s: %+v", userInput, err)
+			continue
+		}
+		c.Policy = p
+		c.UserInput = userInput
+		cases = append(cases, c)
+	}
+	return cases
+}
+
+// A valid userRequest can be:
+// - a path to an SBOM file
+// - a path to a license
+// - a path to a directory
+// - a path to an archive
+// - a path to a directory (with any of the above)
+// - a container image (ubuntu:latest)
+func determineRequestCase(userRequest string) (c Case, err error) {
+	switch {
+	case isFile(userRequest):
+		return handleFile(userRequest)
+	case isDirectory(userRequest):
+		return handleDir(userRequest)
+	default:
+		return handleContainer(userRequest)
+	}
+
+	// alright you got us here, we don't know what to do with this
+	return c, fmt.Errorf("unable to determine SBOM or licenses for %s", userRequest)
+}
+
+// TODO: probably need to return a multi error here
+func handleFile(path string) (c Case, err error) {
 	// let's see if it's an archive (isArchive)
 	if isArchive(path) {
 		sb, err := generateSyftSBOM(path)
 		if err != nil {
 			// We bail here since we can't generate an SBOM for the archive
-			return nil, err
+			return c, err
 		}
 
 		// if there are licenses in the archive, syft should be enhanced to include them in the SBOM
 		// this overlap is a little weird, but grant should be able to take license files as input
-		return &requestBreakdown{
-			sboms:    []sbom.SBOM{sb},
-			licenses: make([]grant.License, 0),
+		return Case{
+			SBOMS:    []sbom.SBOM{sb},
+			Licenses: make([]License, 0),
 		}, nil
 	}
 
@@ -43,22 +98,22 @@ func handleFile(path string) (r *requestBreakdown, err error) {
 	bytes, err := getReadSeeker(path)
 	if err != nil {
 		// We bail here since we can't get a reader for the file
-		return nil, err
+		return c, err
 	}
 
 	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(bytes)
 	if sb != nil {
-		return &requestBreakdown{
-			sboms:    []sbom.SBOM{*sb},
-			licenses: make([]grant.License, 0),
+		return Case{
+			SBOMS:    []sbom.SBOM{*sb},
+			Licenses: make([]License, 0),
 		}, nil
 	}
-	// TODO: some log for the error here?
 
 	// alright we couldn't get an SBOM, let's see if the bytes are just a LICENSE (google license classifier)
+	// TODO: this is a little heavy, we might want to generate a backend and reuse it for all the files we're checking
 	be, err := backend.New()
 	if err != nil {
-		return nil, err
+		return c, err
 	}
 	defer be.Close()
 
@@ -74,31 +129,31 @@ func handleFile(path string) (r *requestBreakdown, err error) {
 		for _, err := range errs {
 			log.Errorf("unable to classify license: %+v", err)
 		}
-		return nil, fmt.Errorf("unable to classify license: %+v", err)
+		return c, fmt.Errorf("unable to classify license: %+v", err)
 	}
 	// re-enable logging for the rest of the application
 	golog.SetOutput(os.Stdout)
 
 	results := be.GetResults()
 	if len(results) == 0 {
-		return nil, fmt.Errorf("unable to determine SBOM or licenses for %s", path)
+		return c, fmt.Errorf("unable to determine SBOM or licenses for %s", path)
 	}
 
 	licenses := grantLicenseFromClassifierResults(results)
 
-	return &requestBreakdown{
-		sboms:    make([]sbom.SBOM, 0),
-		licenses: licenses,
+	return Case{
+		SBOMS:    make([]sbom.SBOM, 0),
+		Licenses: licenses,
 	}, nil
 }
 
-func handleDir(root string) (r *requestBreakdown, err error) {
-	totalBreakdown := &requestBreakdown{
-		sboms:    make([]sbom.SBOM, 0),
-		licenses: make([]grant.License, 0),
+func handleDir(root string) (c Case, err error) {
+	dirCase := Case{
+		SBOMS:    make([]sbom.SBOM, 0),
+		Licenses: make([]License, 0),
 	}
 
-	// Define the closure that will be used as the visit function
+	// the closure that will be used to visit each file node
 	visit := func(s string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -110,30 +165,52 @@ func handleDir(root string) (r *requestBreakdown, err error) {
 				// TODO: some log for the error here?
 				return nil
 			}
-			totalBreakdown.sboms = append(totalBreakdown.sboms, r.sboms...)
-			totalBreakdown.licenses = append(totalBreakdown.licenses, r.licenses...)
+			dirCase.SBOMS = append(dirCase.SBOMS, r.SBOMS...)
+			dirCase.Licenses = append(dirCase.Licenses, r.Licenses...)
 		}
 		return nil
 	}
 
 	err = filepath.WalkDir(root, visit)
 	if err != nil {
-		return nil, err
+		return c, err
 	}
-	return totalBreakdown, nil
+	return dirCase, nil
 }
 
-func handleContainer(image string) (r *requestBreakdown, err error) {
+func handleContainer(image string) (c Case, err error) {
 	sb, err := generateSyftSBOM(image)
 	if err != nil {
 		// We bail here since we can't generate an SBOM for the image
-		return nil, err
+		return c, err
 	}
 
-	return &requestBreakdown{
-		sboms:    []sbom.SBOM{sb},
-		licenses: make([]grant.License, 0),
+	return Case{
+		SBOMS:    []sbom.SBOM{sb},
+		Licenses: make([]License, 0),
 	}, nil
+}
+
+func getReadSeeker(path string) (io.ReadSeeker, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open file: %w", err)
+	}
+	return file, nil
+}
+
+func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
+	licenses := make([]License, 0)
+	for _, license := range r {
+		// TODO: sometimes the license classifier gives us more information than just the name.
+		// How do we want to handle this or include it in the grant.License?
+		if license.MatchType == "License" {
+			licenses = append(licenses, License{
+				Name: license.Name,
+			})
+		}
+	}
+	return licenses
 }
 
 // TODO: is the default syft config good enough here?
