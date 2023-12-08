@@ -16,8 +16,8 @@ type Policy struct {
 }
 
 // DefaultPolicy returns a policy that denies all licenses
-func DefaultPolicy() Policy {
-	return Policy{
+func DefaultPolicy() *Policy {
+	return &Policy{
 		AllowLicenses: make([]glob.Glob, 0),
 		DenyLicenses: []glob.Glob{
 			glob.MustCompile("*"),
@@ -29,7 +29,7 @@ func DefaultPolicy() Policy {
 
 // NewPolicy builds a policy from lists of allow and deny glob patterns
 // It lower cases all patterns to make matching against the spdx license set case-insensitive
-func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (Policy, error) {
+func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (p *Policy, err error) {
 	if len(allowLicenses) == 0 && len(denyLicenses) == 0 {
 		return DefaultPolicy(), nil
 	}
@@ -44,7 +44,7 @@ func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (Policy, er
 		deny = strings.ToLower(deny)
 		denyGlob, err := glob.Compile(deny)
 		if err != nil {
-			return Policy{}, err
+			return p, err
 		}
 		denyGlobs = append(denyGlobs, denyGlob)
 		if deny == "*" {
@@ -57,7 +57,7 @@ func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (Policy, er
 		allow = strings.ToLower(allow)
 		allowGlob, err := glob.Compile(allow)
 		if err != nil {
-			return Policy{}, err
+			return p, err
 		}
 		allowGlobs = append(allowGlobs, allowGlob)
 		if allow == "*" {
@@ -70,12 +70,12 @@ func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (Policy, er
 		ignore = strings.ToLower(ignore)
 		ignoreGlob, err := glob.Compile(ignore)
 		if err != nil {
-			return Policy{}, err
+			return p, err
 		}
 		ignoreGlobs = append(ignoreGlobs, ignoreGlob)
 	}
 
-	return Policy{
+	return &Policy{
 		AllowLicenses:  allowGlobs,
 		DenyLicenses:   denyGlobs,
 		IgnoreLicenses: ignoreGlobs,

@@ -5,8 +5,9 @@ import (
 )
 
 type Check struct {
-	AllowLicenses []string `json:"allow-licenses" yaml:"allow-licenses" mapstructure:"allow-licenses"`
-	DenyLicenses  []string `json:"deny-licenses" yaml:"deny-licenses" mapstructure:"deny-licenses"`
+	AllowLicenses  []string `json:"allow-licenses" yaml:"allow-licenses" mapstructure:"allow-licenses"`
+	DenyLicenses   []string `json:"deny-licenses" yaml:"deny-licenses" mapstructure:"deny-licenses"`
+	IgnoreLicenses []string `json:"ignore-licenses" yaml:"ignore-licenses" mapstructure:"ignore-licenses"`
 }
 
 func DefaultCheck() Check {
@@ -17,5 +18,5 @@ func DefaultCheck() Check {
 }
 
 func (c Check) ToPolicy() (*grant.Policy, error) {
-	return grant.NewPolicy(c.AllowLicenses, c.DenyLicenses)
+	return grant.NewPolicy(c.AllowLicenses, c.DenyLicenses, c.IgnoreLicenses)
 }
