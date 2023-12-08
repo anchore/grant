@@ -33,7 +33,7 @@ import (
 type Report struct {
 	ReportID string
 	//Requests []Request `json:"results" yaml:"results"`
-	Results []Result
+	Results Results
 	// Evaluation is a pass/fail for the entire report;
 	// It rolls up violations from all the requests
 	//Evaluation Evaluation `json:"evaluation" yaml:"evaluation"`

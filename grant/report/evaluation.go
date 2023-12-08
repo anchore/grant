@@ -11,12 +11,14 @@ import (
 // <SOME NOUN> --> It's LIKE violations
 type Result struct {
 	Request     Request
-	Evaluations Evaluations
+	Evaluations LicenseEvaluations
 	Pass        bool
 }
 
 type Results []Result
 
+// Pass T/F + reasons for failure
+// Validate() error ([]string reasons)
 func (rs Results) Pass() bool {
 	//
 	panic("not implemented")
@@ -38,7 +40,12 @@ type EvaluationConfig struct {
 //	Reason    string
 //}
 
-type Evaluation struct {
+//type Evaluation interface {
+//	Validate() []error
+//	Reasons() []string
+//}
+
+type LicenseEvaluation struct {
 	RequestID string
 
 	// inputs into evaluation...
@@ -53,35 +60,35 @@ type Evaluation struct {
 	Pass   bool     // The final evaluation
 }
 
-type Evaluations []Evaluation
+type LicenseEvaluations []LicenseEvaluation
 
-func (ds Evaluations) Packages() []grant.Package {
+func (ds LicenseEvaluations) Packages() []grant.Package {
 	// get the set of unique packages from the list...
 	panic("not implemented")
 
 }
 
-func (ds Evaluations) Licenses() []grant.License {
+func (ds LicenseEvaluations) Licenses() []grant.License {
 	// get the set of unique license from the list...
 	panic("not implemented")
 
 }
 
-func (ds Evaluations) Policies() []grant.Policy {
+func (ds LicenseEvaluations) Policies() []grant.Policy {
 	// get the set of unique policies from the list...
 	panic("not implemented")
 }
 
-func (ds Evaluations) IsFailed() bool {
+func (ds LicenseEvaluations) IsFailed() bool {
 	panic("not implemented")
 }
 
 func NewDeterminationFromSBOM(ec EvaluationConfig, s sbom.SBOM) Result {
 	// return evalFromSBOM(ec, s)
-	return nil
+	return Result{}
 }
 
 func NewDeterminationFromLicense(ec EvaluationConfig, l grant.License) Result {
 	// return evalFromLicense(ec, l)
-	return nil
+	return Result{}
 }
