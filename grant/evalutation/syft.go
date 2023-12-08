@@ -9,14 +9,14 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func convertSyftPackage(p syftPkg.Package) grant.Package {
+func convertSyftPackage(p syftPkg.Package) *grant.Package {
 	locations := p.Locations.ToSlice()
 	packageLocations := make([]string, 0)
 	for _, location := range locations {
 		packageLocations = append(packageLocations, location.RealPath)
 	}
 
-	return grant.Package{
+	return &grant.Package{
 		Name:      p.Name,
 		Version:   p.Version,
 		Licenses:  convertSyftLicenses(p.Licenses),

@@ -5,7 +5,74 @@ import (
 )
 
 func NewLicenseEvaluations(ec EvaluationConfig, c grant.Case) LicenseEvaluations {
-	panic("not implemented")
+	evaluations := make([]LicenseEvaluation, 0)
+	// TODO: probably want to use some concurrency here
+	for _, sb := range c.SBOMS {
+		for pkg := range sb.Artifacts.Packages.Enumerate() {
+			grantPkg := convertSyftPackage(pkg)
+			// since we use syft as a library to generate the sbom we need to convert its packages/licenses to grant types
+			if len(grantPkg.Licenses) == 0 {
+				evaluations = append(evaluations, LicenseEvaluation{
+					License: grant.License{},
+					Package: grantPkg,
+					Policy:  ec.Policy,
+					Reason:  []Reason{ReasonNoLicenseFound},
+					Pass:    true,
+				})
+				continue
+			}
+
+			for _, l := range grantPkg.Licenses {
+				if !l.IsSPDX() {
+					// TODO: check if the config wants us to check for non-SPDX licenses
+				}
+				if ec.Policy.IsDenied(l) {
+					evaluations = append(evaluations, LicenseEvaluation{
+						License: l,
+						Package: grantPkg,
+						Policy:  ec.Policy,
+						Reason:  []Reason{ReasonLicenseDenied},
+						Pass:    false,
+					})
+					continue
+				}
+				// otherwise, the license is allowed
+				evaluations = append(evaluations, LicenseEvaluation{
+					License: l,
+					Package: grantPkg,
+					Policy:  ec.Policy,
+					Reason:  []Reason{ReasonLicenseAllowed},
+					Pass:    true,
+				})
+			}
+		}
+	}
+
+	for _, l := range c.Licenses {
+		if !l.IsSPDX() {
+			// TODO: check if the config wants us to check for non-SPDX licenses
+		}
+		if ec.Policy.IsDenied(l) {
+			evaluations = append(evaluations, LicenseEvaluation{
+				License: l,
+				Package: nil,
+				Policy:  ec.Policy,
+				Reason:  []Reason{ReasonLicenseDenied},
+				Pass:    false,
+			})
+			continue
+		}
+		// otherwise, the license is allowed
+		evaluations = append(evaluations, LicenseEvaluation{
+			License: l,
+			Package: nil,
+			Policy:  ec.Policy,
+			Reason:  []Reason{ReasonLicenseAllowed},
+			Pass:    true,
+		})
+	}
+
+	return evaluations
 }
 
 type LicenseEvaluations []LicenseEvaluation
@@ -18,10 +85,10 @@ type LicenseEvaluation struct {
 	Package *grant.Package // any artifact license is evaluated with
 
 	// what's used to evaluate...
-	Policy *grant.Policy // what the determination was made against
+	Policy grant.Policy // what the determination was made against
 
 	// the output of an evaluation...
-	Reason []string // reasons that the evaluation value the way it is
+	Reason []Reason // reasons that the evaluation value the way it is
 	Pass   bool     // The final evaluation
 }
 

@@ -27,7 +27,7 @@ func DefaultPolicy() *Policy {
 	}
 }
 
-// NewPolicy builds a policy from lists of allow and deny glob patterns
+// NewPolicy builds a policy from lists of allow, deny, and ignore glob patterns
 // It lower cases all patterns to make matching against the spdx license set case-insensitive
 func NewPolicy(allowLicenses, denyLicenses, ignoreLicenses []string) (p *Policy, err error) {
 	if len(allowLicenses) == 0 && len(denyLicenses) == 0 {
@@ -138,7 +138,7 @@ func (p Policy) IsDenied(license License) bool {
 	return false
 }
 
-// IsAllowed is a convenience function for library consumers
+// IsAllowed is a convenience function for library usage of IsDenied negation
 func (p Policy) IsAllowed(license License) bool {
 	return !p.IsDenied(license)
 }
