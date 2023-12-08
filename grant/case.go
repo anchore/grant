@@ -25,8 +25,6 @@ import (
 // Case is a collection of SBOMs and Licenses that are evaluated against a policy
 
 type Case struct {
-	// CaseID is the unique identifier for the case
-	CaseID string
 	// SBOMS is a list of SBOMs that have licenses checked against the policy
 	SBOMS []sbom.SBOM
 

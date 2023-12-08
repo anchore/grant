@@ -9,3 +9,10 @@ type EvaluationConfig struct {
 	// CheckNonSPDX is true if non-SPDX licenses should be checked
 	CheckNonSPDX bool
 }
+
+func DefaultEvaluationConfig() EvaluationConfig {
+	return EvaluationConfig{
+		Policy:       grant.DefaultPolicy(),
+		CheckNonSPDX: false,
+	}
+}

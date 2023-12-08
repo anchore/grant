@@ -42,8 +42,6 @@ func Check(app clio.Application) *cobra.Command {
 	}, cfg)
 }
 
-// TODO: upgrade the ui a bit with monitors for SBOM generation and license checking
-// Progress can be incremented used on a per package basis when grant.Check is called
 func runCheck(cfg CheckConfig, userInput []string) (errs error) {
 	// check if user provided source by stdin
 	// note: cat sbom.json | grant check spdx.json - is supported

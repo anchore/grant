@@ -69,7 +69,7 @@ func (r *Report) renderJSON(out io.Writer) error {
 }
 
 func (r *Report) renderTable(out io.Writer) error {
-	return errors.New("not implemented")
+
 }
 
 //	l := list.NewWriter() // TODO: style me
