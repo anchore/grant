@@ -4,19 +4,19 @@ Manage the license compliance for oci images and software projects
 
 ![grant-demo](TODO)
 
+### Supply an image
 ```bash
 $ grant check alpine:latest
-[return code 1]
 ```
 
+#### Supply an SBOM document
 ```bash
 $ grant check alpine.spdx.json
-[return code 0]
 ```
 
+### Supply multiple sources including stdin and a mix of image and sbom
 ```bash
-$ syft -o spdx-json alpine:latest | grant check
-[return code 0]
+$ syft -o spdx-json alpine:latest | grant check node:latest
 ```
 
 
@@ -34,13 +34,22 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grant/main/install.sh | sh 
 
 ## Usage
 
-Grant can be used with any OCI image or sbom document to check for license compliance.
+Grant can be used with any container image, sbom document, or directory scan to check for license compliance.
+
+Rules take the form of a pattern to match the license against, a mode to either allow or deny the license,
+a reason for the rule, and a list of packages that are exclusions to the rule.
+```
+pattern: "gpl-*"
+mode: "deny"
+reason: "GPL licenses are not allowed"
+exclusions:
+  - "alpine-base-layout" # We don't link against this package so we don't care about its license
+```
 
 Matching Rules:
-- Deny licenses take precedence over allow licenses
-- Licenses are matched on a case-insensitive basis.
-- If a license is in both lists it is denied. 
-- If a license is in neither list it is denied.
+- Denying licenses take precedence over allowing licenses
+- License id are matched on a case-insensitive basis.
+- If a license is has rules for both modes it is denied
 
 Supplied patterns follow a standard globbing syntax:
 ```
@@ -68,63 +77,69 @@ pattern { `,` pattern }
 comma-separated (without spaces) patterns
 ```
 
-```bash
-
 By default grant is configured to deny all licenses out of the box.
 
 
 Grant can be used to deny specific licenses, allowing all others.
 It can also be used to allow specific licenses, denying all others.
 
-The following is an example of a `deny` oriented configuration which will deny `*` and allow `MIT` and `Apache-2`:
-
-```yaml
-#.grant.yaml
-deny: *
-allow:
-  - MIT
-  - Apache-*
-```
-
-If licenses are found that are not in the allow list, grant will return status code 1.
-
-Valid IDs that are considered are by default sourced from the most recent 
-[SPDX license list](https://spdx.org/licenses/).
-
-## TODO
-In the future it will be possible for users to configure which license list
-they would like to use for their `grant check` run.
-
 ## Output
-```json
-{
-  "result": "fail",
-  "reasons": [
-    {
-      "reason": "'GPL-1' is not allowed with rule 'GPL*'",
-      "package": {
-        "name": "my-pkg",
-        "version": "v1.0.0",
-        "location": "/etc/my-pkg"
-      }
-    }
-
-  ]
-
-}
+#### Table
+```bash
+$ grant check ubuntu:latest, alpine:latest
+▶ ubuntu:latest
+- GPL-2.0-only
+- GPL-3.0-only
+- BSD-2-Clause
+- BSD-3-Clause
+- BSD-4-Clause
+- GPL-2.0-or-later
+- GPL-3.0-or-later
+- LGPL-2.0-only
+- LGPL-2.0-or-later
+- LGPL-2.1-only
+- LGPL-2.1-or-later
+- LGPL-3.0-only
+- LGPL-3.0-or-later
+- MIT
+- FSFUL
+- FSFULLR
+- GFDL-1.3-only
+- GFDL-1.2-only
+- CC0-1.0
+- GPL-1.0-only
+- Apache-2.0
+- X11
+- ISC
+- GPL-1.0-or-later
+- GFDL-1.2-or-later
+- Zlib
+- Artistic-2.0
+▶ alpine:latest
+- GPL-2.0-only
+- MIT
+- MPL-2.0
+- BSD-2-Clause
+- BSD-3-Clause
+- Apache-2.0
+- GPL-2.0-or-later
+- Zlib
 [return code 1]
+````
+
+#### JSON: TODO
+```
 ```
 
 ## Configuration
 ```yaml
 #.grant.yaml
 config: ".grant.yaml"
-log-level: "info"
+quite: false # only print status code 1 or 0 for success or failure
 rules: 
     - pattern: "gpl-*"
-      name: "deny all gpl"
+      mode: "deny"
       reason: "GPL licenses are not allowed"
-      severity: "high"
       exclusions:
         - "alpine-base-layout" # We don't link against this package so we don't care about its license
 ```
