@@ -39,7 +39,7 @@ func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License, eval
 	if !l.IsSPDX() {
 		// TODO: check if the config wants us to check for non-SPDX licenses
 	}
-	if ec.Policy.IsDenied(l) {
+	if ec.Policy.IsDenied(l, pkg) {
 		le := NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{ReasonLicenseDenied}, false)
 		return append(evaluations, le)
 	}
@@ -65,7 +65,7 @@ func (le LicenseEvaluations) Licenses() []grant.License {
 	licenseMap := make(map[string]struct{})
 	// get the set of unique licenses from the list...
 	for _, e := range le {
-		if _, ok := licenseMap[e.License.LicenseID]; !ok {
+		if _, ok := licenseMap[e.License.LicenseID]; !ok && e.License.LicenseID != "" {
 			licenseMap[e.License.LicenseID] = struct{}{}
 			licenses = append(licenses, e.License)
 		}
@@ -73,19 +73,14 @@ func (le LicenseEvaluations) Licenses() []grant.License {
 	return licenses
 }
 
-func (le LicenseEvaluations) FailedLicenses() []grant.License {
-	licenses := make([]grant.License, 0)
-	licenseMap := make(map[string]struct{})
-	// get the set of unique licenses from the list...
+func (le LicenseEvaluations) Failed() LicenseEvaluations {
+	failed := make([]LicenseEvaluation, 0)
 	for _, e := range le {
 		if !e.Pass {
-			if _, ok := licenseMap[e.License.LicenseID]; !ok && e.License.LicenseID != "" {
-				licenseMap[e.License.LicenseID] = struct{}{}
-				licenses = append(licenses, e.License)
-			}
+			failed = append(failed, e)
 		}
 	}
-	return licenses
+	return failed
 }
 
 func (le LicenseEvaluations) IsFailed() bool {

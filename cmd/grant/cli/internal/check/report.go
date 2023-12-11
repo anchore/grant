@@ -2,11 +2,11 @@ package check
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"time"
 
 	list "github.com/jedib0t/go-pretty/v6/list"
+	"github.com/jedib0t/go-pretty/v6/text"
 
 	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/grant/evalutation"
@@ -20,15 +20,12 @@ import (
 // Results are composed of a case its evaluations. The case is the total of SBOM/Licenses generated from the user request.
 // The evaluations are the individual assessments of the policy against the packages/licenses in the case.
 type Report struct {
-	ReportID  string
-	Results   []evalutation.Result `json:"results" yaml:"results"`
-	Format    Format               `json:"format" yaml:"format"`
-	Timestamp string               `json:"timestamp" yaml:"timestamp"`
-	errors    []error
-}
-
-type Config struct {
-	Policy *grant.Policy
+	ReportID     string
+	Results      evalutation.Results
+	Format       Format
+	ShowPackages bool
+	Timestamp    string
+	errors       []error
 }
 
 // NewReport will generate a new report for the given format.
@@ -36,17 +33,16 @@ type Config struct {
 // If no policy is provided, the default policy will be used
 // If no requests are provided, an empty report will be generated
 // If a request is provided, but the sbom cannot be generated, the source will be ignored and an error will be returned
-func NewReport(f Format, cc Config, userRequests ...string) (*Report, error) {
-	if cc.Policy.IsEmpty() {
-		policy := grant.DefaultPolicy()
-		cc.Policy = &policy
+func NewReport(f Format, rp grant.Policy, userRequests ...string) (*Report, error) {
+	if rp.IsEmpty() {
+		rp = grant.DefaultPolicy()
 	}
 
 	format := validateFormat(f)
-	cases := grant.NewCases(cc.Policy, userRequests...)
+	cases := grant.NewCases(rp, userRequests...)
 	ec := evalutation.EvaluationConfig{
-		Policy:       *cc.Policy,
-		CheckNonSPDX: true,
+		Policy:       rp,
+		CheckNonSPDX: true, // TODO: how do we design the configuration here to inject this value?
 	}
 
 	results := evalutation.NewResults(ec, cases...)
@@ -70,48 +66,53 @@ func (r *Report) Render(out io.Writer) error {
 }
 
 func (r *Report) renderTable(out io.Writer) error {
-	l := list.NewWriter()
-	l.SetStyle(list.StyleConnectedLight)
-	for _, result := range r.Results {
-		l.AppendItem(result.Case.UserInput)
-		l.Indent()
-		if result.Evaluations.IsFailed() {
-			for _, lic := range result.Evaluations.FailedLicenses() {
-				l.AppendItem(fmt.Sprintf("%s", lic.LicenseID))
-				// TODO: update reason to render failed glob pattern
-			}
-			l.UnIndent()
-			continue
-		}
+	if !r.Results.IsFailed() {
+		l := newList()
 		l.AppendItem("No License Violations: ✅")
+		bus.Report(l.Render())
+		return nil
+	}
+
+	failures := r.Results.GetFailedEvaluations()
+	lists := []list.Writer{}
+	for input, eval := range failures {
+		l := newList()
+		lists = append(lists, l)
+		l.AppendItem(input)
+		l.Indent()
+		for _, lic := range eval.Licenses() {
+			if lic.IsSPDX() {
+				l.AppendItem(lic.LicenseID)
+			} else {
+				l.AppendItem(lic.LicenseID + " (non-SPDX)")
+			}
+
+		}
 		l.UnIndent()
 	}
-	bus.Report(l.Render())
+	for _, l := range lists {
+		bus.Report(l.Render())
+	}
 	return nil
 }
 
-//	for _, report := range reports {
-//		if len(report.PackageViolations) == 0 {
-//			l.AppendItem("No License Violations: ✅")
-//			continue
-//		}
-//
-//		l.AppendItem("License Violations:")
-//		for license, pkg := range report.LicenseViolations {
-//			l.AppendItem(fmt.Sprintf("%s %s", fmt.Sprint("-"), license))
-//			// TODO: we probably want a flag that can turn this on
-//			for _, p := range pkg {
-//				l.Indent()
-//				l.AppendItem(fmt.Sprintf("%s %s", fmt.Sprint("-"), p))
-//				l.UnIndent()
-//			}
-//			l.UnIndent()
-//		}
-//	}
-//
-//	bus.Report(l.Render())
-//	return nil
-//}
+func newList() list.Writer {
+	l := list.NewWriter()
+	reportStyle := list.Style{
+		Format:         text.FormatDefault,
+		CharItemSingle: "▶",
+		CharItemTop:    "-",
+		CharItemFirst:  "-",
+		CharItemMiddle: "-",
+		CharItemBottom: "-",
+		CharNewline:    "\n",
+		LinePrefix:     "",
+		Name:           "styleTest",
+	}
+	l.SetStyle(reportStyle)
+
+	return l
+}
 
 type ResultSummary struct {
 	CompliantPackages int `json:"compliant_packages" yaml:"compliant_packages"`

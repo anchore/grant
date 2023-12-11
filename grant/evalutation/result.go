@@ -28,13 +28,21 @@ func NewResults(ec EvaluationConfig, cases ...grant.Case) (r Results) {
 	return r
 }
 
-// Pass T/F + reasons for failure
-// Validate() error ([]string reasons)
-func (rs Results) Pass() bool {
+func (rs Results) IsFailed() bool {
 	for _, r := range rs {
 		if r.Evaluations.IsFailed() {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
+}
+
+func (rs Results) GetFailedEvaluations() map[string]LicenseEvaluations {
+	failures := make(map[string]LicenseEvaluations)
+	for _, r := range rs {
+		if r.Evaluations.IsFailed() {
+			failures[r.Case.UserInput] = r.Evaluations.Failed()
+		}
+	}
+	return failures
 }

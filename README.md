@@ -118,9 +118,13 @@ they would like to use for their `grant check` run.
 ## Configuration
 ```yaml
 #.grant.yaml
-precedence: [deny, allow]
-deny: *
-allow:
-  - MIT
-  - Apache-2
+config: ".grant.yaml"
+log-level: "info"
+rules: 
+    - pattern: "gpl-*"
+      name: "deny all gpl"
+      reason: "GPL licenses are not allowed"
+      severity: "high"
+      exclusions:
+        - "alpine-base-layout" # We don't link against this package so we don't care about its license
 ```
