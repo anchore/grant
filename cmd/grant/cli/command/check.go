@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
 
+	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -16,17 +18,53 @@ import (
 )
 
 type CheckConfig struct {
-	Config       string `json:"config" yaml:"config" mapstructure:"config"`
-	Format       string `json:"format" yaml:"format" mapstructure:"format"`
-	option.Check `json:"" yaml:",inline" mapstructure:",squash"`
+	Config    string        `json:"config" yaml:"config" mapstructure:"config"`
+	DenyRules []option.Rule `json:"deny-rules" yaml:"deny-rules" mapstructure:"deny-rules"`
+}
+
+func DefaultCheck() *CheckConfig {
+	return &CheckConfig{
+		Config: "",
+		DenyRules: []option.Rule{
+			{
+				Name:     "deny-all",
+				Reason:   "grant by default will deny all licenses",
+				Pattern:  "*",
+				Severity: "high",
+			},
+		},
+	}
+}
+
+func (cfg *CheckConfig) RulesFromConfig() (rules grant.Rules, err error) {
+	rules = make(grant.Rules, 0)
+	for _, rule := range cfg.DenyRules {
+		pattern := strings.ToLower(rule.Pattern)
+		patternGlob, err := glob.Compile(pattern)
+		if err != nil {
+			return rules, err
+		}
+		exceptions := make([]glob.Glob, 0)
+		for _, exception := range rule.Exceptions {
+			exception = strings.ToLower(exception)
+			exceptionGlob, err := glob.Compile(exception)
+			if err != nil {
+				return rules, err
+			}
+			exceptions = append(exceptions, exceptionGlob)
+		}
+		rules = append(rules, grant.Rule{
+			Glob:       patternGlob,
+			Exceptions: exceptions,
+			Mode:       grant.Deny,
+			Reason:     rule.Reason,
+		})
+	}
+	return rules, nil
 }
 
 func Check(app clio.Application) *cobra.Command {
-	cfg := &CheckConfig{
-		Check:  option.DefaultCheck(),
-		Format: string(check.Table),
-	}
-
+	cfg := DefaultCheck()
 	// sources are the oci images, sboms, or directories/files to check
 	var sources []string
 	return app.SetupCommand(&cobra.Command{
@@ -38,12 +76,12 @@ func Check(app clio.Application) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCheck(*cfg, sources)
+			return runCheck(cfg, sources)
 		},
 	}, cfg)
 }
 
-func runCheck(cfg CheckConfig, userInput []string) (errs error) {
+func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 	// check if user provided source by stdin
 	// note: cat sbom.json | grant check spdx.json - is supported
 	// it will generate results for both stdin and spdx.json
@@ -51,18 +89,16 @@ func runCheck(cfg CheckConfig, userInput []string) (errs error) {
 	if isStdin && !slices.Contains(userInput, "-") {
 		userInput = append(userInput, "-")
 	}
-
-	policy, err := grant.NewPolicy(cfg.AllowLicenses, cfg.DenyLicenses, cfg.IgnoreLicenses)
+	rules, err := cfg.RulesFromConfig()
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build rules from config: %s", cfg.Config))
+	}
+	policy, err := grant.NewPolicy(rules...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
 	}
 
-	// TODO: we need to support the ability to write the report to a file without redirecting stdout
-	checkConfig := check.Config{
-		Policy: policy,
-	}
-
-	rep, err := check.NewReport(check.Table, checkConfig, userInput...)
+	rep, err := check.NewReport(check.Table, policy, userInput...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("unable to create report for inputs %s", userInput))
 	}

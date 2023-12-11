@@ -36,10 +36,10 @@ type Case struct {
 	UserInput string
 
 	// Policy is the policy that is evaluated against the case
-	Policy *Policy
+	Policy Policy
 }
 
-func NewCases(p *Policy, userInputs ...string) []Case {
+func NewCases(p Policy, userInputs ...string) []Case {
 	cases := make([]Case, 0)
 	for _, userInput := range userInputs {
 		c, err := determineRequestCase(userInput)
