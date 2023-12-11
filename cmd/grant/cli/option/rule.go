@@ -5,5 +5,6 @@ type Rule struct {
 	Reason     string   `json:"reason" yaml:"reason" mapstructure:"reason"`
 	Pattern    string   `json:"pattern" yaml:"pattern" mapstructure:"pattern"`
 	Severity   string   `json:"severity" yaml:"severity" mapstructure:"severity"`
+	Mode       string   `json:"mode" yaml:"mode" mapstructure:"mode"`
 	Exceptions []string `json:"exceptions" yaml:"exceptions" mapstructure:"exceptions"`
 }

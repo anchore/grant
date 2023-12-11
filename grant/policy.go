@@ -1,6 +1,8 @@
 package grant
 
 import (
+	"strings"
+
 	"github.com/gobwas/glob"
 )
 
@@ -46,7 +48,13 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 			continue
 		}
 
-		if rule.Glob.Match(license.LicenseID) {
+		var toMatch string
+		if license.IsSPDX() {
+			toMatch = strings.ToLower(license.LicenseID)
+		} else {
+			toMatch = strings.ToLower(license.Name)
+		}
+		if rule.Glob.Match(toMatch) {
 			if pkg == nil {
 				return true, &rule
 			}

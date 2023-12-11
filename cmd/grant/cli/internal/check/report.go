@@ -6,7 +6,6 @@ import (
 	"time"
 
 	list "github.com/jedib0t/go-pretty/v6/list"
-	"github.com/jedib0t/go-pretty/v6/text"
 
 	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/grant/evalutation"
@@ -33,7 +32,7 @@ type Report struct {
 // If no policy is provided, the default policy will be used
 // If no requests are provided, an empty report will be generated
 // If a request is provided, but the sbom cannot be generated, the source will be ignored and an error will be returned
-func NewReport(f Format, rp grant.Policy, userRequests ...string) (*Report, error) {
+func NewReport(f Format, rp grant.Policy, showPackages bool, userRequests ...string) (*Report, error) {
 	if rp.IsEmpty() {
 		rp = grant.DefaultPolicy()
 	}
@@ -48,9 +47,10 @@ func NewReport(f Format, rp grant.Policy, userRequests ...string) (*Report, erro
 	results := evalutation.NewResults(ec, cases...)
 
 	return &Report{
-		Results:   results,
-		Format:    format,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Results:      results,
+		Format:       format,
+		ShowPackages: showPackages,
+		Timestamp:    time.Now().Format(time.RFC3339),
 	}, nil
 }
 
@@ -81,10 +81,9 @@ func (r *Report) renderTable(out io.Writer) error {
 	for input, eval := range failedEvaluations {
 		l := newList()
 		uiLists = append(uiLists, l)
-		l.AppendItem(input)
 		l.Indent()
-		renderLicenses(l, eval)
-		l.UnIndent()
+		l.AppendItem(input)
+		renderLicenses(l, eval, r.ShowPackages)
 	}
 	for _, l := range uiLists {
 		bus.Report(l.Render())
@@ -92,7 +91,7 @@ func (r *Report) renderTable(out io.Writer) error {
 	return nil
 }
 
-func renderLicenses(l list.Writer, evals evalutation.LicenseEvaluations) {
+func renderLicenses(l list.Writer, evals evalutation.LicenseEvaluations, showPackages bool) {
 	duplicates := make(map[string]struct{})
 	for _, e := range evals {
 		var licenseRender string
@@ -107,25 +106,22 @@ func renderLicenses(l list.Writer, evals evalutation.LicenseEvaluations) {
 		duplicates[licenseRender] = struct{}{}
 		l.Indent()
 		l.AppendItem(licenseRender)
+		if showPackages {
+			packages := evals.Packages(licenseRender)
+			for _, pkg := range packages {
+				l.Indent()
+				l.AppendItem(pkg)
+				l.UnIndent()
+			}
+		}
 		l.UnIndent()
 	}
 }
 
 func newList() list.Writer {
 	l := list.NewWriter()
-	reportStyle := list.Style{
-		Format:         text.FormatDefault,
-		CharItemSingle: "▶",
-		CharItemTop:    "-",
-		CharItemFirst:  "-",
-		CharItemMiddle: "-",
-		CharItemBottom: "-",
-		CharNewline:    "\n",
-		LinePrefix:     "",
-		Name:           "styleTest",
-	}
-	l.SetStyle(reportStyle)
-
+	style := list.StyleDefault
+	style.CharItemSingle = "▶"
 	return l
 }
 

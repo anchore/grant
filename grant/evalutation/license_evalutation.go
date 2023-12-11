@@ -54,14 +54,15 @@ func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License, eval
 
 type LicenseEvaluations []LicenseEvaluation
 
-func (le LicenseEvaluations) Packages() []grant.Package {
-	packages := make([]grant.Package, 0)
+func (le LicenseEvaluations) Packages(license string) []string {
+	packages := make([]string, 0)
 	// get the set of unique packages from the list...
 	for _, e := range le {
-		if e.Package != nil {
-			packages = append(packages, *e.Package)
+		if e.Package != nil && (e.License.LicenseID == license || e.License.Name == license) {
+			packages = append(packages, e.Package.Name)
 		}
 	}
+	sort.Sort(sort.StringSlice(packages))
 	return packages
 }
 

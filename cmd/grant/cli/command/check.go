@@ -18,14 +18,17 @@ import (
 )
 
 type CheckConfig struct {
-	Config    string        `json:"config" yaml:"config" mapstructure:"config"`
-	DenyRules []option.Rule `json:"deny-rules" yaml:"deny-rules" mapstructure:"deny-rules"`
+	Config       string        `json:"config" yaml:"config" mapstructure:"config"`
+	ShowPackages bool          `json:"show-packages" yaml:"show-packages" mapstructure:"show-packages"`
+	Format       string        `json:"format" yaml:"format" mapstructure:"format"`
+	Rules        []option.Rule `json:"rules" yaml:"rules" mapstructure:"rules"`
 }
 
 func DefaultCheck() *CheckConfig {
 	return &CheckConfig{
-		Config: "",
-		DenyRules: []option.Rule{
+		Config:       "",
+		ShowPackages: false,
+		Rules: []option.Rule{
 			{
 				Name:     "deny-all",
 				Reason:   "grant by default will deny all licenses",
@@ -38,7 +41,7 @@ func DefaultCheck() *CheckConfig {
 
 func (cfg *CheckConfig) RulesFromConfig() (rules grant.Rules, err error) {
 	rules = make(grant.Rules, 0)
-	for _, rule := range cfg.DenyRules {
+	for _, rule := range cfg.Rules {
 		pattern := strings.ToLower(rule.Pattern)
 		patternGlob, err := glob.Compile(pattern)
 		if err != nil {
@@ -56,7 +59,7 @@ func (cfg *CheckConfig) RulesFromConfig() (rules grant.Rules, err error) {
 		rules = append(rules, grant.Rule{
 			Glob:       patternGlob,
 			Exceptions: exceptions,
-			Mode:       grant.Deny,
+			Mode:       grant.RuleMode(rule.Mode),
 			Reason:     rule.Reason,
 		})
 	}
@@ -98,7 +101,7 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
 	}
 
-	rep, err := check.NewReport(check.Table, policy, userInput...)
+	rep, err := check.NewReport(check.Table, policy, cfg.ShowPackages, userInput...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("unable to create report for inputs %s", userInput))
 	}

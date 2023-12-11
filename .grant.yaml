@@ -1,14 +1,11 @@
 #.grant.yaml
-format: json
-import:
- - ../local-policy.json
- - git@githubcom:anchore/central-policy.git@main#./org/*.policy.json
- - allowed: []
-   denied: []
-# grant -o json alpine:latest=osi.arrpoved.json enterprisesystemsengineering:latest=special.approved.json
-# grant myimage:latest ./local-policy.json
-
-# .gitignore vs .gitconfig distinction (don't mix the what and how)
-
-# .grantpolicy.yaml
-# .grantpolicy/*.yaml
+show-packages: true
+rules: 
+  - pattern: "*gpl*"
+    mode: "deny"
+    reason: "GPL licenses are not allowed"
+    exceptions:
+      - "lib*"
+  - pattern: "*gfdl*"
+    mode: "deny"
+    reason: "GPL licenses are not allowed"
