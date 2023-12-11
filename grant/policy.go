@@ -1,6 +1,8 @@
 package grant
 
 import (
+	"strings"
+
 	"github.com/gobwas/glob"
 )
 
@@ -40,28 +42,34 @@ func (p Policy) IsEmpty() bool {
 }
 
 // IsDenied returns true if the given license is denied by the policy
-func (p Policy) IsDenied(license License, pkg *Package) bool {
+func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 	for _, rule := range p.Rules {
 		if rule.Mode != Deny {
 			continue
 		}
 
-		if rule.Glob.Match(license.LicenseID) {
+		var toMatch string
+		if license.IsSPDX() {
+			toMatch = strings.ToLower(license.LicenseID)
+		} else {
+			toMatch = strings.ToLower(license.Name)
+		}
+		if rule.Glob.Match(toMatch) {
 			if pkg == nil {
-				return true
+				return true, &rule
 			}
 			for _, exception := range rule.Exceptions {
 				if exception.Match(pkg.Name) {
-					return false
+					return false, &rule
 				}
 			}
-			return true
+			return true, &rule
 		}
 	}
-	return false
+	return false, nil
 }
 
-// IsAllowed is a convenience function for library usage of IsDenied negation
-func (p Policy) IsAllowed(license License, pkg *Package) bool {
-	return !p.IsDenied(license, pkg)
-}
+//// IsAllowed is a convenience function for library usage of IsDenied negation
+//func (p Policy) IsAllowed(license License, pkg *Package) bool {
+//	return !p.IsDenied(license, pkg)
+//}

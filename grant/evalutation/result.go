@@ -37,6 +37,7 @@ func (rs Results) IsFailed() bool {
 	return false
 }
 
+// GetFailedEvaluations returns a map of user input to slice of failed license evaluations for that input
 func (rs Results) GetFailedEvaluations() map[string]LicenseEvaluations {
 	failures := make(map[string]LicenseEvaluations)
 	for _, r := range rs {

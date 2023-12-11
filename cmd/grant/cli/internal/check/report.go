@@ -6,7 +6,6 @@ import (
 	"time"
 
 	list "github.com/jedib0t/go-pretty/v6/list"
-	"github.com/jedib0t/go-pretty/v6/text"
 
 	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/grant/evalutation"
@@ -33,7 +32,7 @@ type Report struct {
 // If no policy is provided, the default policy will be used
 // If no requests are provided, an empty report will be generated
 // If a request is provided, but the sbom cannot be generated, the source will be ignored and an error will be returned
-func NewReport(f Format, rp grant.Policy, userRequests ...string) (*Report, error) {
+func NewReport(f Format, rp grant.Policy, showPackages bool, userRequests ...string) (*Report, error) {
 	if rp.IsEmpty() {
 		rp = grant.DefaultPolicy()
 	}
@@ -48,9 +47,10 @@ func NewReport(f Format, rp grant.Policy, userRequests ...string) (*Report, erro
 	results := evalutation.NewResults(ec, cases...)
 
 	return &Report{
-		Results:   results,
-		Format:    format,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Results:      results,
+		Format:       format,
+		ShowPackages: showPackages,
+		Timestamp:    time.Now().Format(time.RFC3339),
 	}, nil
 }
 
@@ -68,49 +68,60 @@ func (r *Report) Render(out io.Writer) error {
 func (r *Report) renderTable(out io.Writer) error {
 	if !r.Results.IsFailed() {
 		l := newList()
-		l.AppendItem("No License Violations: ✅")
+		l.AppendItem("No License Violations Found: ✅")
 		bus.Report(l.Render())
 		return nil
 	}
 
-	failures := r.Results.GetFailedEvaluations()
-	lists := []list.Writer{}
-	for input, eval := range failures {
-		l := newList()
-		lists = append(lists, l)
-		l.AppendItem(input)
-		l.Indent()
-		for _, lic := range eval.Licenses() {
-			if lic.IsSPDX() {
-				l.AppendItem(lic.LicenseID)
-			} else {
-				l.AppendItem(lic.LicenseID + " (non-SPDX)")
-			}
+	var uiLists []list.Writer
+	failedEvaluations := r.Results.GetFailedEvaluations()
 
-		}
-		l.UnIndent()
+	// segment the results into lists by user input
+	// lists can optionally show the packages that were evaluated
+	for input, eval := range failedEvaluations {
+		l := newList()
+		uiLists = append(uiLists, l)
+		l.Indent()
+		l.AppendItem(input)
+		renderLicenses(l, eval, r.ShowPackages)
 	}
-	for _, l := range lists {
+	for _, l := range uiLists {
 		bus.Report(l.Render())
 	}
 	return nil
 }
 
+func renderLicenses(l list.Writer, evals evalutation.LicenseEvaluations, showPackages bool) {
+	duplicates := make(map[string]struct{})
+	for _, e := range evals {
+		var licenseRender string
+		if e.License.IsSPDX() {
+			licenseRender = e.License.SPDXExpression
+		} else {
+			licenseRender = e.License.Name
+		}
+		if _, ok := duplicates[licenseRender]; ok {
+			continue
+		}
+		duplicates[licenseRender] = struct{}{}
+		l.Indent()
+		l.AppendItem(licenseRender)
+		if showPackages {
+			packages := evals.Packages(licenseRender)
+			for _, pkg := range packages {
+				l.Indent()
+				l.AppendItem(pkg)
+				l.UnIndent()
+			}
+		}
+		l.UnIndent()
+	}
+}
+
 func newList() list.Writer {
 	l := list.NewWriter()
-	reportStyle := list.Style{
-		Format:         text.FormatDefault,
-		CharItemSingle: "▶",
-		CharItemTop:    "-",
-		CharItemFirst:  "-",
-		CharItemMiddle: "-",
-		CharItemBottom: "-",
-		CharNewline:    "\n",
-		LinePrefix:     "",
-		Name:           "styleTest",
-	}
-	l.SetStyle(reportStyle)
-
+	style := list.StyleDefault
+	style.CharItemSingle = "▶"
 	return l
 }
 
