@@ -63,14 +63,15 @@ func (r *Report) Render(out io.Writer) error {
 	switch r.Format {
 	case Table:
 		return r.renderTable(out)
+	case JSON:
+		return errors.New("json format not yet supported")
 	}
 	return errors.Join(r.errors...)
 }
 
 func (r *Report) renderTable(out io.Writer) error {
 	l := list.NewWriter()
-	l.SetStyle(list.StyleBulletStar)
-
+	l.SetStyle(list.StyleConnectedLight)
 	for _, result := range r.Results {
 		l.AppendItem(result.Case.UserInput)
 		l.Indent()

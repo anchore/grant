@@ -1,6 +1,8 @@
 package evalutation
 
 import (
+	"strings"
+
 	"github.com/github/go-spdx/v2/spdxexp"
 
 	"github.com/anchore/grant/grant"
@@ -60,6 +62,7 @@ func handleSPDXLicense(license syftPkg.License, licenses []grant.License, licens
 
 	// process each extracted license from the SPDX expression
 	for _, extractedLicense := range extractedLicenses {
+		extractedLicense = strings.TrimRight(extractedLicense, "+")
 		// prevent duplicates from being added when using SPDX expressions
 		// EG: "MIT AND MIT" is valid, but we want to de-duplicate these
 		if check(checked, extractedLicense) {

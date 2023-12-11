@@ -1,6 +1,7 @@
 package grant
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -62,6 +63,8 @@ func NewCases(p *Policy, userInputs ...string) []Case {
 // - a container image (ubuntu:latest)
 func determineRequestCase(userRequest string) (c Case, err error) {
 	switch {
+	case isStdin(userRequest):
+		return handleStdin(userRequest)
 	case isFile(userRequest):
 		return handleFile(userRequest)
 	case isDirectory(userRequest):
@@ -69,9 +72,38 @@ func determineRequestCase(userRequest string) (c Case, err error) {
 	default:
 		return handleContainer(userRequest)
 	}
+}
 
-	// alright you got us here, we don't know what to do with this
-	return c, fmt.Errorf("unable to determine SBOM or licenses for %s", userRequest)
+func handleStdin(path string) (c Case, err error) {
+	stdReader, err := decodeStdin(os.Stdin)
+	if err != nil {
+		return c, err
+	}
+
+	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(stdReader)
+	if sb != nil {
+		return Case{
+			SBOMS:     []sbom.SBOM{*sb},
+			Licenses:  make([]License, 0),
+			UserInput: sb.Source.Name,
+		}, nil
+	}
+	return c, fmt.Errorf("unable to determine SBOM or licenses for stdin")
+}
+
+func decodeStdin(r io.Reader) (io.ReadSeeker, error) {
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed reading stdin: %w", err)
+	}
+
+	reader := bytes.NewReader(b)
+	_, err = reader.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse stdin: %w", err)
+	}
+
+	return reader, nil
 }
 
 // TODO: probably need to return a multi error here
@@ -87,8 +119,9 @@ func handleFile(path string) (c Case, err error) {
 		// if there are licenses in the archive, syft should be enhanced to include them in the SBOM
 		// this overlap is a little weird, but grant should be able to take license files as input
 		return Case{
-			SBOMS:    []sbom.SBOM{sb},
-			Licenses: make([]License, 0),
+			SBOMS:     []sbom.SBOM{sb},
+			Licenses:  make([]License, 0),
+			UserInput: path,
 		}, nil
 	}
 
@@ -140,8 +173,9 @@ func handleFile(path string) (c Case, err error) {
 	licenses := grantLicenseFromClassifierResults(results)
 
 	return Case{
-		SBOMS:    make([]sbom.SBOM, 0),
-		Licenses: licenses,
+		SBOMS:     make([]sbom.SBOM, 0),
+		Licenses:  licenses,
+		UserInput: path,
 	}, nil
 }
 
@@ -214,7 +248,7 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 // TODO: is the default syft config good enough here?
 // we definitely need at least all the non default license magic turned on
 func generateSyftSBOM(path string) (sb sbom.SBOM, err error) {
-	detection, err := source.Detect("alpine:latest", source.DefaultDetectConfig())
+	detection, err := source.Detect(path, source.DefaultDetectConfig())
 	if err != nil {
 		return sb, err
 	}
@@ -246,7 +280,7 @@ func generateSyftSBOM(path string) (sb sbom.SBOM, err error) {
 func isDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		log.Errorf("unable to stat directory %s: %+v", path, err)
+		//log.Errorf("unable to stat directory %s: %+v", path, err)
 		return false
 	}
 	return fileInfo.IsDir()
@@ -268,8 +302,14 @@ func isArchive(path string) bool {
 func isFile(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		log.Errorf("unable to stat file %s: %+v", path, err)
+		//log.Errorf("unable to stat file %s: %+v", path, err)
 		return false
 	}
 	return !fileInfo.IsDir()
+}
+
+// this is appended to the list of user requests if the user provides stdin
+// and doesn't provide a "-" in the list of user requests
+func isStdin(path string) bool {
+	return strings.EqualFold(path, "-")
 }
