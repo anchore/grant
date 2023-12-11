@@ -214,7 +214,7 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 // TODO: is the default syft config good enough here?
 // we definitely need at least all the non default license magic turned on
 func generateSyftSBOM(path string) (sb sbom.SBOM, err error) {
-	detection, err := source.Detect("alpine:latest", source.DefaultDetectConfig())
+	detection, err := source.Detect(path, source.DefaultDetectConfig())
 	if err != nil {
 		return sb, err
 	}
