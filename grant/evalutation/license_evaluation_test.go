@@ -41,5 +41,5 @@ func Test_NewLicenseEvaluations(t *testing.T) {
 }
 
 func fixtureCase(ec EvaluationConfig, fixturePath string) []grant.Case {
-	return grant.NewCases(&ec.Policy, fixturePath)
+	return grant.NewCases(ec.Policy, fixturePath)
 }

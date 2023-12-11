@@ -1,6 +1,8 @@
 package evalutation
 
 import (
+	"sort"
+
 	"github.com/anchore/grant/grant"
 	"github.com/anchore/syft/syft/sbom"
 )
@@ -39,7 +41,10 @@ func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License, eval
 	if !l.IsSPDX() {
 		// TODO: check if the config wants us to check for non-SPDX licenses
 	}
-	if ec.Policy.IsDenied(l, pkg) {
+	if denied, rule := ec.Policy.IsDenied(l, pkg); denied {
+		if rule != nil {
+
+		}
 		le := NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{ReasonLicenseDenied}, false)
 		return append(evaluations, le)
 	}
@@ -74,12 +79,13 @@ func (le LicenseEvaluations) Licenses() []grant.License {
 }
 
 func (le LicenseEvaluations) Failed() LicenseEvaluations {
-	failed := make([]LicenseEvaluation, 0)
+	var failed LicenseEvaluations
 	for _, e := range le {
 		if !e.Pass {
 			failed = append(failed, e)
 		}
 	}
+	sort.Sort(failed)
 	return failed
 }
 
@@ -114,3 +120,20 @@ func NewLicenseEvaluation(license grant.License, pkg *grant.Package, policy gran
 		Pass:    pass,
 	}
 }
+
+func (le LicenseEvaluations) Len() int { return len(le) }
+func (le LicenseEvaluations) Less(i, j int) bool {
+	var compareI, compareJ string
+	if le[i].License.LicenseID != "" {
+		compareI = le[i].License.LicenseID
+	} else {
+		compareI = le[i].License.Name
+	}
+	if le[j].License.LicenseID != "" {
+		compareJ = le[j].License.LicenseID
+	} else {
+		compareJ = le[j].License.Name
+	}
+	return compareI < compareJ
+}
+func (le LicenseEvaluations) Swap(i, j int) { le[i], le[j] = le[j], le[i] }

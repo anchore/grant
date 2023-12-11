@@ -68,32 +68,47 @@ func (r *Report) Render(out io.Writer) error {
 func (r *Report) renderTable(out io.Writer) error {
 	if !r.Results.IsFailed() {
 		l := newList()
-		l.AppendItem("No License Violations: ✅")
+		l.AppendItem("No License Violations Found: ✅")
 		bus.Report(l.Render())
 		return nil
 	}
 
-	failures := r.Results.GetFailedEvaluations()
-	lists := []list.Writer{}
-	for input, eval := range failures {
+	var uiLists []list.Writer
+	failedEvaluations := r.Results.GetFailedEvaluations()
+
+	// segment the results into lists by user input
+	// lists can optionally show the packages that were evaluated
+	for input, eval := range failedEvaluations {
 		l := newList()
-		lists = append(lists, l)
+		uiLists = append(uiLists, l)
 		l.AppendItem(input)
 		l.Indent()
-		for _, lic := range eval.Licenses() {
-			if lic.IsSPDX() {
-				l.AppendItem(lic.LicenseID)
-			} else {
-				l.AppendItem(lic.LicenseID + " (non-SPDX)")
-			}
-
-		}
+		renderLicenses(l, eval)
 		l.UnIndent()
 	}
-	for _, l := range lists {
+	for _, l := range uiLists {
 		bus.Report(l.Render())
 	}
 	return nil
+}
+
+func renderLicenses(l list.Writer, evals evalutation.LicenseEvaluations) {
+	duplicates := make(map[string]struct{})
+	for _, e := range evals {
+		var licenseRender string
+		if e.License.IsSPDX() {
+			licenseRender = e.License.SPDXExpression
+		} else {
+			licenseRender = e.License.Name
+		}
+		if _, ok := duplicates[licenseRender]; ok {
+			continue
+		}
+		duplicates[licenseRender] = struct{}{}
+		l.Indent()
+		l.AppendItem(licenseRender)
+		l.UnIndent()
+	}
 }
 
 func newList() list.Writer {
