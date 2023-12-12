@@ -18,27 +18,8 @@ import (
 )
 
 type CheckConfig struct {
-	Config       string        `json:"config" yaml:"config" mapstructure:"config"`
-	Format       string        `json:"format" yaml:"format" mapstructure:"format"`
-	ShowPackages bool          `json:"show-packages" yaml:"show-packages" mapstructure:"show-packages"`
-	CheckNonSPDX bool          `json:"check-non-spdx" yaml:"check-non-spdx" mapstructure:"check-non-spdx"`
-	Quiet        bool          `json:"quiet" yaml:"quiet" mapstructure:"quiet"`
-	Rules        []option.Rule `json:"rules" yaml:"rules" mapstructure:"rules"`
-}
-
-func DefaultCheck() *CheckConfig {
-	return &CheckConfig{
-		Config:       "",
-		ShowPackages: false,
-		Rules: []option.Rule{
-			{
-				Name:     "deny-all",
-				Reason:   "grant by default will deny all licenses",
-				Pattern:  "*",
-				Severity: "high",
-			},
-		},
-	}
+	Config       string `json:"config" yaml:"config" mapstructure:"config"`
+	option.Check `json:"" yaml:",inline" mapstructure:",squash"`
 }
 
 func (cfg *CheckConfig) RulesFromConfig() (rules grant.Rules, err error) {
@@ -73,7 +54,10 @@ func (cfg *CheckConfig) RulesFromConfig() (rules grant.Rules, err error) {
 }
 
 func Check(app clio.Application) *cobra.Command {
-	cfg := DefaultCheck()
+	cfg := &CheckConfig{
+		Check: option.DefaultCheck(),
+	}
+
 	// sources are the oci images, sboms, or directories/files to check
 	var sources []string
 	return app.SetupCommand(&cobra.Command{

@@ -111,6 +111,14 @@ func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e eval
 			licenseTracker[license] = struct{}{}
 			l.Indent()
 			l.AppendItem(color.Danger.Sprintf("%s", license))
+			if showPackages {
+				packages := e.Packages(license)
+				l.Indent()
+				for _, pkg := range packages {
+					l.AppendItem(color.Light.Sprintf("%s", pkg))
+				}
+				l.UnIndent()
+			}
 			l.UnIndent()
 		}
 	}
