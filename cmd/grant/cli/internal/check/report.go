@@ -94,7 +94,7 @@ func (r *Report) renderCheckTree() error {
 			failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput, rule)
 			if len(failedEvaluations) == 0 {
 				resulList.Indent()
-				resulList.AppendItem(color.Success.Sprintf("%s", "No License Violations Found"))
+				resulList.AppendItem(color.Success.Sprintf("No License Violations Found for Rule %s", rule.Name))
 				resulList.UnIndent()
 				continue
 			}
@@ -148,7 +148,9 @@ func (r *Report) renderList() error {
 				resulList.UnIndent()
 			}
 		}
-		renderOrphanPackages(resulList, res, true)
+		if r.Config.ShowPackages {
+			renderOrphanPackages(resulList, res, true)
+		}
 	}
 
 	// segment the results into lists by user input

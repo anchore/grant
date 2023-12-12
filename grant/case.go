@@ -277,9 +277,6 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 				})
 			} else {
 				licenses = append(licenses, License{
-					SPDXExpression: license.Name,
-					Name:           spdxLicense.Name,
-					//Locations:             , we know this with the path
 					Reference:             spdxLicense.Reference,
 					IsDeprecatedLicenseID: spdxLicense.IsDeprecatedLicenseID,
 					DetailsURL:            spdxLicense.DetailsURL,

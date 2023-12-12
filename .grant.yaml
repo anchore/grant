@@ -1,5 +1,6 @@
 #.grant.yaml
 show-packages: false
+ignore-orphan-packages: false
 check-non-spdx: true
 format: table
 rules: 
@@ -7,13 +8,15 @@ rules:
     name: "gpl-denied"
     mode: "deny"
     reason: "GPL licenses are not allowed per xxx-xx company policy"
-    exclusions:
-      - "alpine-base-layout" # We don't link against this package so we don't care about its license
+    exceptions:
+      - "alpine-baselayout" # We don't link against this package so we don't care about its license
+      - "base-files"
+      - "netbase"
   - pattern: "*BSD*"
     name: "bsd-denied"
     mode: "deny"
     reason: "BSD licenses are not allowed per xxx-xx company policy"
-    exclusions:
+    exceptions:
       - "1apt"
       - "1bsdutils"
       - "1dash"
