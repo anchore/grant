@@ -16,6 +16,7 @@ import (
 
 	"github.com/anchore/grant/internal"
 	"github.com/anchore/grant/internal/log"
+	"github.com/anchore/grant/internal/spdxlicense"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/format"
 	"github.com/anchore/syft/syft/pkg/cataloger"
@@ -41,8 +42,14 @@ type Case struct {
 
 func NewCases(p Policy, userInputs ...string) []Case {
 	cases := make([]Case, 0)
+	ch, err := NewCaseHandler()
+	defer ch.Close()
+	if err != nil {
+		log.Errorf("unable to create case handler: %+v", err)
+		return cases
+	}
 	for _, userInput := range userInputs {
-		c, err := determineRequestCase(userInput)
+		c, err := ch.determineRequestCase(userInput)
 		if err != nil {
 			log.Errorf("unable to determine case for %s: %+v", userInput, err)
 			continue
@@ -54,6 +61,24 @@ func NewCases(p Policy, userInputs ...string) []Case {
 	return cases
 }
 
+type CaseHandler struct {
+	Backend *backend.ClassifierBackend
+}
+
+func NewCaseHandler() (*CaseHandler, error) {
+	be, err := backend.New()
+	if err != nil {
+		return &CaseHandler{}, err
+	}
+	return &CaseHandler{
+		Backend: be,
+	}, nil
+}
+
+func (ch *CaseHandler) Close() {
+	ch.Backend.Close()
+}
+
 // A valid userRequest can be:
 // - a path to an SBOM file
 // - a path to a license
@@ -61,14 +86,14 @@ func NewCases(p Policy, userInputs ...string) []Case {
 // - a path to an archive
 // - a path to a directory (with any of the above)
 // - a container image (ubuntu:latest)
-func determineRequestCase(userRequest string) (c Case, err error) {
+func (ch *CaseHandler) determineRequestCase(userRequest string) (c Case, err error) {
 	switch {
 	case isStdin(userRequest):
 		return handleStdin()
 	case isFile(userRequest):
-		return handleFile(userRequest)
+		return ch.handleFile(userRequest)
 	case isDirectory(userRequest):
-		return handleDir(userRequest)
+		return ch.handleDir(userRequest)
 	default:
 		return handleContainer(userRequest)
 	}
@@ -109,8 +134,7 @@ func decodeStdin(r io.Reader) (io.ReadSeeker, error) {
 	return reader, nil
 }
 
-// TODO: probably need to return a multi error here
-func handleFile(path string) (c Case, err error) {
+func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 	// let's see if it's an archive (isArchive)
 	if isArchive(path) {
 		sb, err := generateSyftSBOM(path)
@@ -137,7 +161,7 @@ func handleFile(path string) (c Case, err error) {
 
 	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(bytes)
 	if err != nil {
-		return c, fmt.Errorf("unable to determine SBOM or licenses for %s: %w", path, err)
+		// we want to log the error, but we don't want to return yet
 	}
 	if sb != nil {
 		return Case{
@@ -145,7 +169,7 @@ func handleFile(path string) (c Case, err error) {
 			Licenses: make([]License, 0),
 		}, nil
 	}
-	licenses, err := handleLicenseFile(path)
+	licenses, err := ch.handleLicenseFile(path)
 	if err != nil {
 		return c, fmt.Errorf("unable to determine SBOM or licenses for %s: %w", path, err)
 	}
@@ -157,33 +181,28 @@ func handleFile(path string) (c Case, err error) {
 	}, nil
 }
 
-func handleLicenseFile(path string) ([]License, error) {
+func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 	// alright we couldn't get an SBOM, let's see if the bytes are just a LICENSE (google license classifier)
 	// TODO: this is a little heavy, we might want to generate a backend and reuse it for all the files we're checking
-	be, err := backend.New()
-	if err != nil {
-		return nil, err
-	}
-	defer be.Close()
 
 	// google license classifier is noisy, so we'll silence it for now
 	golog.SetOutput(io.Discard)
-	if errs := be.ClassifyLicensesWithContext(
+	if errs := ch.Backend.ClassifyLicensesWithContext(
 		context.Background(),
 		1000,
 		[]string{path},
 		false,
 	); errs != nil {
-		be.Close()
+		ch.Close()
 		for _, err := range errs {
 			log.Errorf("unable to classify license: %+v", err)
 		}
-		return nil, fmt.Errorf("unable to classify license: %+v", err)
+		return nil, fmt.Errorf("unable to classify license: %+v", errs)
 	}
 	// re-enable logging for the rest of the application
 	golog.SetOutput(os.Stdout)
 
-	results := be.GetResults()
+	results := ch.Backend.GetResults()
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no results from license classifier")
 	}
@@ -192,7 +211,7 @@ func handleLicenseFile(path string) ([]License, error) {
 	return licenses, nil
 }
 
-func handleDir(root string) (c Case, err error) {
+func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 	dirCase := Case{
 		SBOMS:    make([]sbom.SBOM, 0),
 		Licenses: make([]License, 0),
@@ -205,7 +224,7 @@ func handleDir(root string) (c Case, err error) {
 		}
 		if !d.IsDir() {
 			// This isn't broken, the license classifier just returned two licenses
-			r, err := handleFile(s)
+			r, err := ch.handleFile(s)
 			if err != nil {
 				// TODO: some log for the error here?
 				return nil
@@ -249,10 +268,27 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 	for _, license := range r {
 		// TODO: sometimes the license classifier gives us more information than just the name.
 		// How do we want to handle this or include it in the grant.License?
+
 		if license.MatchType == "License" {
-			licenses = append(licenses, License{
-				Name: license.Name,
-			})
+			spdxLicense, err := spdxlicense.GetLicenseByID(license.Name)
+			if err != nil {
+				licenses = append(licenses, License{
+					Name: license.Name,
+				})
+			} else {
+				licenses = append(licenses, License{
+					SPDXExpression: license.Name,
+					Name:           spdxLicense.Name,
+					//Locations:             , we know this with the path
+					Reference:             spdxLicense.Reference,
+					IsDeprecatedLicenseID: spdxLicense.IsDeprecatedLicenseID,
+					DetailsURL:            spdxLicense.DetailsURL,
+					ReferenceNumber:       spdxLicense.ReferenceNumber,
+					LicenseID:             spdxLicense.LicenseID,
+					SeeAlso:               spdxLicense.SeeAlso,
+					IsOsiApproved:         spdxLicense.IsOsiApproved,
+				})
+			}
 		}
 	}
 	return licenses

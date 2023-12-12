@@ -104,6 +104,7 @@ func (r *Report) renderCheckTree() error {
 			osiRule := grant.Rule{
 				Name: evalutation.RuleNameNotOSIApproved,
 			}
+
 			failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput, osiRule)
 			if len(failedEvaluations) == 0 {
 				resulList.Indent()
