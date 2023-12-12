@@ -139,17 +139,30 @@ func (le LicenseEvaluations) GetLicenses() []string {
 	licenseMap := make(map[string]struct{})
 	// get the set of unique licenses from the list for the given package...
 	for _, e := range le {
-		if _, ok := licenseMap[e.License.SPDXExpression]; !ok && e.License.SPDXExpression != "" {
+		if _, ok := licenseMap[e.License.LicenseID]; !ok && e.License.LicenseID != "" {
 			licenseMap[e.License.LicenseID] = struct{}{}
-			licenses = append(licenses, e.License.SPDXExpression)
+			licenses = append(licenses, e.License.LicenseID)
 		}
 		if _, ok := licenseMap[e.License.Name]; !ok && e.License.Name != "" {
 			licenseMap[e.License.Name] = struct{}{}
 			licenses = append(licenses, e.License.Name)
 		}
 	}
+	licenses = removeDuplicates(licenses)
 	sort.Strings(licenses)
 	return licenses
+}
+
+func removeDuplicates(elements []string) []string {
+	encountered := map[string]bool{}
+	result := []string{}
+	for _, element := range elements {
+		if !encountered[element] {
+			encountered[element] = true
+			result = append(result, element)
+		}
+	}
+	return result
 }
 
 func (le LicenseEvaluations) Failed(r grant.Rule) LicenseEvaluations {
