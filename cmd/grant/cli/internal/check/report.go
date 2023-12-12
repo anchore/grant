@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/gookit/color"
 	list "github.com/jedib0t/go-pretty/v6/list"
 
 	"github.com/anchore/grant/grant"
@@ -32,7 +33,8 @@ type Report struct {
 // If no policy is provided, the default policy will be used
 // If no requests are provided, an empty report will be generated
 // If a request is provided, but the sbom cannot be generated, the source will be ignored and an error will be returned
-func NewReport(f Format, rp grant.Policy, showPackages bool, userRequests ...string) (*Report, error) {
+// Where do we render packages that had no licenses?
+func NewReport(f Format, rp grant.Policy, showPackages, checkNonSPDX bool, userRequests ...string) (*Report, error) {
 	if rp.IsEmpty() {
 		rp = grant.DefaultPolicy()
 	}
@@ -41,7 +43,7 @@ func NewReport(f Format, rp grant.Policy, showPackages bool, userRequests ...str
 	cases := grant.NewCases(rp, userRequests...)
 	ec := evalutation.EvaluationConfig{
 		Policy:       rp,
-		CheckNonSPDX: true, // TODO: how do we design the configuration here to inject this value?
+		CheckNonSPDX: checkNonSPDX,
 	}
 
 	results := evalutation.NewResults(ec, cases...)
@@ -66,74 +68,64 @@ func (r *Report) Render(out io.Writer) error {
 }
 
 func (r *Report) renderTable(out io.Writer) error {
-	if !r.Results.IsFailed() {
-		l := newList()
-		l.AppendItem("No License Violations Found: ✅")
-		bus.Report(l.Render())
-		return nil
-	}
-
 	var uiLists []list.Writer
-	failedEvaluations := r.Results.GetFailedEvaluations()
+	for _, res := range r.Results {
+		resulList := newList()
+		uiLists = append(uiLists, resulList)
+		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
+
+		for _, rule := range res.Case.Policy.Rules {
+			failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput, rule)
+			if len(failedEvaluations) == 0 {
+				resulList.Indent()
+				resulList.AppendItem(color.Success.Sprintf("%s", "No License Violations Found"))
+				resulList.UnIndent()
+				continue
+			}
+			renderEvaluations(rule, r.ShowPackages, resulList, failedEvaluations)
+		}
+
+	}
 
 	// segment the results into lists by user input
 	// lists can optionally show the packages that were evaluated
-	for input, eval := range failedEvaluations {
-		l := newList()
-		uiLists = append(uiLists, l)
-		l.Indent()
-		l.AppendItem(input)
-		renderLicenses(l, eval, r.ShowPackages)
-	}
 	for _, l := range uiLists {
 		bus.Report(l.Render())
 	}
 	return nil
 }
 
-func renderLicenses(l list.Writer, evals evalutation.LicenseEvaluations, showPackages bool) {
-	duplicates := make(map[string]struct{})
-	for _, e := range evals {
-		var licenseRender string
-		if e.License.IsSPDX() {
-			licenseRender = e.License.SPDXExpression
+func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e evalutation.LicenseEvaluations) {
+	l.Indent()
+	l.AppendItem(color.Secondary.Sprintf("license matches for rule: %s; matched with pattern %s", rule.Name, rule.OriginalPattern))
+
+	licenseTracker := make(map[string]struct{})
+	for _, eval := range e {
+		var license string
+		if eval.License.SPDXExpression != "" {
+			license = eval.License.SPDXExpression
 		} else {
-			licenseRender = e.License.Name
+			license = eval.License.Name
 		}
-		if _, ok := duplicates[licenseRender]; ok {
-			continue
-		}
-		duplicates[licenseRender] = struct{}{}
-		l.Indent()
-		l.AppendItem(licenseRender)
-		if showPackages {
-			packages := evals.Packages(licenseRender)
-			for _, pkg := range packages {
+		if _, ok := licenseTracker[license]; !ok {
+			licenseTracker[license] = struct{}{}
+			l.Indent()
+			l.AppendItem(color.Danger.Sprintf("%s", license))
+			if showPackages {
+				packages := e.Packages(license)
 				l.Indent()
-				l.AppendItem(pkg)
+				for _, pkg := range packages {
+					l.AppendItem(color.Light.Sprintf("%s", pkg))
+				}
 				l.UnIndent()
 			}
+			l.UnIndent()
 		}
-		l.UnIndent()
 	}
+	return
 }
 
 func newList() list.Writer {
 	l := list.NewWriter()
-	style := list.StyleDefault
-	style.CharItemSingle = "▶"
 	return l
-}
-
-type ResultSummary struct {
-	CompliantPackages int `json:"compliant_packages" yaml:"compliant_packages"`
-	PackageViolations int `json:"package_violations" yaml:"package_violations"`
-	IgnoredPackages   int `json:"ignored_packages" yaml:"ignored_packages"`
-	LicenseViolations int `json:"license_violations" yaml:"license_violations"`
-	CompliantLicenses int `json:"compliant_licenses" yaml:"compliant_licenses"`
-	IgnoredLicenses   int `json:"ignored_licenses" yaml:"ignored_licenses"`
-}
-
-func Summary() ResultSummary {
-	return ResultSummary{}
 }

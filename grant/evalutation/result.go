@@ -38,12 +38,26 @@ func (rs Results) IsFailed() bool {
 }
 
 // GetFailedEvaluations returns a map of user input to slice of failed license evaluations for that input
-func (rs Results) GetFailedEvaluations() map[string]LicenseEvaluations {
-	failures := make(map[string]LicenseEvaluations)
+func (rs Results) GetFailedEvaluations(userInput string, rule grant.Rule) LicenseEvaluations {
+	failed := make(LicenseEvaluations, 0)
 	for _, r := range rs {
-		if r.Evaluations.IsFailed() {
-			failures[r.Case.UserInput] = r.Evaluations.Failed()
+		if r.Case.UserInput == userInput && !r.Pass {
+			failed = append(failed, r.Evaluations.Failed(rule)...)
 		}
 	}
-	return failures
+
+	return failed
+}
+
+type ResultSummary struct {
+	CompliantPackages int `json:"compliant_packages" yaml:"compliant_packages"`
+	PackageViolations int `json:"package_violations" yaml:"package_violations"`
+	IgnoredPackages   int `json:"ignored_packages" yaml:"ignored_packages"`
+	LicenseViolations int `json:"license_violations" yaml:"license_violations"`
+	CompliantLicenses int `json:"compliant_licenses" yaml:"compliant_licenses"`
+	IgnoredLicenses   int `json:"ignored_licenses" yaml:"ignored_licenses"`
+}
+
+func (rs Results) Summary() ResultSummary {
+	return ResultSummary{}
 }

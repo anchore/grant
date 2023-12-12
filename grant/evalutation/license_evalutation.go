@@ -10,46 +10,65 @@ import (
 func NewLicenseEvaluations(ec EvaluationConfig, c grant.Case) LicenseEvaluations {
 	evaluations := make([]LicenseEvaluation, 0)
 	for _, sb := range c.SBOMS {
-		evaluations = checkSBOM(ec, c, sb, evaluations)
+		evaluations = checkSBOM(ec, c, sb)
 	}
 
 	for _, l := range c.Licenses {
-		evaluations = checkLicense(ec, nil, l, evaluations)
+		le := checkLicense(ec, nil, l)
+		evaluations = append(evaluations, le)
 	}
 
 	return evaluations
 }
 
-func checkSBOM(ec EvaluationConfig, c grant.Case, sb sbom.SBOM, evaluations []LicenseEvaluation) []LicenseEvaluation {
+func checkSBOM(ec EvaluationConfig, c grant.Case, sb sbom.SBOM) LicenseEvaluations {
+	evaluations := make([]LicenseEvaluation, 0)
 	for pkg := range sb.Artifacts.Packages.Enumerate() {
 		// since we use syft as a library to generate the sbom we need to convert its packages/licenses to grant types
 		grantPkg := convertSyftPackage(pkg)
 		if len(grantPkg.Licenses) == 0 {
-			le := NewLicenseEvaluation(grant.License{}, grantPkg, ec.Policy, []Reason{ReasonNoLicenseFound}, true)
+			// We need to include an evaluation that shows this package has no licenses
+			le := NewLicenseEvaluation(grant.License{}, grantPkg, ec.Policy, []Reason{{
+				Detail: ReasonNoLicenseFound,
+			}}, true)
 			evaluations = append(evaluations, le)
 			continue
 		}
 
 		for _, l := range grantPkg.Licenses {
-			evaluations = checkLicense(ec, grantPkg, l, evaluations)
+			le := checkLicense(ec, grantPkg, l)
+			evaluations = append(evaluations, le)
 		}
 	}
 	return evaluations
 }
 
-func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License, evaluations []LicenseEvaluation) []LicenseEvaluation {
-	if !l.IsSPDX() {
-		// TODO: check if the config wants us to check for non-SPDX licenses
+func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License) LicenseEvaluation {
+	if !l.IsSPDX() && ec.CheckNonSPDX {
+		if denied, rule := ec.Policy.IsDenied(l, pkg); denied {
+			var reason Reason
+			if rule != nil {
+				reason = Reason{
+					Detail:   ReasonLicenseDenied,
+					RuleName: rule.Name,
+				}
+			}
+			return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{reason}, false)
+		}
 	}
 	if denied, rule := ec.Policy.IsDenied(l, pkg); denied {
+		var reason Reason
 		if rule != nil {
-
+			reason = Reason{
+				Detail:   ReasonLicenseDenied,
+				RuleName: rule.Name,
+			}
 		}
-		le := NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{ReasonLicenseDenied}, false)
-		return append(evaluations, le)
+		return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{reason}, false)
 	}
-	le := NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{ReasonLicenseAllowed}, true)
-	return append(evaluations, le)
+	return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{{
+		Detail: ReasonLicenseAllowed,
+	}}, true)
 }
 
 type LicenseEvaluations []LicenseEvaluation
@@ -66,23 +85,29 @@ func (le LicenseEvaluations) Packages(license string) []string {
 	return packages
 }
 
-func (le LicenseEvaluations) Licenses() []grant.License {
+func (le LicenseEvaluations) Licenses(pkg string) []grant.License {
 	licenses := make([]grant.License, 0)
 	licenseMap := make(map[string]struct{})
-	// get the set of unique licenses from the list...
+	// get the set of unique licenses from the list for the given package...
 	for _, e := range le {
-		if _, ok := licenseMap[e.License.LicenseID]; !ok && e.License.LicenseID != "" {
-			licenseMap[e.License.LicenseID] = struct{}{}
-			licenses = append(licenses, e.License)
+		if e.Package != nil && e.Package.Name == pkg {
+			if _, ok := licenseMap[e.License.LicenseID]; !ok && e.License.SPDXExpression != "" {
+				licenseMap[e.License.LicenseID] = struct{}{}
+				licenses = append(licenses, e.License)
+			}
+			if _, ok := licenseMap[e.License.Name]; !ok && e.License.Name != "" {
+				licenseMap[e.License.Name] = struct{}{}
+				licenses = append(licenses, e.License)
+			}
 		}
 	}
 	return licenses
 }
 
-func (le LicenseEvaluations) Failed() LicenseEvaluations {
+func (le LicenseEvaluations) Failed(r grant.Rule) LicenseEvaluations {
 	var failed LicenseEvaluations
 	for _, e := range le {
-		if !e.Pass {
+		if !e.Pass && e.RuleApplied(r) {
 			failed = append(failed, e)
 		}
 	}
@@ -110,6 +135,15 @@ type LicenseEvaluation struct {
 	// the output of an evaluation...
 	Reason []Reason // reasons that the evaluation value the way it is
 	Pass   bool     // The final evaluation
+}
+
+func (le LicenseEvaluation) RuleApplied(r grant.Rule) bool {
+	for _, reason := range le.Reason {
+		if reason.RuleName == r.Name {
+			return true
+		}
+	}
+	return false
 }
 
 func NewLicenseEvaluation(license grant.License, pkg *grant.Package, policy grant.Policy, reasons []Reason, pass bool) LicenseEvaluation {

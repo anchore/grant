@@ -1,11 +1,12 @@
 #.grant.yaml
-show-packages: true
+show-packages: false
+check-non-spdx: true
+format: table
 rules: 
   - pattern: "*gpl*"
+    name: "gpl-denied"
     mode: "deny"
-    reason: "GPL licenses are not allowed"
-    exceptions:
-      - "lib*"
-  - pattern: "*gfdl*"
-    mode: "deny"
-    reason: "GPL licenses are not allowed"
+    reason: "GPL licenses are not allowed per xxx-xx company policy"
+    exclusions:
+      - "alpine-base-layout" # We don't link against this package so we don't care about its license
+
