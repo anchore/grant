@@ -58,18 +58,18 @@ func Check(app clio.Application) *cobra.Command {
 		Check: option.DefaultCheck(),
 	}
 
-	// sources are the oci images, sboms, or directories/files to check
-	var sources []string
+	// userInputs are the oci images, sboms, or directories/files to check
+	var userInputs []string
 	return app.SetupCommand(&cobra.Command{
 		Use:   "check",
 		Short: "Verify licenses in the SBOM conform to the configured policy",
 		Args:  cobra.ArbitraryArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			sources = args
+			userInputs = args
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCheck(cfg, sources)
+			return runCheck(cfg, userInputs)
 		},
 	}, cfg)
 }

@@ -60,14 +60,24 @@ func NewReport(f Format, rp grant.Policy, showPackages, checkNonSPDX bool, userR
 func (r *Report) Render(out io.Writer) error {
 	switch r.Format {
 	case Table:
-		return r.renderTable(out)
+		return r.renderCheckTree(out)
 	case JSON:
 		return errors.New("json format not yet supported")
 	}
 	return errors.Join(r.errors...)
 }
 
-func (r *Report) renderTable(out io.Writer) error {
+func (r *Report) RenderList(out io.Writer) error {
+	switch r.Format {
+	case Table:
+		return r.renderList(out)
+	case JSON:
+		return errors.New("json format not yet supported")
+	}
+	return errors.Join(r.errors...)
+}
+
+func (r *Report) renderCheckTree(out io.Writer) error {
 	var uiLists []list.Writer
 	for _, res := range r.Results {
 		resulList := newList()
@@ -84,7 +94,9 @@ func (r *Report) renderTable(out io.Writer) error {
 			}
 			renderEvaluations(rule, r.ShowPackages, resulList, failedEvaluations)
 		}
-
+		if r.ShowPackages {
+			renderOrphanPackages(resulList, res, false) // keep primary coloring for tree
+		}
 	}
 
 	// segment the results into lists by user input
@@ -93,6 +105,61 @@ func (r *Report) renderTable(out io.Writer) error {
 		bus.Report(l.Render())
 	}
 	return nil
+}
+
+func (r *Report) renderList(out io.Writer) error {
+	var uiLists []list.Writer
+	for _, res := range r.Results {
+		resulList := newList()
+		uiLists = append(uiLists, resulList)
+		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
+		for _, license := range res.Evaluations.GetLicenses() {
+			resulList.Indent()
+			resulList.AppendItem(color.Light.Sprintf("%s", license))
+			resulList.UnIndent()
+			if r.ShowPackages {
+				packages := res.Evaluations.Packages(license)
+				resulList.Indent()
+				resulList.Indent()
+				for _, pkg := range packages {
+					resulList.AppendItem(color.Secondary.Sprintf("%s", pkg))
+				}
+				resulList.UnIndent()
+				resulList.UnIndent()
+				renderOrphanPackages(resulList, res, true)
+			}
+		}
+	}
+
+	// segment the results into lists by user input
+	// lists can optionally show the packages that were evaluated
+	for _, l := range uiLists {
+		bus.Report(l.Render())
+	}
+	return nil
+}
+
+func renderOrphanPackages(l list.Writer, res evalutation.Result, invert bool) {
+	title := color.Secondary
+	newItem := color.Light
+	if invert {
+		title = color.Light
+		newItem = color.Secondary
+	}
+	// TODO: there is a bug here where binary cataloger show even when dupe os overlap
+	orphans := res.Evaluations.EmptyPackages()
+	if len(orphans) == 0 {
+		return
+	}
+	l.Indent()
+	l.AppendItem(title.Sprintf("packages found with no licenses"))
+	l.Indent()
+	for _, pkg := range orphans {
+		l.AppendItem(newItem.Sprintf("%s", pkg))
+	}
+	l.UnIndent()
+	l.UnIndent()
+	return
 }
 
 func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e evalutation.LicenseEvaluations) {
@@ -122,6 +189,7 @@ func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e eval
 			l.UnIndent()
 		}
 	}
+	l.UnIndent()
 	return
 }
 

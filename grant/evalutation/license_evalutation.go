@@ -76,9 +76,29 @@ type LicenseEvaluations []LicenseEvaluation
 func (le LicenseEvaluations) Packages(license string) []string {
 	packages := make([]string, 0)
 	// get the set of unique packages from the list...
+	packageMap := make(map[string]struct{})
 	for _, e := range le {
 		if e.Package != nil && (e.License.LicenseID == license || e.License.Name == license) {
-			packages = append(packages, e.Package.Name)
+			if _, ok := packageMap[e.Package.Name]; !ok {
+				packageMap[e.Package.Name] = struct{}{}
+				packages = append(packages, e.Package.Name)
+			}
+		}
+	}
+	sort.Sort(sort.StringSlice(packages))
+	return packages
+}
+
+func (le LicenseEvaluations) EmptyPackages() []string {
+	packages := make([]string, 0)
+	// get the set of unique packages from the list...
+	packageMap := make(map[string]struct{})
+	for _, e := range le {
+		if e.Package != nil && e.License.LicenseID == "" && e.License.Name == "" {
+			if _, ok := packageMap[e.Package.Name]; !ok {
+				packageMap[e.Package.Name] = struct{}{}
+				packages = append(packages, e.Package.Name)
+			}
 		}
 	}
 	sort.Sort(sort.StringSlice(packages))
@@ -101,6 +121,24 @@ func (le LicenseEvaluations) Licenses(pkg string) []grant.License {
 			}
 		}
 	}
+	return licenses
+}
+
+func (le LicenseEvaluations) GetLicenses() []string {
+	licenses := make([]string, 0)
+	licenseMap := make(map[string]struct{})
+	// get the set of unique licenses from the list for the given package...
+	for _, e := range le {
+		if _, ok := licenseMap[e.License.SPDXExpression]; !ok && e.License.SPDXExpression != "" {
+			licenseMap[e.License.LicenseID] = struct{}{}
+			licenses = append(licenses, e.License.SPDXExpression)
+		}
+		if _, ok := licenseMap[e.License.Name]; !ok && e.License.Name != "" {
+			licenseMap[e.License.Name] = struct{}{}
+			licenses = append(licenses, e.License.Name)
+		}
+	}
+	sort.Sort(sort.StringSlice(licenses))
 	return licenses
 }
 
