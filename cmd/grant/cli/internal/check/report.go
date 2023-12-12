@@ -2,11 +2,13 @@ package check
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/gookit/color"
 	list "github.com/jedib0t/go-pretty/v6/list"
 
+	"github.com/anchore/grant/event"
 	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/grant/evalutation"
 	"github.com/anchore/grant/internal/bus"
@@ -23,6 +25,7 @@ type Report struct {
 	Results   evalutation.Results
 	Config    ReportConfig
 	Timestamp string
+	Monitor   *event.ManualStagedProgress
 	errors    []error
 }
 
@@ -32,6 +35,7 @@ type ReportConfig struct {
 	ShowPackages bool
 	CheckNonSPDX bool
 	OsiApproved  bool
+	Monitor      *event.ManualStagedProgress
 }
 
 // NewReport will generate a new report for the given format.
@@ -59,6 +63,7 @@ func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 		Results:   results,
 		Config:    rc,
 		Timestamp: time.Now().Format(time.RFC3339),
+		Monitor:   rc.Monitor,
 	}, nil
 }
 
@@ -86,6 +91,8 @@ func (r *Report) RenderList() error {
 func (r *Report) renderCheckTree() error {
 	var uiLists []list.Writer
 	for _, res := range r.Results {
+		r.Monitor.Increment()
+		r.Monitor.AtomicStage.Set(res.Case.UserInput)
 		resulList := newList()
 		uiLists = append(uiLists, resulList)
 		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
@@ -118,9 +125,10 @@ func (r *Report) renderCheckTree() error {
 			renderOrphanPackages(resulList, res, false) // keep primary coloring for tree
 		}
 	}
-
+	r.Monitor.AtomicStage.Set(strings.Join(r.Results.UserInputs(), ", "))
 	// segment the results into lists by user input
 	// lists can optionally show the packages that were evaluated
+
 	for _, l := range uiLists {
 		bus.Report(l.Render())
 	}
@@ -130,6 +138,8 @@ func (r *Report) renderCheckTree() error {
 func (r *Report) renderList() error {
 	var uiLists []list.Writer
 	for _, res := range r.Results {
+		r.Monitor.Increment()
+		r.Monitor.AtomicStage.Set(res.Case.UserInput)
 		resulList := newList()
 		uiLists = append(uiLists, resulList)
 		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
@@ -152,6 +162,7 @@ func (r *Report) renderList() error {
 			renderOrphanPackages(resulList, res, true)
 		}
 	}
+	r.Monitor.AtomicStage.Set(strings.Join(r.Results.UserInputs(), ", "))
 
 	// segment the results into lists by user input
 	// lists can optionally show the packages that were evaluated

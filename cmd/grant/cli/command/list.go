@@ -2,13 +2,16 @@ package command
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grant/cmd/grant/cli/internal/check"
 	"github.com/anchore/grant/cmd/grant/cli/option"
+	"github.com/anchore/grant/event"
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal/bus"
 	"github.com/anchore/grant/internal/input"
 )
 
@@ -38,7 +41,7 @@ func List(app clio.Application) *cobra.Command {
 	}, cfg)
 }
 
-func runList(cfg *ListConfig, userInput []string) error {
+func runList(cfg *ListConfig, userInput []string) (errs error) {
 	// check if user provided source by stdin
 	// note: cat sbom.json | grant check spdx.json - is supported
 	// it will generate results for both stdin and spdx.json
@@ -46,11 +49,32 @@ func runList(cfg *ListConfig, userInput []string) error {
 	if isStdin && !slices.Contains(userInput, "-") {
 		userInput = append(userInput, "-")
 	}
+
+	monitor := bus.PublishTask(
+		event.Title{
+			Default:      "List licenses",
+			WhileRunning: "Looking up licenses",
+			OnSuccess:    "Found licenses",
+		},
+		"",
+		len(userInput),
+	)
+
+	defer func() {
+		if errs != nil {
+			monitor.SetError(errs)
+		} else {
+			monitor.AtomicStage.Set(strings.Join(userInput, ", "))
+			monitor.SetCompleted()
+		}
+	}()
+
 	reportConfig := check.ReportConfig{
 		Format:       check.Format(cfg.Format),
 		ShowPackages: cfg.ShowPackages,
 		CheckNonSPDX: cfg.CheckNonSPDX,
 		Policy:       grant.DefaultPolicy(),
+		Monitor:      monitor,
 	}
 	rep, err := check.NewReport(reportConfig, userInput...)
 	if err != nil {
