@@ -32,26 +32,22 @@ func checkEventType(actual, expected partybus.EventType) error {
 	return nil
 }
 
-func ParseCheckCommandStarted(e partybus.Event) ([]string, progress.StagedProgressable, error) {
-	if err := checkEventType(e.Type, CLICheckCmdStarted); err != nil {
+func ParseTaskStarted(e partybus.Event) (*Task, progress.StagedProgressable, error) {
+	if err := checkEventType(e.Type, TaskStartedEvent); err != nil {
 		return nil, nil, err
 	}
 
-	return parseSourcesAndStagedProgressable(e)
-}
-
-func parseSourcesAndStagedProgressable(e partybus.Event) ([]string, progress.StagedProgressable, error) {
-	sources, ok := e.Source.([]string)
+	cmd, ok := e.Source.(Task)
 	if !ok {
 		return nil, nil, newPayloadErr(e.Type, "Source", e.Source)
 	}
 
-	prog, ok := e.Value.(progress.StagedProgressable)
+	p, ok := e.Value.(progress.StagedProgressable)
 	if !ok {
 		return nil, nil, newPayloadErr(e.Type, "Value", e.Value)
 	}
 
-	return sources, prog, nil
+	return &cmd, p, nil
 }
 
 func ParseCLIReport(e partybus.Event) (string, string, error) {

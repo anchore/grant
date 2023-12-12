@@ -12,7 +12,9 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grant/cmd/grant/cli/internal/check"
 	"github.com/anchore/grant/cmd/grant/cli/option"
+	"github.com/anchore/grant/event"
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal/bus"
 	"github.com/anchore/grant/internal/input"
 )
 
@@ -87,6 +89,25 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build rules from config: %s", cfg.Config))
 	}
 
+	monitor := bus.PublishTask(
+		event.Title{
+			Default:      "Check licenses",
+			WhileRunning: "Checking licenses",
+			OnSuccess:    "Checked licenses",
+		},
+		"",
+		len(userInput),
+	)
+
+	defer func() {
+		if errs != nil {
+			monitor.SetError(errs)
+		} else {
+			monitor.AtomicStage.Set(strings.Join(userInput, ", "))
+			monitor.SetCompleted()
+		}
+	}()
+
 	policy, err := grant.NewPolicy(cfg.CheckNonSPDX, rules...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
@@ -98,6 +119,7 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 		ShowPackages: cfg.ShowPackages,
 		CheckNonSPDX: cfg.CheckNonSPDX,
 		OsiApproved:  cfg.OsiApproved,
+		Monitor:      monitor,
 	}
 	rep, err := check.NewReport(reportConfig, userInput...)
 	if err != nil {
