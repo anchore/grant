@@ -76,9 +76,29 @@ type LicenseEvaluations []LicenseEvaluation
 func (le LicenseEvaluations) Packages(license string) []string {
 	packages := make([]string, 0)
 	// get the set of unique packages from the list...
+	packageMap := make(map[string]struct{})
 	for _, e := range le {
 		if e.Package != nil && (e.License.LicenseID == license || e.License.Name == license) {
-			packages = append(packages, e.Package.Name)
+			if _, ok := packageMap[e.Package.Name]; !ok {
+				packageMap[e.Package.Name] = struct{}{}
+				packages = append(packages, e.Package.Name)
+			}
+		}
+	}
+	sort.Sort(sort.StringSlice(packages))
+	return packages
+}
+
+func (le LicenseEvaluations) EmptyPackages() []string {
+	packages := make([]string, 0)
+	// get the set of unique packages from the list...
+	packageMap := make(map[string]struct{})
+	for _, e := range le {
+		if e.Package != nil && e.License.LicenseID == "" && e.License.Name == "" {
+			if _, ok := packageMap[e.Package.Name]; !ok {
+				packageMap[e.Package.Name] = struct{}{}
+				packages = append(packages, e.Package.Name)
+			}
 		}
 	}
 	sort.Sort(sort.StringSlice(packages))

@@ -84,7 +84,9 @@ func (r *Report) renderTable(out io.Writer) error {
 			}
 			renderEvaluations(rule, r.ShowPackages, resulList, failedEvaluations)
 		}
-
+		if r.ShowPackages {
+			renderOrphanPackages(resulList, res)
+		}
 	}
 
 	// segment the results into lists by user input
@@ -93,6 +95,23 @@ func (r *Report) renderTable(out io.Writer) error {
 		bus.Report(l.Render())
 	}
 	return nil
+}
+
+func renderOrphanPackages(l list.Writer, res evalutation.Result) {
+	// TODO: there is a bug here where binary cataloger show even when dupe os overlap
+	orphans := res.Evaluations.EmptyPackages()
+	if len(orphans) == 0 {
+		return
+	}
+	l.Indent()
+	l.AppendItem(color.Secondary.Sprintf("packages found with no licenses"))
+	l.Indent()
+	for _, pkg := range orphans {
+		l.AppendItem(color.Light.Sprintf("%s", pkg))
+	}
+	l.UnIndent()
+	l.UnIndent()
+	return
 }
 
 func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e evalutation.LicenseEvaluations) {
@@ -122,6 +141,7 @@ func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e eval
 			l.UnIndent()
 		}
 	}
+	l.UnIndent()
 	return
 }
 
