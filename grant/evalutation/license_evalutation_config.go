@@ -8,7 +8,8 @@ type EvaluationConfig struct {
 	Policy grant.Policy
 	// CheckNonSPDX is true if non-SPDX licenses should be checked
 	CheckNonSPDX bool
-	// TODO: meta policy about OSI approved licenses
+	// OsiApproved is true if only OSI approved licenses are the only ones allowed
+	OsiApproved bool
 }
 
 func DefaultEvaluationConfig() EvaluationConfig {
