@@ -2,7 +2,7 @@
 
 Manage the license compliance for oci images and software projects
 
-![demo](https://github.com/anchore/grant/assets/32073428/3488b2bb-550e-40cf-8f70-8d58459d92c0)
+![demo](https://github.com/anchore/grant/assets/32073428/981be7c0-582f-4966-a1e9-31e770aba9eb)
 
 ### Supply an image
 ```bash
