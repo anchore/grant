@@ -9,4 +9,21 @@ rules:
     reason: "GPL licenses are not allowed per xxx-xx company policy"
     exclusions:
       - "alpine-base-layout" # We don't link against this package so we don't care about its license
+  - pattern: "*BSD*"
+    name: "bsd-denied"
+    mode: "deny"
+    reason: "BSD licenses are not allowed per xxx-xx company policy"
+    exclusions:
+      - "1apt"
+      - "1bsdutils"
+      - "1dash"
+      - "1e2fsprogs"
+      - "1findutils"
+      - "1gpgv"
+      - "1init-system-helpers"
+      - "1libapt-pkg6.0"
+      - "1libblkid1"
+      - "1libcap2"
+      - "1libcom-err2"
+      - "1libdb5.3"
 
