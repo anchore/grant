@@ -47,8 +47,13 @@ func runList(cfg *ListConfig, userInput []string) error {
 	if isStdin && !slices.Contains(userInput, "-") {
 		userInput = append(userInput, "-")
 	}
-
-	rep, err := check.NewReport(check.Format(cfg.Format), grant.DefaultPolicy(), cfg.ShowPackages, cfg.CheckNonSPDX, userInput...)
+	reportConfig := check.ReportConfig{
+		Format:       check.Format(cfg.Format),
+		ShowPackages: cfg.ShowPackages,
+		CheckNonSPDX: cfg.CheckNonSPDX,
+		Policy:       grant.DefaultPolicy(),
+	}
+	rep, err := check.NewReport(reportConfig, userInput...)
 	if err != nil {
 		return err
 	}

@@ -20,12 +20,19 @@ import (
 // Results are composed of a case its evaluations. The case is the total of SBOM/Licenses generated from the user request.
 // The evaluations are the individual assessments of the policy against the packages/licenses in the case.
 type Report struct {
-	ReportID     string
-	Results      evalutation.Results
+	ReportID  string
+	Results   evalutation.Results
+	Config    ReportConfig
+	Timestamp string
+	errors    []error
+}
+
+type ReportConfig struct {
 	Format       Format
+	Policy       grant.Policy
 	ShowPackages bool
-	Timestamp    string
-	errors       []error
+	CheckNonSPDX bool
+	OsiApproved  bool
 }
 
 // NewReport will generate a new report for the given format.
@@ -34,31 +41,31 @@ type Report struct {
 // If no requests are provided, an empty report will be generated
 // If a request is provided, but the sbom cannot be generated, the source will be ignored and an error will be returned
 // Where do we render packages that had no licenses?
-func NewReport(f Format, rp grant.Policy, showPackages, checkNonSPDX bool, userRequests ...string) (*Report, error) {
-	if rp.IsEmpty() {
-		rp = grant.DefaultPolicy()
+func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
+	if rc.Policy.IsEmpty() {
+		rc.Policy = grant.DefaultPolicy()
 	}
 
-	format := validateFormat(f)
-	cases := grant.NewCases(rp, userRequests...)
+	rc.Format = validateFormat(rc.Format)
+	cases := grant.NewCases(rc.Policy, userRequests...)
 	ec := evalutation.EvaluationConfig{
-		Policy:       rp,
-		CheckNonSPDX: checkNonSPDX,
+		Policy:       rc.Policy,
+		CheckNonSPDX: rc.CheckNonSPDX,
+		OsiApproved:  rc.OsiApproved,
 	}
 
 	results := evalutation.NewResults(ec, cases...)
 
 	return &Report{
-		Results:      results,
-		Format:       format,
-		ShowPackages: showPackages,
-		Timestamp:    time.Now().Format(time.RFC3339),
+		Results:   results,
+		Config:    rc,
+		Timestamp: time.Now().Format(time.RFC3339),
 	}, nil
 }
 
 // Render will call Render on each result in the report and return the report
 func (r *Report) Render(out io.Writer) error {
-	switch r.Format {
+	switch r.Config.Format {
 	case Table:
 		return r.renderCheckTree(out)
 	case JSON:
@@ -68,7 +75,7 @@ func (r *Report) Render(out io.Writer) error {
 }
 
 func (r *Report) RenderList(out io.Writer) error {
-	switch r.Format {
+	switch r.Config.Format {
 	case Table:
 		return r.renderList(out)
 	case JSON:
@@ -92,9 +99,22 @@ func (r *Report) renderCheckTree(out io.Writer) error {
 				resulList.UnIndent()
 				continue
 			}
-			renderEvaluations(rule, r.ShowPackages, resulList, failedEvaluations)
+			renderEvaluations(rule, r.Config.ShowPackages, resulList, failedEvaluations)
 		}
-		if r.ShowPackages {
+		if r.Config.OsiApproved {
+			osiRule := grant.Rule{
+				Name: evalutation.RuleNameNotOSIApproved,
+			}
+			failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput, osiRule)
+			if len(failedEvaluations) == 0 {
+				resulList.Indent()
+				resulList.AppendItem(color.Success.Sprintf("%s", "No OSI Violations Found"))
+				resulList.UnIndent()
+			} else {
+				renderEvaluations(osiRule, r.Config.ShowPackages, resulList, failedEvaluations)
+			}
+		}
+		if r.Config.ShowPackages {
 			renderOrphanPackages(resulList, res, false) // keep primary coloring for tree
 		}
 	}
@@ -117,7 +137,7 @@ func (r *Report) renderList(out io.Writer) error {
 			resulList.Indent()
 			resulList.AppendItem(color.Light.Sprintf("%s", license))
 			resulList.UnIndent()
-			if r.ShowPackages {
+			if r.Config.ShowPackages {
 				packages := res.Evaluations.Packages(license)
 				resulList.Indent()
 				resulList.Indent()

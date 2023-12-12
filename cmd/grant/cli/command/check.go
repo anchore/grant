@@ -93,7 +93,14 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
 	}
 
-	rep, err := check.NewReport(check.Format(cfg.Format), policy, cfg.ShowPackages, cfg.CheckNonSPDX, userInput...)
+	reportConfig := check.ReportConfig{
+		Policy:       policy,
+		Format:       check.Format(cfg.Format),
+		ShowPackages: cfg.ShowPackages,
+		CheckNonSPDX: cfg.CheckNonSPDX,
+		OsiApproved:  cfg.OsiApproved,
+	}
+	rep, err := check.NewReport(reportConfig, userInput...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("unable to create report for inputs %s", userInput))
 	}

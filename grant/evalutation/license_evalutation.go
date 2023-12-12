@@ -49,23 +49,33 @@ func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License) Lice
 			var reason Reason
 			if rule != nil {
 				reason = Reason{
-					Detail:   ReasonLicenseDenied,
+					Detail:   ReasonLicenseDeniedPolicy,
 					RuleName: rule.Name,
 				}
 			}
 			return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{reason}, false)
 		}
 	}
+
+	if ec.OsiApproved && l.IsSPDX() {
+		if !l.IsOsiApproved {
+			return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{{
+				Detail:   ReasonLicenseDeniedOSI,
+				RuleName: RuleNameNotOSIApproved,
+			}}, false)
+		}
+	}
 	if denied, rule := ec.Policy.IsDenied(l, pkg); denied {
 		var reason Reason
 		if rule != nil {
 			reason = Reason{
-				Detail:   ReasonLicenseDenied,
+				Detail:   ReasonLicenseDeniedPolicy,
 				RuleName: rule.Name,
 			}
 		}
 		return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{reason}, false)
 	}
+
 	return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{{
 		Detail: ReasonLicenseAllowed,
 	}}, true)
