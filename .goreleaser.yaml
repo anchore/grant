@@ -35,23 +35,6 @@ builds:
       - arm64
     mod_timestamp: *build-timestamp
     ldflags: *build-ldflags
-# will probably be supported in the future
-#    hooks:
-#      post:
-#        - cmd: .tools/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
-#          env:
-#            - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
-
-# not supported yet
-#  - id: windows-build
-#    dir: ./cmd/grant
-#    binary: grant
-#    goos:
-#      - windows
-#    goarch:
-#      - amd64
-#    mod_timestamp: *build-timestamp
-#    ldflags: *build-ldflags
 
 archives:
   - id: linux-archives
@@ -62,10 +45,3 @@ archives:
   - id: darwin-archives
     builds:
       - darwin-build
-
-# not supported yet
-#  - id: windows-archives
-#    format: zip
-#    builds:
-#      - windows-build
-
