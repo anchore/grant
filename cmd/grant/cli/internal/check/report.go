@@ -146,9 +146,10 @@ func (r *Report) renderList(out io.Writer) error {
 				}
 				resulList.UnIndent()
 				resulList.UnIndent()
-				renderOrphanPackages(resulList, res, true)
 			}
+
 		}
+		renderOrphanPackages(resulList, res, true)
 	}
 
 	// segment the results into lists by user input
