@@ -124,6 +124,24 @@ func (le LicenseEvaluations) Licenses(pkg string) []grant.License {
 	return licenses
 }
 
+func (le LicenseEvaluations) GetLicenses() []string {
+	licenses := make([]string, 0)
+	licenseMap := make(map[string]struct{})
+	// get the set of unique licenses from the list for the given package...
+	for _, e := range le {
+		if _, ok := licenseMap[e.License.SPDXExpression]; !ok && e.License.SPDXExpression != "" {
+			licenseMap[e.License.LicenseID] = struct{}{}
+			licenses = append(licenses, e.License.SPDXExpression)
+		}
+		if _, ok := licenseMap[e.License.Name]; !ok && e.License.Name != "" {
+			licenseMap[e.License.Name] = struct{}{}
+			licenses = append(licenses, e.License.Name)
+		}
+	}
+	sort.Sort(sort.StringSlice(licenses))
+	return licenses
+}
+
 func (le LicenseEvaluations) Failed(r grant.Rule) LicenseEvaluations {
 	var failed LicenseEvaluations
 	for _, e := range le {
