@@ -88,6 +88,7 @@ It can also be used to allow specific licenses, denying all others.
 
 ## Output
 #### Table
+![table-output](https://github.com/anchore/grant/assets/32073428/59a516de-3acd-4f4a-8861-4e90eae09866)
 
 #### JSON: TODO
 ```
