@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -105,5 +104,5 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 		return errors.Wrap(err, fmt.Sprintf("unable to create report for inputs %s", userInput))
 	}
 
-	return rep.Render(os.Stdout)
+	return rep.Render()
 }

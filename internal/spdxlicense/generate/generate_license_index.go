@@ -15,8 +15,6 @@ import (
 
 const (
 	generates = "../license_index.go"
-	// TODO: should we pull from other sources like the github api?
-	url = "https://spdx.org/licenses/licenses.json"
 )
 
 var FuncMap = template.FuncMap{
@@ -63,7 +61,7 @@ func main() {
 }
 
 func generate() error {
-	spdxLicenseResposne, err := fetchLicenses(url)
+	spdxLicenseResposne, err := fetchLicenses()
 	if err != nil {
 		return err
 	}
@@ -79,7 +77,7 @@ func generate() error {
 	}
 	defer f.Close()
 
-	if err := codeTemplate.Execute(f, struct {
+	return codeTemplate.Execute(f, struct {
 		Timestamp   string
 		URL         string
 		Version     string
@@ -87,23 +85,20 @@ func generate() error {
 		Licenses    []spdxlicense.SPDXLicense
 	}{
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
-		URL:         url,
+		URL:         "https://spdx.org/licenses/licenses.json",
 		Version:     spdxLicenseResposne.LicenseListVersion,
 		ReleaseDate: spdxLicenseResposne.ReleaseDate,
 		Licenses:    spdxLicenseResposne.Licenses,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
-func fetchLicenses(url string) (r *spdxlicense.SPDXLicenseResponse, err error) {
-	response, err := http.Get(url)
+func fetchLicenses() (r *spdxlicense.Response, err error) {
+	response, err := http.Get("https://spdx.org/licenses/licenses.json")
 	if err != nil {
 		return r, err
 	}
 	defer response.Body.Close()
-	var spdxLicenseResponse spdxlicense.SPDXLicenseResponse
+	var spdxLicenseResponse spdxlicense.Response
 	if err := json.NewDecoder(response.Body).Decode(&spdxLicenseResponse); err != nil {
 		return r, err
 	}

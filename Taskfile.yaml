@@ -11,6 +11,28 @@ vars:
   NEXT_VERSION: VERSION
 
 tasks:
+  default:
+    # desc: Run all validation tasks
+    aliases:
+      - pr-validations
+      - validations
+    cmds:
+      - task: static-analysis
+      - task: test
+      - task: build
+
+  static-analysis:
+    desc: Run all static analysis tasks
+    cmds:
+      - task: check-go-mod-tidy
+      - task: check-licenses
+      - task: lint
+
+  test:
+    desc: Run all levels of test
+    cmds:
+      - task: unit
+
   ## Bootstrap tasks #################################
   binny:
     internal: true

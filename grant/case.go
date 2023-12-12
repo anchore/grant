@@ -64,7 +64,7 @@ func NewCases(p Policy, userInputs ...string) []Case {
 func determineRequestCase(userRequest string) (c Case, err error) {
 	switch {
 	case isStdin(userRequest):
-		return handleStdin(userRequest)
+		return handleStdin()
 	case isFile(userRequest):
 		return handleFile(userRequest)
 	case isDirectory(userRequest):
@@ -74,13 +74,16 @@ func determineRequestCase(userRequest string) (c Case, err error) {
 	}
 }
 
-func handleStdin(path string) (c Case, err error) {
+func handleStdin() (c Case, err error) {
 	stdReader, err := decodeStdin(os.Stdin)
 	if err != nil {
 		return c, err
 	}
 
 	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(stdReader)
+	if err != nil {
+		return c, fmt.Errorf("unable to determine SBOM or licenses for stdin: %w", err)
+	}
 	if sb != nil {
 		return Case{
 			SBOMS:     []sbom.SBOM{*sb},
@@ -133,18 +136,33 @@ func handleFile(path string) (c Case, err error) {
 	}
 
 	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(bytes)
+	if err != nil {
+		return c, fmt.Errorf("unable to determine SBOM or licenses for %s: %w", path, err)
+	}
 	if sb != nil {
 		return Case{
 			SBOMS:    []sbom.SBOM{*sb},
 			Licenses: make([]License, 0),
 		}, nil
 	}
+	licenses, err := handleLicenseFile(path)
+	if err != nil {
+		return c, fmt.Errorf("unable to determine SBOM or licenses for %s: %w", path, err)
+	}
 
+	return Case{
+		SBOMS:     make([]sbom.SBOM, 0),
+		Licenses:  licenses,
+		UserInput: path,
+	}, nil
+}
+
+func handleLicenseFile(path string) ([]License, error) {
 	// alright we couldn't get an SBOM, let's see if the bytes are just a LICENSE (google license classifier)
 	// TODO: this is a little heavy, we might want to generate a backend and reuse it for all the files we're checking
 	be, err := backend.New()
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 	defer be.Close()
 
@@ -160,23 +178,18 @@ func handleFile(path string) (c Case, err error) {
 		for _, err := range errs {
 			log.Errorf("unable to classify license: %+v", err)
 		}
-		return c, fmt.Errorf("unable to classify license: %+v", err)
+		return nil, fmt.Errorf("unable to classify license: %+v", err)
 	}
 	// re-enable logging for the rest of the application
 	golog.SetOutput(os.Stdout)
 
 	results := be.GetResults()
 	if len(results) == 0 {
-		return c, fmt.Errorf("unable to determine SBOM or licenses for %s", path)
+		return nil, fmt.Errorf("no results from license classifier")
 	}
 
 	licenses := grantLicenseFromClassifierResults(results)
-
-	return Case{
-		SBOMS:     make([]sbom.SBOM, 0),
-		Licenses:  licenses,
-		UserInput: path,
-	}, nil
+	return licenses, nil
 }
 
 func handleDir(root string) (c Case, err error) {
@@ -280,7 +293,7 @@ func generateSyftSBOM(path string) (sb sbom.SBOM, err error) {
 func isDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		//log.Errorf("unable to stat directory %s: %+v", path, err)
+		// log.Errorf("unable to stat directory %s: %+v", path, err)
 		return false
 	}
 	return fileInfo.IsDir()
@@ -302,7 +315,7 @@ func isArchive(path string) bool {
 func isFile(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		//log.Errorf("unable to stat file %s: %+v", path, err)
+		// log.Errorf("unable to stat file %s: %+v", path, err)
 		return false
 	}
 	return !fileInfo.IsDir()

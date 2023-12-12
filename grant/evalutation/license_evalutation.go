@@ -10,7 +10,7 @@ import (
 func NewLicenseEvaluations(ec EvaluationConfig, c grant.Case) LicenseEvaluations {
 	evaluations := make([]LicenseEvaluation, 0)
 	for _, sb := range c.SBOMS {
-		evaluations = checkSBOM(ec, c, sb)
+		evaluations = checkSBOM(ec, sb)
 	}
 
 	for _, l := range c.Licenses {
@@ -21,7 +21,7 @@ func NewLicenseEvaluations(ec EvaluationConfig, c grant.Case) LicenseEvaluations
 	return evaluations
 }
 
-func checkSBOM(ec EvaluationConfig, c grant.Case, sb sbom.SBOM) LicenseEvaluations {
+func checkSBOM(ec EvaluationConfig, sb sbom.SBOM) LicenseEvaluations {
 	evaluations := make([]LicenseEvaluation, 0)
 	for pkg := range sb.Artifacts.Packages.Enumerate() {
 		// since we use syft as a library to generate the sbom we need to convert its packages/licenses to grant types
@@ -95,7 +95,7 @@ func (le LicenseEvaluations) Packages(license string) []string {
 			}
 		}
 	}
-	sort.Sort(sort.StringSlice(packages))
+	sort.Strings(packages)
 	return packages
 }
 
@@ -111,7 +111,7 @@ func (le LicenseEvaluations) EmptyPackages() []string {
 			}
 		}
 	}
-	sort.Sort(sort.StringSlice(packages))
+	sort.Strings(packages)
 	return packages
 }
 
@@ -148,7 +148,7 @@ func (le LicenseEvaluations) GetLicenses() []string {
 			licenses = append(licenses, e.License.Name)
 		}
 	}
-	sort.Sort(sort.StringSlice(licenses))
+	sort.Strings(licenses)
 	return licenses
 }
 

@@ -2,7 +2,6 @@ package check
 
 import (
 	"errors"
-	"io"
 	"time"
 
 	"github.com/gookit/color"
@@ -64,27 +63,27 @@ func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 }
 
 // Render will call Render on each result in the report and return the report
-func (r *Report) Render(out io.Writer) error {
+func (r *Report) Render() error {
 	switch r.Config.Format {
 	case Table:
-		return r.renderCheckTree(out)
+		return r.renderCheckTree()
 	case JSON:
 		return errors.New("json format not yet supported")
 	}
 	return errors.Join(r.errors...)
 }
 
-func (r *Report) RenderList(out io.Writer) error {
+func (r *Report) RenderList() error {
 	switch r.Config.Format {
 	case Table:
-		return r.renderList(out)
+		return r.renderList()
 	case JSON:
 		return errors.New("json format not yet supported")
 	}
 	return errors.Join(r.errors...)
 }
 
-func (r *Report) renderCheckTree(out io.Writer) error {
+func (r *Report) renderCheckTree() error {
 	var uiLists []list.Writer
 	for _, res := range r.Results {
 		resulList := newList()
@@ -127,7 +126,7 @@ func (r *Report) renderCheckTree(out io.Writer) error {
 	return nil
 }
 
-func (r *Report) renderList(out io.Writer) error {
+func (r *Report) renderList() error {
 	var uiLists []list.Writer
 	for _, res := range r.Results {
 		resulList := newList()
@@ -147,7 +146,6 @@ func (r *Report) renderList(out io.Writer) error {
 				resulList.UnIndent()
 				resulList.UnIndent()
 			}
-
 		}
 		renderOrphanPackages(resulList, res, true)
 	}
@@ -180,7 +178,6 @@ func renderOrphanPackages(l list.Writer, res evalutation.Result, invert bool) {
 	}
 	l.UnIndent()
 	l.UnIndent()
-	return
 }
 
 func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e evalutation.LicenseEvaluations) {
@@ -211,7 +208,6 @@ func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e eval
 		}
 	}
 	l.UnIndent()
-	return
 }
 
 func newList() list.Writer {
