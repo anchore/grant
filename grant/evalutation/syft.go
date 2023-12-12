@@ -56,7 +56,7 @@ func convertSyftLicenses(set syftPkg.LicenseSet) (licenses []grant.License) {
 func handleSPDXLicense(license syftPkg.License, licenses []grant.License, licenseLocations []string, checked map[string]bool) []grant.License {
 	extractedLicenses, err := spdxexp.ExtractLicenses(license.SPDXExpression)
 	if err != nil {
-		log.Errorf("unable to extract licenses from SPDX expression: %s", license.SPDXExpression)
+		//log.Errorf("unable to extract licenses from SPDX expression: %s", license.SPDXExpression)
 		return addNonSPDXLicense(licenses, license, licenseLocations)
 	}
 

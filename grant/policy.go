@@ -7,8 +7,10 @@ import (
 )
 
 // Policy is a structure of rules that define how licenses are denied
+// TODO: maybe there should be a strict option that denies all and then only allows what is explicitly allowed
 type Policy struct {
-	Rules Rules
+	Rules        Rules
+	MatchNonSPDX bool
 }
 
 // DefaultPolicy returns a policy that denies all licenses
@@ -27,9 +29,10 @@ func DefaultPolicy() Policy {
 
 // NewPolicy builds a policy from lists of allow, deny, and ignore glob patterns
 // It lower cases all patterns to make matching against the spdx license set case-insensitive
-func NewPolicy(rules ...Rule) (p Policy, err error) {
+func NewPolicy(matchNonSPDX bool, rules ...Rule) (p Policy, err error) {
 	return Policy{
-		Rules: rules,
+		Rules:        rules,
+		MatchNonSPDX: matchNonSPDX,
 	}, nil
 }
 
@@ -51,10 +54,13 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 		var toMatch string
 		if license.IsSPDX() {
 			toMatch = strings.ToLower(license.LicenseID)
-		} else {
+		}
+		if p.MatchNonSPDX && !license.IsSPDX() {
 			toMatch = strings.ToLower(license.Name)
 		}
-		if rule.Glob.Match(toMatch) {
+
+		toMatch = strings.ToLower(license.Name)
+		if rule.Glob.Match(toMatch) && toMatch != "" {
 			if pkg == nil {
 				return true, &rule
 			}
@@ -68,8 +74,3 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 	}
 	return false, nil
 }
-
-//// IsAllowed is a convenience function for library usage of IsDenied negation
-//func (p Policy) IsAllowed(license License, pkg *Package) bool {
-//	return !p.IsDenied(license, pkg)
-//}

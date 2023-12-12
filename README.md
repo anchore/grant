@@ -135,11 +135,14 @@ $ grant check ubuntu:latest, alpine:latest
 ```yaml
 #.grant.yaml
 config: ".grant.yaml"
-quite: false # only print status code 1 or 0 for success or failure
+format: table # table, json
+show-packages: false # show the packages which contain the licenses
+check-non-spdx: false # check licenses that could not be matched to an SPDX identifier
+quite: false # only print status code 1 or 0 for success or failure on check
 rules: 
     - pattern: "gpl-*"
       mode: "deny"
-      reason: "GPL licenses are not allowed"
+      reason: "GPL licenses are not allowed per xxx-xx company policy"
       exclusions:
         - "alpine-base-layout" # We don't link against this package so we don't care about its license
 ```

@@ -19,8 +19,10 @@ import (
 
 type CheckConfig struct {
 	Config       string        `json:"config" yaml:"config" mapstructure:"config"`
-	ShowPackages bool          `json:"show-packages" yaml:"show-packages" mapstructure:"show-packages"`
 	Format       string        `json:"format" yaml:"format" mapstructure:"format"`
+	ShowPackages bool          `json:"show-packages" yaml:"show-packages" mapstructure:"show-packages"`
+	CheckNonSPDX bool          `json:"check-non-spdx" yaml:"check-non-spdx" mapstructure:"check-non-spdx"`
+	Quiet        bool          `json:"quiet" yaml:"quiet" mapstructure:"quiet"`
 	Rules        []option.Rule `json:"rules" yaml:"rules" mapstructure:"rules"`
 }
 
@@ -42,7 +44,7 @@ func DefaultCheck() *CheckConfig {
 func (cfg *CheckConfig) RulesFromConfig() (rules grant.Rules, err error) {
 	rules = make(grant.Rules, 0)
 	for _, rule := range cfg.Rules {
-		pattern := strings.ToLower(rule.Pattern)
+		pattern := strings.ToLower(rule.Pattern) // all patterns are case insensitive
 		patternGlob, err := glob.Compile(pattern)
 		if err != nil {
 			return rules, err
@@ -57,10 +59,14 @@ func (cfg *CheckConfig) RulesFromConfig() (rules grant.Rules, err error) {
 			exceptions = append(exceptions, exceptionGlob)
 		}
 		rules = append(rules, grant.Rule{
-			Glob:       patternGlob,
-			Exceptions: exceptions,
-			Mode:       grant.RuleMode(rule.Mode),
-			Reason:     rule.Reason,
+			Name:               rule.Name,
+			Glob:               patternGlob,
+			OriginalPattern:    rule.Pattern,
+			Exceptions:         exceptions,
+			OriginalExceptions: rule.Exceptions,
+			Mode:               grant.RuleMode(rule.Mode),
+			Severity:           grant.RuleSeverity(rule.Severity),
+			Reason:             rule.Reason,
 		})
 	}
 	return rules, nil
@@ -92,16 +98,18 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 	if isStdin && !slices.Contains(userInput, "-") {
 		userInput = append(userInput, "-")
 	}
+
 	rules, err := cfg.RulesFromConfig()
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build rules from config: %s", cfg.Config))
 	}
-	policy, err := grant.NewPolicy(rules...)
+
+	policy, err := grant.NewPolicy(cfg.CheckNonSPDX, rules...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
 	}
 
-	rep, err := check.NewReport(check.Table, policy, cfg.ShowPackages, userInput...)
+	rep, err := check.NewReport(check.Format(cfg.Format), policy, cfg.ShowPackages, cfg.CheckNonSPDX, userInput...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("unable to create report for inputs %s", userInput))
 	}
