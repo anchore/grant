@@ -7,7 +7,7 @@ import (
 
 // SPDXLicenseResponse is the response from the SPDX license list endpoint
 // https://spdx.org/licenses/licenses.json
-type SPDXLicenseResponse struct {
+type Response struct {
 	LicenseListVersion string        `json:"licenseListVersion"`
 	ReleaseDate        string        `json:"releaseDate"`
 	Licenses           []SPDXLicense `json:"licenses"`

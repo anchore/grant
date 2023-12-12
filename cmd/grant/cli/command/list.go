@@ -1,7 +1,6 @@
 package command
 
 import (
-	"os"
 	"slices"
 
 	"github.com/spf13/cobra"
@@ -57,5 +56,5 @@ func runList(cfg *ListConfig, userInput []string) error {
 	if err != nil {
 		return err
 	}
-	return rep.RenderList(os.Stdout)
+	return rep.RenderList()
 }

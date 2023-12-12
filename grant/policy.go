@@ -38,10 +38,7 @@ func NewPolicy(matchNonSPDX bool, rules ...Rule) (p Policy, err error) {
 
 // IsEmpty returns true if the policy has no allow or deny licenses
 func (p Policy) IsEmpty() bool {
-	if len(p.Rules) == 0 {
-		return true
-	}
-	return false
+	return len(p.Rules) == 0
 }
 
 // IsDenied returns true if the given license is denied by the policy
@@ -59,7 +56,7 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 			toMatch = strings.ToLower(license.Name)
 		}
 
-		toMatch = strings.ToLower(license.Name)
+		toMatch = strings.ToLower(toMatch)
 		if rule.Glob.Match(toMatch) && toMatch != "" {
 			if pkg == nil {
 				return true, &rule

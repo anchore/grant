@@ -5,7 +5,7 @@ TOOL_DIR = .tool
 BINNY = $(TOOL_DIR)/binny
 TASK = $(TOOL_DIR)/task
 
-.DEFAULT_GOAL := make-default
+.DEFAULT_GOAL := default
 
 ## Bootstrapping targets #################################
 # note: we need to assume that binny and task have not already been installed

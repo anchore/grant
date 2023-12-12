@@ -1,9 +1,9 @@
 ## Summary
 
-Grant is a license compliance tool that reads and audits license from SBOM inputs.
-It generates a pass or fail check depending on if the read licenses are in a deny list.
+Grant is a license compliance tool that reads and audits license from container images, SBOM documents, and directory scans.
+It generates a pass or fail check depending on if the read licenses adhear to the user's supplied rulesjk
 
-### Syft Updates
+### Syft Updates Needed to Support Grant
 
 - [Google String Classifier License](https://github.com/google/licenseclassifier/tree/main/stringclassifier)
 
