@@ -1,12 +1,13 @@
 # Grant
 
-Manage the license compliance for oci images and software projects
+View licenses for container images, SBOM documents, filesystems, and apply rules that help you build a license
+compliance report.
 
 ![demo](https://github.com/anchore/grant/assets/32073428/981be7c0-582f-4966-a1e9-31e770aba9eb)
 
 ### Supply an image
 ```bash
-$ grant check alpine:latest
+$ grant check redis:latest
 ```
 
 #### Supply an SBOM document
@@ -25,7 +26,6 @@ $ syft -o spdx-json alpine:latest | grant check node:latest
 curl -sSfL https://raw.githubusercontent.com/anchore/grant/main/install.sh | sh -s -- -b /usr/local/bin
 ```
 
-
 ... or, you can specify a release version and destination directory for the installation:
 
 ```
@@ -34,12 +34,15 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grant/main/install.sh | sh 
 
 ## Usage
 
-Grant can be used with any container image, sbom document, or directory scan to check for license compliance.
+Grant can be used with any container image, sbom document, or directory to scan for licenses and check those results
+against a set of rules provided by the user.
 
-Rules take the form of a pattern to match the license against, a mode to either allow or deny the license,
+Rules take the form of a pattern to match the license against, a name to identify the rule, a mode to either allow,
+deny, or ignore the license,
 a reason for the rule, and a list of packages that are exclusions to the rule.
 ```
-pattern: "gpl-*"
+pattern: "*gpl*"
+name: "deny-gpl"
 mode: "deny"
 reason: "GPL licenses are not allowed"
 exclusions:
@@ -48,7 +51,7 @@ exclusions:
 
 Matching Rules:
 - Denying licenses take precedence over allowing licenses
-- License id are matched on a case-insensitive basis.
+- License patterns are matched on a case-insensitive basis.
 - If a license is has rules for both modes it is denied
 
 Supplied patterns follow a standard globbing syntax:
@@ -79,53 +82,12 @@ comma-separated (without spaces) patterns
 
 By default grant is configured to deny all licenses out of the box.
 
+Grant can be used to deny specific licenses while allowing all others.
 
-Grant can be used to deny specific licenses, allowing all others.
 It can also be used to allow specific licenses, denying all others.
 
 ## Output
 #### Table
-```bash
-$ grant check ubuntu:latest, alpine:latest
-▶ ubuntu:latest
-- GPL-2.0-only
-- GPL-3.0-only
-- BSD-2-Clause
-- BSD-3-Clause
-- BSD-4-Clause
-- GPL-2.0-or-later
-- GPL-3.0-or-later
-- LGPL-2.0-only
-- LGPL-2.0-or-later
-- LGPL-2.1-only
-- LGPL-2.1-or-later
-- LGPL-3.0-only
-- LGPL-3.0-or-later
-- MIT
-- FSFUL
-- FSFULLR
-- GFDL-1.3-only
-- GFDL-1.2-only
-- CC0-1.0
-- GPL-1.0-only
-- Apache-2.0
-- X11
-- ISC
-- GPL-1.0-or-later
-- GFDL-1.2-or-later
-- Zlib
-- Artistic-2.0
-▶ alpine:latest
-- GPL-2.0-only
-- MIT
-- MPL-2.0
-- BSD-2-Clause
-- BSD-3-Clause
-- Apache-2.0
-- GPL-2.0-or-later
-- Zlib
-[return code 1]
-````
 
 #### JSON: TODO
 ```
@@ -136,11 +98,12 @@ $ grant check ubuntu:latest, alpine:latest
 #.grant.yaml
 config: ".grant.yaml"
 format: table # table, json
-show-packages: false # show the packages which contain the licenses
-check-non-spdx: false # check licenses that could not be matched to an SPDX identifier
-quite: false # only print status code 1 or 0 for success or failure on check
+show-packages: false # show the packages which contain the licenses --show-packages
+check-non-spdx: false # check licenses that could not be matched to an SPDX identifier --check-non-spdx
+osi-approved: false # highlight licenses that are not OSI approved --osi-approved
 rules: 
-    - pattern: "gpl-*"
+    - pattern: "*gpl*"
+      name: "deny-gpl"
       mode: "deny"
       reason: "GPL licenses are not allowed per xxx-xx company policy"
       exclusions:
