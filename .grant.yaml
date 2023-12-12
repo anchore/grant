@@ -12,6 +12,7 @@ rules:
       - "alpine-baselayout" # We don't link against this package so we don't care about its license
       - "base-files"
       - "netbase"
+      - "libssl3"
   - pattern: "*BSD*"
     name: "bsd-denied"
     mode: "deny"

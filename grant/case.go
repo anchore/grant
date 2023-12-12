@@ -273,10 +273,12 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 			spdxLicense, err := spdxlicense.GetLicenseByID(license.Name)
 			if err != nil {
 				licenses = append(licenses, License{
-					Name: license.Name,
+					LicenseID: license.Name,
+					Name:      license.Name,
 				})
 			} else {
 				licenses = append(licenses, License{
+					SPDXExpression:        spdxLicense.LicenseID,
 					Reference:             spdxLicense.Reference,
 					IsDeprecatedLicenseID: spdxLicense.IsDeprecatedLicenseID,
 					DetailsURL:            spdxLicense.DetailsURL,
