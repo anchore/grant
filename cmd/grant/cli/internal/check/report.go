@@ -2,10 +2,10 @@ package check
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"time"
 
+	"github.com/gookit/color"
 	list "github.com/jedib0t/go-pretty/v6/list"
 
 	"github.com/anchore/grant/grant"
@@ -72,13 +72,13 @@ func (r *Report) renderTable(out io.Writer) error {
 	for _, res := range r.Results {
 		resulList := newList()
 		uiLists = append(uiLists, resulList)
-		resulList.AppendItem(res.Case.UserInput)
+		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
 
 		for _, rule := range res.Case.Policy.Rules {
 			failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput, rule)
 			if len(failedEvaluations) == 0 {
 				resulList.Indent()
-				resulList.AppendItem("No License Violations Found: ✅")
+				resulList.AppendItem(color.Success.Sprintf("%s", "No License Violations Found"))
 				resulList.UnIndent()
 				continue
 			}
@@ -97,7 +97,7 @@ func (r *Report) renderTable(out io.Writer) error {
 
 func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e evalutation.LicenseEvaluations) {
 	l.Indent()
-	l.AppendItem(fmt.Sprintf("matches for rule: %s; matched with pattern %s", rule.Name, rule.OriginalPattern))
+	l.AppendItem(color.Secondary.Sprintf("license matches for rule: %s; matched with pattern %s", rule.Name, rule.OriginalPattern))
 
 	licenseTracker := make(map[string]struct{})
 	for _, eval := range e {
@@ -110,7 +110,7 @@ func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e eval
 		if _, ok := licenseTracker[license]; !ok {
 			licenseTracker[license] = struct{}{}
 			l.Indent()
-			l.AppendItem(fmt.Sprintf("%s", license))
+			l.AppendItem(color.Danger.Sprintf("%s", license))
 			l.UnIndent()
 		}
 	}
