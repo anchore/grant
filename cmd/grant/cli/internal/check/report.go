@@ -68,26 +68,23 @@ func (r *Report) Render(out io.Writer) error {
 }
 
 func (r *Report) renderTable(out io.Writer) error {
-	if !r.Results.IsFailed() {
-		l := newList()
-		l.Indent()
-		l.AppendItem("No License Violations Found: ✅")
-		l.UnIndent()
-		bus.Report(l.Render())
-		return nil
-	}
-
 	var uiLists []list.Writer
 	for _, res := range r.Results {
 		resulList := newList()
 		uiLists = append(uiLists, resulList)
 		resulList.AppendItem(res.Case.UserInput)
-		failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput)
-		if len(failedEvaluations) == 0 {
-			resulList.AppendItem("No License Violations Found: ✅")
-			continue
+
+		for _, rule := range res.Case.Policy.Rules {
+			failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput, rule)
+			if len(failedEvaluations) == 0 {
+				resulList.Indent()
+				resulList.AppendItem("No License Violations Found: ✅")
+				resulList.UnIndent()
+				continue
+			}
+			renderEvaluations(rule, r.ShowPackages, resulList, failedEvaluations)
 		}
-		renderEvaluation(r.ShowPackages, resulList, failedEvaluations)
+
 	}
 
 	// segment the results into lists by user input
@@ -98,9 +95,10 @@ func (r *Report) renderTable(out io.Writer) error {
 	return nil
 }
 
-func renderEvaluation(showPackages bool, l list.Writer, e evalutation.LicenseEvaluations) {
-	licenses := []string{}
-	reasons := []string{}
+func renderEvaluations(rule grant.Rule, showPackages bool, l list.Writer, e evalutation.LicenseEvaluations) {
+	l.Indent()
+	l.AppendItem(fmt.Sprintf("matches for rule: %s; matched with pattern %s", rule.Name, rule.OriginalPattern))
+
 	licenseTracker := make(map[string]struct{})
 	for _, eval := range e {
 		var license string
@@ -111,35 +109,12 @@ func renderEvaluation(showPackages bool, l list.Writer, e evalutation.LicenseEva
 		}
 		if _, ok := licenseTracker[license]; !ok {
 			licenseTracker[license] = struct{}{}
-			licenses = append(licenses, license)
-			reasons = append(reasons, fmt.Sprintf("%s", eval.Reason[0]))
+			l.Indent()
+			l.AppendItem(fmt.Sprintf("%s", license))
+			l.UnIndent()
 		}
-	}
-	offset := longestString(licenses)
-	for i, license := range licenses {
-		l.Indent()
-		l.AppendItem(fmt.Sprintf("%s%s - %s", license, pad(offset, license), reasons[i]))
-		l.UnIndent()
 	}
 	return
-}
-
-func pad(offset int, s string) string {
-	pad := offset - len(s)
-	if pad <= 0 {
-		return ""
-	}
-	return fmt.Sprintf("%*s", pad, "")
-}
-
-func longestString(s []string) int {
-	longest := 0
-	for _, str := range s {
-		if len(str) > longest {
-			longest = len(str)
-		}
-	}
-	return longest
 }
 
 func newList() list.Writer {

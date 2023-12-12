@@ -38,11 +38,11 @@ func (rs Results) IsFailed() bool {
 }
 
 // GetFailedEvaluations returns a map of user input to slice of failed license evaluations for that input
-func (rs Results) GetFailedEvaluations(userInput string) LicenseEvaluations {
+func (rs Results) GetFailedEvaluations(userInput string, rule grant.Rule) LicenseEvaluations {
 	failed := make(LicenseEvaluations, 0)
 	for _, r := range rs {
 		if r.Case.UserInput == userInput && !r.Pass {
-			failed = append(failed, r.Evaluations.Failed()...)
+			failed = append(failed, r.Evaluations.Failed(rule)...)
 		}
 	}
 

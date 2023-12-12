@@ -1,17 +1,13 @@
 package evalutation
 
-import (
-	"github.com/anchore/grant/grant"
-)
-
-type Reason string
+type Reason struct {
+	Detail string
+	RuleName string
+}
 
 var (
-	ReasonNoLicenseFound Reason = "no license found"
-	ReasonLicenseDenied  Reason = "license denied by policy"
-	ReasonLicenseAllowed Reason = "license allowed by policy"
+	ReasonNoLicenseFound = "no license found"
+	ReasonLicenseDenied  = "license denied by policy"
+	ReasonLicenseAllowed = "license allowed by policy"
 )
 
-func NewRuleReason(rule grant.Rule) Reason {
-	return Reason(rule.Reason)
-}

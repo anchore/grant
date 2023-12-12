@@ -1,7 +1,6 @@
 package evalutation
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/anchore/grant/grant"
@@ -29,7 +28,9 @@ func checkSBOM(ec EvaluationConfig, c grant.Case, sb sbom.SBOM) LicenseEvaluatio
 		grantPkg := convertSyftPackage(pkg)
 		if len(grantPkg.Licenses) == 0 {
 			// We need to include an evaluation that shows this package has no licenses
-			le := NewLicenseEvaluation(grant.License{}, grantPkg, ec.Policy, []Reason{ReasonNoLicenseFound}, true)
+			le := NewLicenseEvaluation(grant.License{}, grantPkg, ec.Policy, []Reason{{
+				Detail: ReasonNoLicenseFound,
+			}}, true)
 			evaluations = append(evaluations, le)
 			continue
 		}
@@ -47,7 +48,10 @@ func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License) Lice
 		if denied, rule := ec.Policy.IsDenied(l, pkg); denied {
 			var reason Reason
 			if rule != nil {
-				reason = Reason(fmt.Sprintf("%s; matched on rule: %s with pattern: %s", ReasonLicenseDenied, rule.Name, rule.OriginalPattern))
+				reason = Reason{
+					Detail:   ReasonLicenseDenied,
+					RuleName: rule.Name,
+				}
 			}
 			return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{reason}, false)
 		}
@@ -55,11 +59,16 @@ func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License) Lice
 	if denied, rule := ec.Policy.IsDenied(l, pkg); denied {
 		var reason Reason
 		if rule != nil {
-			reason = Reason(fmt.Sprintf("%s; matched on rule: %s with pattern: %s", ReasonLicenseDenied, rule.Name, rule.OriginalPattern))
+			reason = Reason{
+				Detail:   ReasonLicenseDenied,
+				RuleName: rule.Name,
+			}
 		}
 		return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{reason}, false)
 	}
-	return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{ReasonLicenseAllowed}, true)
+	return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{{
+		Detail: ReasonLicenseAllowed,
+	}}, true)
 }
 
 type LicenseEvaluations []LicenseEvaluation
@@ -95,10 +104,10 @@ func (le LicenseEvaluations) Licenses(pkg string) []grant.License {
 	return licenses
 }
 
-func (le LicenseEvaluations) Failed() LicenseEvaluations {
+func (le LicenseEvaluations) Failed(r grant.Rule) LicenseEvaluations {
 	var failed LicenseEvaluations
 	for _, e := range le {
-		if !e.Pass {
+		if !e.Pass && e.RuleApplied(r) {
 			failed = append(failed, e)
 		}
 	}
@@ -126,6 +135,15 @@ type LicenseEvaluation struct {
 	// the output of an evaluation...
 	Reason []Reason // reasons that the evaluation value the way it is
 	Pass   bool     // The final evaluation
+}
+
+func (le LicenseEvaluation) RuleApplied(r grant.Rule) bool {
+	for _, reason := range le.Reason {
+		if reason.RuleName == r.Name {
+			return true
+		}
+	}
+	return false
 }
 
 func NewLicenseEvaluation(license grant.License, pkg *grant.Package, policy grant.Policy, reasons []Reason, pass bool) LicenseEvaluation {
