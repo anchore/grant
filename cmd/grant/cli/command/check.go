@@ -115,7 +115,7 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 
 	reportConfig := check.ReportConfig{
 		Policy:       policy,
-		Format:       check.Format(cfg.Format),
+		Format:       check.Format(cfg.Output),
 		ShowPackages: cfg.ShowPackages,
 		CheckNonSPDX: cfg.CheckNonSPDX,
 		OsiApproved:  cfg.OsiApproved,

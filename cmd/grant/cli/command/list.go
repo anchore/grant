@@ -70,7 +70,7 @@ func runList(cfg *ListConfig, userInput []string) (errs error) {
 	}()
 
 	reportConfig := check.ReportConfig{
-		Format:       check.Format(cfg.Format),
+		Format:       check.Format(cfg.Output),
 		ShowPackages: cfg.ShowPackages,
 		CheckNonSPDX: cfg.CheckNonSPDX,
 		Policy:       grant.DefaultPolicy(),

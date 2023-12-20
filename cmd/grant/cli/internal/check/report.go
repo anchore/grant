@@ -1,6 +1,7 @@
 package check
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -73,6 +74,7 @@ func (r *Report) Render() error {
 	case Table:
 		return r.renderCheckTree()
 	case JSON:
+		return r.renderJSON()
 		return errors.New("json format not yet supported")
 	}
 	return errors.Join(r.errors...)
@@ -86,6 +88,65 @@ func (r *Report) RenderList() error {
 		return errors.New("json format not yet supported")
 	}
 	return errors.Join(r.errors...)
+}
+
+type GrantReport struct {
+	ReportID  string             `json:"report_id" yaml:"report_id"`
+	Timestamp string             `json:"timestamp" yaml:"timestamp"`
+	Inputs    []string           `json:"inputs" yaml:"inputs"`
+	Results   []ReportEvaluation `json:"results" yaml:"results"`
+}
+
+type ReportEvaluation struct {
+	Input   string   `json:"input" yaml:"input"`
+	License string   `json:"license" yaml:"license"`
+	Package string   `json:"package" yaml:"package"`
+	Passed  bool     `json:"passed" yaml:"passed"`
+	Reasons []string `json:"reasons" yaml:"reasons"`
+}
+
+func NewReportEvaluation(input string, le evalutation.LicenseEvaluation) ReportEvaluation {
+	licenseName := le.License.SPDXExpression
+	if !le.License.IsSPDX() {
+		licenseName = le.License.Name
+	}
+
+	reasons := make([]string, 0)
+	for _, r := range le.Reason {
+		details := r.Detail
+		reasons = append(reasons, details)
+	}
+	re := ReportEvaluation{
+		Input:   input,
+		License: licenseName,
+		Package: le.Package.Name,
+		Passed:  le.Pass,
+		Reasons: reasons,
+	}
+	return re
+}
+
+func (r *Report) renderJSON() error {
+	evaluations := make([]ReportEvaluation, 0)
+	for _, res := range r.Results {
+		for _, e := range res.Evaluations {
+			re := NewReportEvaluation(res.Case.UserInput, e)
+			evaluations = append(evaluations, re)
+		}
+	}
+	report := GrantReport{
+		ReportID:  r.ReportID,
+		Timestamp: r.Timestamp,
+		Inputs:    r.Results.UserInputs(),
+		Results:   evaluations,
+	}
+	jsonData, err := json.Marshal(report)
+	if err != nil {
+		return err
+	}
+
+	bus.Report(string(jsonData))
+	return nil
 }
 
 func (r *Report) renderCheckTree() error {
