@@ -1,0 +1,29 @@
+name: "Validations"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: true
+
+jobs:
+
+  Validations:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "Validations"
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
+
+      - name: Run all validations
+        run: make pr-validations

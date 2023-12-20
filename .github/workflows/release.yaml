@@ -1,0 +1,78 @@
+name: "Release"
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: tag the latest commit on main with the given version (prefixed with v)
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: true
+
+jobs:
+  quality-gate:
+    environment: release
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check if tag already exists
+        # note: this will fail if the tag already exists
+        run: |
+          [[ "${{ github.event.inputs.version }}" == v* ]] || (echo "version '${{ github.event.inputs.version }}' does not have a 'v' prefix" && exit 1)
+          git tag ${{ github.event.inputs.version }}
+
+      - name: Check validations results
+        uses: fountainhead/action-wait-for-check@v1.1.0
+        id: validations
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This check name is defined as the github action job name (in .github/workflows/validations.yaml)
+          checkName: "Validations"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Quality gate
+        if: steps.validations.outputs.conclusion != 'success'
+        run: |
+          echo "Validations Status: ${{ steps.validations.conclusion }}"
+          false
+
+  release:
+    needs: [quality-gate]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
+        env:
+          FORCE_COLOR: true
+
+      - name: Tag release
+        run: |
+          git config user.name "anchoreci"
+          git config user.email "anchoreci@users.noreply.github.com"
+          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
+          git push origin --tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & publish release artifacts
+        run: make ci-release
+        env:
+          # for mac signing and notarization...
+          QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
+          QUILL_SIGN_PASSWORD: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_PASS }}
+          QUILL_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
+          QUILL_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          QUILL_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
+          # for creating the release (requires write access to packages and content)
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

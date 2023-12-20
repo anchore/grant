@@ -99,11 +99,6 @@ tasks:
       - "{{ .TOOL_DIR }}/golangci-lint run --tests=false"
 
 
-  check-licenses:
-    # desc: Ensure transitive dependencies are compliant with the current license policy
-    deps: [tools]
-    cmd: "{{ .TOOL_DIR }}/grant check ./..."
-
   check-go-mod-tidy:
     # desc: Ensure go.mod and go.sum are up to date
     cmds:
@@ -148,8 +143,41 @@ tasks:
         silent: true
       - cmd: |
           cat .goreleaser.yaml >> {{ .TMP_DIR }}/goreleaser.yaml
-          echo "dist: {{ .SNAPSHOT_DIR }}" > {{ .TMP_DIR }}/goreleaser.yaml
+          echo "dist: {{ .SNAPSHOT_DIR }}" >> {{ .TMP_DIR }}/goreleaser.yaml
       - cmd: "{{ .TOOL_DIR }}/goreleaser release --clean --skip=publish --skip=sign --snapshot --config {{ .TMP_DIR }}/goreleaser.yaml"
 
 
-  ## TODO Release targets #################################
+  ## Release targets #################################
+
+  release:
+    desc: Create a release
+    interactive: true
+    deps: [tools]
+    cmds:
+      - cmd: .github/scripts/trigger-release.sh
+        silent: true
+
+  ## CI-only targets #################################
+
+  ci-check:
+    # desc: "[CI only] Are you in CI?"
+    cmds:
+      - cmd: .github/scripts/ci-check.sh
+        silent: true
+
+  ci-validate:
+    # desc: "[CI only] Run all CI validations"
+    cmds:
+      - task: ci-check
+      - task: default
+
+  ci-release:
+    # desc: "[CI only] Create a release"
+    deps: [tools]
+    cmds:
+      - task: ci-check
+      - "{{ .TOOL_DIR }}/chronicle -vvv > CHANGELOG.md"
+      - cmd: "cat CHANGELOG.md"
+        silent: true
+      - "{{ .TOOL_DIR }}/goreleaser release --clean --release-notes CHANGELOG.md"
+
