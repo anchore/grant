@@ -91,8 +91,7 @@ It can also be used to allow specific licenses, denying all others.
 ![table-output](https://github.com/anchore/grant/assets/32073428/59a516de-3acd-4f4a-8861-4e90eae09866)
 
 #### JSON: TODO
-```
-```
+![json-output](https://github.com/anchore/grant/assets/32073428/c2d89645-e323-4f99-a179-77e5a750ee6a)
 
 ## Configuration
 ```yaml
