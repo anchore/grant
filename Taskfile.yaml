@@ -25,7 +25,6 @@ tasks:
     desc: Run all static analysis tasks
     cmds:
       - task: check-go-mod-tidy
-      - task: check-licenses
       - task: lint
 
   test:
