@@ -43,11 +43,11 @@ type Case struct {
 func NewCases(p Policy, userInputs ...string) []Case {
 	cases := make([]Case, 0)
 	ch, err := NewCaseHandler()
-	defer ch.Close()
 	if err != nil {
 		log.Errorf("unable to create case handler: %+v", err)
 		return cases
 	}
+	defer ch.Close()
 	for _, userInput := range userInputs {
 		c, err := ch.determineRequestCase(userInput)
 		if err != nil {
@@ -161,6 +161,7 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 
 	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(bytes)
 	if err != nil {
+		log.Debugf("unable to determine SBOM or licenses for %s: %+v", path, err)
 		// we want to log the error, but we don't want to return yet
 	}
 	if sb != nil {
