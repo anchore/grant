@@ -24,7 +24,7 @@ ci-bootstrap-go:
 
 .PHONY: ci-bootstrap-tools
 ci-bootstrap-tools: $(BINNY)
-        $(BINNY) install -vvv
+	$(BINNY) install -vvv
 
 
 # this is a bootstrapping catch-all, where if the target doesn't exist, we'll ensure the tools are installed and then try again
