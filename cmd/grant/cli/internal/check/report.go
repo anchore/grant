@@ -75,7 +75,6 @@ func (r *Report) Render() error {
 		return r.renderCheckTree()
 	case JSON:
 		return r.renderJSON()
-		return errors.New("json format not yet supported")
 	}
 	return errors.Join(r.errors...)
 }
