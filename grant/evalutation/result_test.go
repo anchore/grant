@@ -11,7 +11,7 @@ func Test_NewResults(t *testing.T) {
 		name     string
 		ec       EvaluationConfig
 		fixtures []string
-		wantPass bool
+		isFailed bool
 	}{
 		{
 			name: "NewResults returns results from a group of cases that cannot pass the default config",
@@ -20,15 +20,15 @@ func Test_NewResults(t *testing.T) {
 				"../../fixtures/multiple",
 				"../../fixtures/licenses/MIT",
 			},
-			wantPass: false,
+			isFailed: true,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			cases := grant.NewCases(&tc.ec.Policy, tc.fixtures...)
+			cases := grant.NewCases(tc.ec.Policy, tc.fixtures...)
 			results := NewResults(tc.ec, cases...)
-			if tc.wantPass != results.Pass() {
-				t.Errorf("NewResults() = %v, want %v", results.Pass(), tc.wantPass)
+			if tc.isFailed != results.IsFailed() {
+				t.Errorf("results.IsFailed() = %v, want %v", results.IsFailed(), tc.isFailed)
 			}
 		})
 	}
