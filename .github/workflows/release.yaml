@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  checks: read
 
 env:
   FORCE_COLOR: true
