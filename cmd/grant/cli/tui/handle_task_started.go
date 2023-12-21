@@ -11,7 +11,7 @@ import (
 func (m *Handler) handleTaskStarted(e partybus.Event) ([]tea.Model, tea.Cmd) {
 	cmd, prog, err := event.ParseTaskStarted(e)
 	if err != nil {
-		//log.Warnf("unable to parse event: %+v", err)
+		// log.Warnf("unable to parse event: %+v", err)
 		return nil, nil
 	}
 

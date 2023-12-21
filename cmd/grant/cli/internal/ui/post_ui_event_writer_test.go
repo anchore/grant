@@ -12,7 +12,6 @@ import (
 )
 
 func Test_postUIEventWriter_write(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		quiet   bool

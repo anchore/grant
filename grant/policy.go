@@ -13,23 +13,29 @@ type Policy struct {
 	MatchNonSPDX bool
 }
 
+var DefaultDenyAll = Rule{
+	Glob:       glob.MustCompile("*"),
+	Exceptions: []glob.Glob{},
+	Mode:       Deny,
+	Reason:     "grant by default will deny all licenses",
+}
+
 // DefaultPolicy returns a policy that denies all licenses
 func DefaultPolicy() Policy {
 	return Policy{
-		Rules: []Rule{
-			{
-				Glob:       glob.MustCompile("*"),
-				Exceptions: []glob.Glob{},
-				Mode:       Deny,
-				Reason:     "grant by default will deny all licenses",
-			},
-		},
+		Rules: []Rule{DefaultDenyAll},
 	}
 }
 
 // NewPolicy builds a policy from lists of allow, deny, and ignore glob patterns
 // It lower cases all patterns to make matching against the spdx license set case-insensitive
 func NewPolicy(matchNonSPDX bool, rules ...Rule) (p Policy, err error) {
+	if len(rules) == 0 {
+		return Policy{
+			Rules:        Rules{DefaultDenyAll},
+			MatchNonSPDX: matchNonSPDX,
+		}, nil
+	}
 	return Policy{
 		Rules:        rules,
 		MatchNonSPDX: matchNonSPDX,
