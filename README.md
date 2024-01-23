@@ -34,7 +34,7 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grant/main/install.sh | sh 
 
 ## Usage
 
-Grant can be used with any container image, sbom document, or directory to scan for licenses and check those results
+Grant can be used with any container image, sbom document, or directory to scan for licenses and check those classifierResults
 against a set of rules provided by the user.
 
 Rules take the form of a pattern to match the license against, a name to identify the rule, a mode to either allow,

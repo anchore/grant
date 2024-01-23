@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/cmd/grant/cli/internal/check"
 	"github.com/anchore/grant/cmd/grant/cli/option"
 	"github.com/anchore/grant/event"
@@ -70,7 +71,7 @@ func runList(cfg *ListConfig, userInput []string) (errs error) {
 	}()
 
 	reportConfig := check.ReportConfig{
-		Format:       check.Format(cfg.Output),
+		Format:       internal.Format(cfg.Output),
 		ShowPackages: cfg.ShowPackages,
 		CheckNonSPDX: cfg.CheckNonSPDX,
 		Policy:       grant.DefaultPolicy(),

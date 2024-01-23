@@ -1,4 +1,4 @@
-package check
+package internal
 
 type Format string
 
@@ -8,7 +8,7 @@ const (
 )
 
 // validFormat returns a valid format or the default format if the given format is invalid
-func validateFormat(f Format) Format {
+func ValidateFormat(f Format) Format {
 	switch f {
 	case "json":
 		return JSON
