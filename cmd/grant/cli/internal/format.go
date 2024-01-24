@@ -71,3 +71,11 @@ func NewPackage(p *grant.Package) Package {
 		Locations: p.Locations,
 	}
 }
+
+func NewPackages(pkgs ...*grant.Package) []Package {
+	packages := make([]Package, 0)
+	for _, p := range pkgs {
+		packages = append(packages, NewPackage(p))
+	}
+	return packages
+}

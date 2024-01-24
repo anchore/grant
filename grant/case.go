@@ -61,41 +61,42 @@ type Pair struct {
 	Package *Package
 }
 
-func (c Case) GetLicenses() (map[string][]Pair, []Package) {
-	licenses := make(map[string][]Pair)
-	packages := make([]Package, 0)
+func (c Case) GetLicenses() (map[string][]*Package, map[string]License, []Package) {
+	licensePackages := make(map[string][]*Package)
+	licenses := make(map[string]License)
+	packagesNoLicenses := make([]Package, 0)
 	for _, sb := range c.SBOMS {
 		for pkg := range sb.Artifacts.Packages.Enumerate() {
 			grantPkg := ConvertSyftPackage(pkg)
 			// TODO: how do we express packages without licenses in list
 			if len(grantPkg.Licenses) == 0 {
-				packages = append(packages, *grantPkg)
+				packagesNoLicenses = append(packagesNoLicenses, *grantPkg)
 				continue
 			}
 			for _, license := range grantPkg.Licenses {
 				if license.IsSPDX() {
 					if _, ok := licenses[license.SPDXExpression]; !ok {
-						licenses[license.SPDXExpression] = make([]Pair, 0)
+						licenses[license.SPDXExpression] = license
 					}
-					licenses[license.SPDXExpression] = append(licenses[license.SPDXExpression], Pair{
-						License: license,
-						Package: grantPkg,
-					})
+					if _, ok := licensePackages[license.SPDXExpression]; !ok {
+						licensePackages[license.SPDXExpression] = make([]*Package, 0)
+					}
+					licensePackages[license.SPDXExpression] = append(licensePackages[license.SPDXExpression], grantPkg)
 					continue
 				}
 
 				if _, ok := licenses[license.Name]; !ok {
-					licenses[license.Name] = make([]Pair, 0)
+					licenses[license.Name] = license
 				}
-				licenses[license.Name] = append(licenses[license.Name], Pair{
-					License: license,
-					Package: grantPkg,
-				})
+				if _, ok := licensePackages[license.Name]; !ok {
+					licensePackages[license.Name] = make([]*Package, 0)
+				}
+				licensePackages[license.Name] = append(licensePackages[license.Name], grantPkg)
 			}
 		}
 	}
 
-	return licenses, packages
+	return licensePackages, licenses, packagesNoLicenses
 }
 
 type CaseHandler struct {

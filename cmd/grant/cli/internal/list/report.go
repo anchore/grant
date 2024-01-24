@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/gookit/color"
@@ -68,18 +69,18 @@ type Response struct {
 }
 
 type Result struct {
-	Input   string           `json:"input" yaml:"input"`
-	License internal.License `json:"license" yaml:"license"`
-	Package internal.Package `json:"package" yaml:"package"`
+	Input    string             `json:"input" yaml:"input"`
+	License  internal.License   `json:"license" yaml:"license"`
+	Packages []internal.Package `json:"packages" yaml:"packages"`
 }
 
-func NewResult(input string, gl grant.License, gp *grant.Package) Result {
+func NewResult(input string, gl grant.License, gp ...*grant.Package) Result {
 	rl := internal.NewLicense(gl)
-	rp := internal.NewPackage(gp)
+	pkgs := internal.NewPackages(gp...)
 	return Result{
-		Input:   input,
-		License: rl,
-		Package: rp,
+		Input:    input,
+		License:  rl,
+		Packages: pkgs,
 	}
 }
 
@@ -94,11 +95,11 @@ func (r *Report) renderJSON() error {
 	for _, c := range r.Cases {
 		resp.Inputs = append(resp.Inputs, c.UserInput)
 		// TODO: is it better to invert this here and grab packages -> licenses since package is the cases first class
-		licenses, _ := c.GetLicenses()
-		for _, pairs := range licenses {
-			for _, pair := range pairs {
-				resp.Results = append(resp.Results, NewResult(c.UserInput, pair.License, pair.Package))
-			}
+		licensePackages, licenses, _ := c.GetLicenses()
+		for key, l := range licenses {
+			packages := licensePackages[key]
+			result := NewResult(c.UserInput, l, packages...)
+			resp.Results = append(resp.Results, result)
 		}
 	}
 	jsonData, err := json.Marshal(resp)
@@ -115,13 +116,22 @@ func (r *Report) renderList() error {
 	for _, c := range r.Cases {
 		r.Monitor.Increment()
 		r.Monitor.AtomicStage.Set(c.UserInput)
+		sortMe := make([]string, 0)
 		resultList := list.NewWriter()
 		uiLists = append(uiLists, resultList)
 		resultList.AppendItem(color.Primary.Sprintf("%s", c.UserInput))
-		pairs, _ := c.GetLicenses()
+		_, licenses, _ := c.GetLicenses()
+		for _, license := range licenses {
+			if license.IsSPDX() {
+				sortMe = append(sortMe, license.SPDXExpression)
+				continue
+			}
+			sortMe = append(sortMe, license.Name)
+		}
+		slices.Sort(sortMe)
 		resultList.Indent()
-		for key, _ := range pairs {
-			resultList.AppendItem(color.Primary.Sprintf("%s", key))
+		for _, license := range sortMe {
+			resultList.AppendItem(license)
 		}
 		resultList.UnIndent()
 	}
