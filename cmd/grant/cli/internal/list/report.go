@@ -116,21 +116,24 @@ func (r *Report) renderList() error {
 	for _, c := range r.Cases {
 		r.Monitor.Increment()
 		r.Monitor.AtomicStage.Set(c.UserInput)
-		sortMe := make([]string, 0)
+		unsortedLicenses := make([]string, 0)
 		resultList := list.NewWriter()
 		uiLists = append(uiLists, resultList)
 		resultList.AppendItem(color.Primary.Sprintf("%s", c.UserInput))
 		_, licenses, _ := c.GetLicenses()
 		for _, license := range licenses {
 			if license.IsSPDX() {
-				sortMe = append(sortMe, license.SPDXExpression)
+				unsortedLicenses = append(unsortedLicenses, license.SPDXExpression)
 				continue
 			}
-			sortMe = append(sortMe, license.Name)
+			unsortedLicenses = append(unsortedLicenses, license.Name)
 		}
-		slices.Sort(sortMe)
+
+		// sort for list output
+		slices.Sort(unsortedLicenses)
+
 		resultList.Indent()
-		for _, license := range sortMe {
+		for _, license := range unsortedLicenses {
 			resultList.AppendItem(license)
 		}
 		resultList.UnIndent()
