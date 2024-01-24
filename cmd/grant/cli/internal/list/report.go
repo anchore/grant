@@ -116,7 +116,7 @@ func (r *Report) renderList() error {
 		licenses := c.GetLicenses()
 		resultList.Indent()
 		for _, l := range licenses {
-			resultList.AppendItem(fmt.Sprintf("%s", l.Name))
+			resultList.AppendItem(l.Name)
 		}
 		resultList.UnIndent()
 	}

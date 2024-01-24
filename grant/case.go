@@ -65,16 +65,11 @@ func (c Case) GetLicenses() []License {
 				continue
 			}
 
-			for _, l := range grantPkg.Licenses {
-				licenses = append(licenses, l)
-			}
+			licenses = append(licenses, grantPkg.Licenses...)
 		}
 	}
 
-	for _, l := range c.Licenses {
-		licenses = append(licenses, l)
-	}
-
+	licenses = append(licenses, c.Licenses...)
 	return licenses
 }
 

@@ -186,43 +186,6 @@ func (r *Report) renderCheckTree() error {
 	return nil
 }
 
-func (r *Report) renderList() error {
-	var uiLists []list.Writer
-	for _, res := range r.Results {
-		r.Monitor.Increment()
-		r.Monitor.AtomicStage.Set(res.Case.UserInput)
-		resulList := newList()
-		uiLists = append(uiLists, resulList)
-		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
-		for _, license := range res.Evaluations.GetLicenses() {
-			resulList.Indent()
-			resulList.AppendItem(color.Light.Sprintf("%s", license))
-			resulList.UnIndent()
-			if r.Config.Options.ShowPackages {
-				packages := res.Evaluations.Packages(license)
-				resulList.Indent()
-				resulList.Indent()
-				for _, pkg := range packages {
-					resulList.AppendItem(color.Secondary.Sprintf("%s", pkg))
-				}
-				resulList.UnIndent()
-				resulList.UnIndent()
-			}
-		}
-		if r.Config.Options.ShowPackages {
-			renderOrphanPackages(resulList, res, true)
-		}
-	}
-	r.Monitor.AtomicStage.Set(strings.Join(r.Results.UserInputs(), ", "))
-
-	// segment the results into lists by user input
-	// lists can optionally show the packages that were evaluated
-	for _, l := range uiLists {
-		bus.Report(l.Render())
-	}
-	return nil
-}
-
 func renderOrphanPackages(l list.Writer, res evalutation.Result, invert bool) {
 	title := color.Secondary
 	newItem := color.Light
