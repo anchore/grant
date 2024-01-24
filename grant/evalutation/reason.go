@@ -15,3 +15,10 @@ var (
 	ReasonLicenseAllowed      = "license allowed by policy"
 	ReasonLicenseDeniedOSI    = "license not OSI approved"
 )
+
+func NewReason(detail, ruleName string) Reason {
+	return Reason{
+		Detail:   detail,
+		RuleName: ruleName,
+	}
+}

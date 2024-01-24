@@ -10,6 +10,7 @@ rules:
     reason: "GPL licenses are not allowed per xxx-xx company policy"
     exceptions:
       - "alpine-baselayout" # We don't link against this package so we don't care about its license
+      - "alpine-baselayout-data"
       - "base-files"
       - "netbase"
       - "libssl3"
