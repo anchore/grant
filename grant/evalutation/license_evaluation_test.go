@@ -23,7 +23,7 @@ func Test_NewLicenseEvaluations(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			grantCases := fixtureCase(tc.config, tc.caseFixture)
+			grantCases := fixtureCase(tc.caseFixture)
 			for _, c := range grantCases {
 				caseEvaluations := NewLicenseEvaluations(tc.config, c)
 				if len(caseEvaluations) == 0 {
@@ -40,6 +40,6 @@ func Test_NewLicenseEvaluations(t *testing.T) {
 	}
 }
 
-func fixtureCase(ec EvaluationConfig, fixturePath string) []grant.Case {
-	return grant.NewCases(ec.Policy, fixturePath)
+func fixtureCase(fixturePath string) []grant.Case {
+	return grant.NewCases(fixturePath)
 }

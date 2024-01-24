@@ -1,5 +1,7 @@
 package internal
 
+import "github.com/google/uuid"
+
 type Format string
 
 const (
@@ -7,7 +9,9 @@ const (
 	Table Format = "table"
 )
 
-// validFormat returns a valid format or the default format if the given format is invalid
+var ValidFormats = []Format{JSON, Table}
+
+// ValidateFormat returns a valid format or the default format if the given format is invalid
 func ValidateFormat(f Format) Format {
 	switch f {
 	case "json":
@@ -17,4 +21,8 @@ func ValidateFormat(f Format) Format {
 	default:
 		return Table
 	}
+}
+
+func NewReportID() string {
+	return uuid.Must(uuid.NewRandom()).String()
 }

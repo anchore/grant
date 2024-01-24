@@ -115,12 +115,14 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 	}
 
 	reportConfig := check.ReportConfig{
-		Policy:       policy,
-		Format:       internal.Format(cfg.Output),
-		ShowPackages: cfg.ShowPackages,
-		CheckNonSPDX: cfg.CheckNonSPDX,
-		OsiApproved:  cfg.OsiApproved,
-		Monitor:      monitor,
+		Policy: policy,
+		Options: internal.ReportOptions{
+			Format:       internal.Format(cfg.Output),
+			ShowPackages: cfg.ShowPackages,
+			CheckNonSPDX: cfg.CheckNonSPDX,
+			OsiApproved:  cfg.OsiApproved,
+		},
+		Monitor: monitor,
 	}
 	rep, err := check.NewReport(reportConfig, userInput...)
 	if err != nil {

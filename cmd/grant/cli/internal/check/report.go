@@ -3,6 +3,7 @@ package check
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -37,7 +38,7 @@ type ReportConfig struct {
 	Monitor *event.ManualStagedProgress
 }
 
-// NewReport will generate a new report for the given format.
+// NewReport will generate a new report for the given format for the check command
 // The supplied policy is applied to all user requests.
 // If no policy is provided, the default policy will be used
 // If no requests are provided, an empty report will be generated
@@ -49,7 +50,7 @@ func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 	}
 
 	rc.Options.Format = internal.ValidateFormat(rc.Options.Format)
-	cases := grant.NewCases(rc.Policy, userRequests...)
+	cases := grant.NewCases(userRequests...)
 	ec := evalutation.EvaluationConfig{
 		Policy:       rc.Policy,
 		CheckNonSPDX: rc.Options.CheckNonSPDX,
@@ -73,18 +74,10 @@ func (r *Report) Render() error {
 		return r.renderCheckTree()
 	case internal.JSON:
 		return r.renderJSON()
+	default:
+		r.errors = append(r.errors, fmt.Errorf("invalid format: %s; valid formats are: %s", r.Config.Options.Format, internal.ValidFormats))
+		return errors.Join(r.errors...)
 	}
-	return errors.Join(r.errors...)
-}
-
-func (r *Report) RenderList() error {
-	switch r.Config.Options.Format {
-	case internal.Table:
-		return r.renderList()
-	case internal.JSON:
-		return errors.New("json format not yet supported")
-	}
-	return errors.Join(r.errors...)
 }
 
 type Response struct {
@@ -155,7 +148,7 @@ func (r *Report) renderCheckTree() error {
 		uiLists = append(uiLists, resulList)
 		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
 
-		for _, rule := range res.Case.Policy.Rules {
+		for _, rule := range r.Config.Policy.Rules {
 			failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput, rule)
 			if len(failedEvaluations) == 0 {
 				resulList.Indent()

@@ -26,10 +26,10 @@ import (
 
 // Case is a collection of SBOMs and Licenses that are evaluated for a given UserInput
 type Case struct {
-	// SBOMS is a list of SBOMs that have licenses checked against the policy
+	// SBOMS is a list of SBOMs that were generated for the user input
 	SBOMS []sbom.SBOM
 
-	// Licenses is a list of licenses that are checked against the policy
+	// Licenses is a list of licenses that were generated for the user input
 	Licenses []License
 
 	// UserInput is the string that was supplied by the user to build the case
@@ -54,6 +54,28 @@ func NewCases(userInputs ...string) []Case {
 		cases = append(cases, c)
 	}
 	return cases
+}
+
+func (c Case) GetLicenses() []License {
+	licenses := make([]License, 0)
+	for _, sb := range c.SBOMS {
+		for pkg := range sb.Artifacts.Packages.Enumerate() {
+			grantPkg := ConvertSyftPackage(pkg)
+			if len(grantPkg.Licenses) == 0 {
+				continue
+			}
+
+			for _, l := range grantPkg.Licenses {
+				licenses = append(licenses, l)
+			}
+		}
+	}
+
+	for _, l := range c.Licenses {
+		licenses = append(licenses, l)
+	}
+
+	return licenses
 }
 
 type CaseHandler struct {
@@ -179,7 +201,6 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 
 func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 	// alright we couldn't get an SBOM, let's see if the bytes are just a LICENSE (google license classifier)
-	// TODO: this is a little heavy, we might want to generate a backend and reuse it for all the files we're checking
 
 	// google license classifier is noisy, so we'll silence it for now
 	golog.SetOutput(io.Discard)

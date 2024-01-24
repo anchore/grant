@@ -25,7 +25,7 @@ func checkSBOM(ec EvaluationConfig, sb sbom.SBOM) LicenseEvaluations {
 	evaluations := make([]LicenseEvaluation, 0)
 	for pkg := range sb.Artifacts.Packages.Enumerate() {
 		// since we use syft as a library to generate the sbom we need to convert its packages/licenses to grant types
-		grantPkg := convertSyftPackage(pkg)
+		grantPkg := grant.ConvertSyftPackage(pkg)
 		if len(grantPkg.Licenses) == 0 {
 			// We need to include an evaluation that shows this package has no licenses
 			le := NewLicenseEvaluation(grant.License{}, grantPkg, ec.Policy, []Reason{{
