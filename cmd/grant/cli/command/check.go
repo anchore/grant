@@ -19,7 +19,7 @@ import (
 	"github.com/anchore/grant/internal/input"
 )
 
-var FailureError = errors.New("check failed")
+var ErrPolicyFailure = errors.New("check failed")
 
 type CheckConfig struct {
 	Config       string `json:"config" yaml:"config" mapstructure:"config"`
@@ -136,7 +136,7 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 		return errors.Wrap(err, fmt.Sprintf("unable to render report for inputs %s", userInput))
 	}
 	if rep.HasFailures() {
-		return FailureError
+		return ErrPolicyFailure
 	}
 	return nil
 }
