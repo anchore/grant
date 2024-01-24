@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/gookit/color"
@@ -68,16 +69,18 @@ type Response struct {
 }
 
 type Result struct {
-	Input   string `json:"input" yaml:"input"`
-	License string `json:"license" yaml:"license"`
-	Package string `json:"package" yaml:"package"`
+	Input    string             `json:"input" yaml:"input"`
+	License  internal.License   `json:"license" yaml:"license"`
+	Packages []internal.Package `json:"packages" yaml:"packages"`
 }
 
-func NewResult(input, license, lp string) Result {
+func NewResult(input string, gl grant.License, gp ...*grant.Package) Result {
+	rl := internal.NewLicense(gl)
+	pkgs := internal.NewPackages(gp...)
 	return Result{
-		Input:   input,
-		License: license,
-		Package: lp,
+		Input:    input,
+		License:  rl,
+		Packages: pkgs,
 	}
 }
 
@@ -91,9 +94,12 @@ func (r *Report) renderJSON() error {
 
 	for _, c := range r.Cases {
 		resp.Inputs = append(resp.Inputs, c.UserInput)
-		licenses := c.GetLicenses()
-		for _, l := range licenses {
-			resp.Results = append(resp.Results, NewResult(c.UserInput, l.Name, ""))
+		// TODO: is it better to invert this here and grab packages -> licenses since package is the cases first class
+		licensePackages, licenses, _ := c.GetLicenses()
+		for key, l := range licenses {
+			packages := licensePackages[key]
+			result := NewResult(c.UserInput, l, packages...)
+			resp.Results = append(resp.Results, result)
 		}
 	}
 	jsonData, err := json.Marshal(resp)
@@ -110,13 +116,25 @@ func (r *Report) renderList() error {
 	for _, c := range r.Cases {
 		r.Monitor.Increment()
 		r.Monitor.AtomicStage.Set(c.UserInput)
+		unsortedLicenses := make([]string, 0)
 		resultList := list.NewWriter()
 		uiLists = append(uiLists, resultList)
 		resultList.AppendItem(color.Primary.Sprintf("%s", c.UserInput))
-		licenses := c.GetLicenses()
+		_, licenses, _ := c.GetLicenses()
+		for _, license := range licenses {
+			if license.IsSPDX() {
+				unsortedLicenses = append(unsortedLicenses, license.SPDXExpression)
+				continue
+			}
+			unsortedLicenses = append(unsortedLicenses, license.Name)
+		}
+
+		// sort for list output
+		slices.Sort(unsortedLicenses)
+
 		resultList.Indent()
-		for _, l := range licenses {
-			resultList.AppendItem(l.Name)
+		for _, license := range unsortedLicenses {
+			resultList.AppendItem(license)
 		}
 		resultList.UnIndent()
 	}
