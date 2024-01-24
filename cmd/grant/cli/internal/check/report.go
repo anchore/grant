@@ -3,12 +3,14 @@ package check
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/gookit/color"
 	list "github.com/jedib0t/go-pretty/v6/list"
 
+	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/event"
 	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/grant/evalutation"
@@ -31,15 +33,12 @@ type Report struct {
 }
 
 type ReportConfig struct {
-	Format       Format
-	Policy       grant.Policy
-	ShowPackages bool
-	CheckNonSPDX bool
-	OsiApproved  bool
-	Monitor      *event.ManualStagedProgress
+	Policy  grant.Policy
+	Options internal.ReportOptions
+	Monitor *event.ManualStagedProgress
 }
 
-// NewReport will generate a new report for the given format.
+// NewReport will generate a new report for the given format for the check command
 // The supplied policy is applied to all user requests.
 // If no policy is provided, the default policy will be used
 // If no requests are provided, an empty report will be generated
@@ -50,12 +49,12 @@ func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 		rc.Policy = grant.DefaultPolicy()
 	}
 
-	rc.Format = validateFormat(rc.Format)
-	cases := grant.NewCases(rc.Policy, userRequests...)
+	rc.Options.Format = internal.ValidateFormat(rc.Options.Format)
+	cases := grant.NewCases(userRequests...)
 	ec := evalutation.EvaluationConfig{
 		Policy:       rc.Policy,
-		CheckNonSPDX: rc.CheckNonSPDX,
-		OsiApproved:  rc.OsiApproved,
+		CheckNonSPDX: rc.Options.CheckNonSPDX,
+		OsiApproved:  rc.Options.OsiApproved,
 	}
 
 	results := evalutation.NewResults(ec, cases...)
@@ -70,33 +69,25 @@ func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 
 // Render will call Render on each result in the report and return the report
 func (r *Report) Render() error {
-	switch r.Config.Format {
-	case Table:
+	switch r.Config.Options.Format {
+	case internal.Table:
 		return r.renderCheckTree()
-	case JSON:
+	case internal.JSON:
 		return r.renderJSON()
+	default:
+		r.errors = append(r.errors, fmt.Errorf("invalid format: %s; valid formats are: %s", r.Config.Options.Format, internal.ValidFormats))
+		return errors.Join(r.errors...)
 	}
-	return errors.Join(r.errors...)
 }
 
-func (r *Report) RenderList() error {
-	switch r.Config.Format {
-	case Table:
-		return r.renderList()
-	case JSON:
-		return errors.New("json format not yet supported")
-	}
-	return errors.Join(r.errors...)
+type Response struct {
+	ReportID  string       `json:"report_id" yaml:"report_id"`
+	Timestamp string       `json:"timestamp" yaml:"timestamp"`
+	Inputs    []string     `json:"inputs" yaml:"inputs"`
+	Results   []Evaluation `json:"results" yaml:"results"`
 }
 
-type GrantReport struct {
-	ReportID  string             `json:"report_id" yaml:"report_id"`
-	Timestamp string             `json:"timestamp" yaml:"timestamp"`
-	Inputs    []string           `json:"inputs" yaml:"inputs"`
-	Results   []ReportEvaluation `json:"results" yaml:"results"`
-}
-
-type ReportEvaluation struct {
+type Evaluation struct {
 	Input   string   `json:"input" yaml:"input"`
 	License string   `json:"license" yaml:"license"`
 	Package string   `json:"package" yaml:"package"`
@@ -104,7 +95,7 @@ type ReportEvaluation struct {
 	Reasons []string `json:"reasons" yaml:"reasons"`
 }
 
-func NewReportEvaluation(input string, le evalutation.LicenseEvaluation) ReportEvaluation {
+func NewEvaluation(input string, le evalutation.LicenseEvaluation) Evaluation {
 	licenseName := le.License.SPDXExpression
 	if !le.License.IsSPDX() {
 		licenseName = le.License.Name
@@ -115,7 +106,7 @@ func NewReportEvaluation(input string, le evalutation.LicenseEvaluation) ReportE
 		details := r.Detail
 		reasons = append(reasons, details)
 	}
-	re := ReportEvaluation{
+	re := Evaluation{
 		Input:   input,
 		License: licenseName,
 		Package: le.Package.Name,
@@ -126,14 +117,14 @@ func NewReportEvaluation(input string, le evalutation.LicenseEvaluation) ReportE
 }
 
 func (r *Report) renderJSON() error {
-	evaluations := make([]ReportEvaluation, 0)
+	evaluations := make([]Evaluation, 0)
 	for _, res := range r.Results {
 		for _, e := range res.Evaluations {
-			re := NewReportEvaluation(res.Case.UserInput, e)
+			re := NewEvaluation(res.Case.UserInput, e)
 			evaluations = append(evaluations, re)
 		}
 	}
-	report := GrantReport{
+	report := Response{
 		ReportID:  r.ReportID,
 		Timestamp: r.Timestamp,
 		Inputs:    r.Results.UserInputs(),
@@ -157,7 +148,7 @@ func (r *Report) renderCheckTree() error {
 		uiLists = append(uiLists, resulList)
 		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
 
-		for _, rule := range res.Case.Policy.Rules {
+		for _, rule := range r.Config.Policy.Rules {
 			failedEvaluations := r.Results.GetFailedEvaluations(res.Case.UserInput, rule)
 			if len(failedEvaluations) == 0 {
 				resulList.Indent()
@@ -165,9 +156,9 @@ func (r *Report) renderCheckTree() error {
 				resulList.UnIndent()
 				continue
 			}
-			renderEvaluations(rule, r.Config.ShowPackages, resulList, failedEvaluations)
+			renderEvaluations(rule, r.Config.Options.ShowPackages, resulList, failedEvaluations)
 		}
-		if r.Config.OsiApproved {
+		if r.Config.Options.OsiApproved {
 			osiRule := grant.Rule{
 				Name: evalutation.RuleNameNotOSIApproved,
 			}
@@ -178,10 +169,10 @@ func (r *Report) renderCheckTree() error {
 				resulList.AppendItem(color.Success.Sprintf("%s", "No OSI Violations Found"))
 				resulList.UnIndent()
 			} else {
-				renderEvaluations(osiRule, r.Config.ShowPackages, resulList, failedEvaluations)
+				renderEvaluations(osiRule, r.Config.Options.ShowPackages, resulList, failedEvaluations)
 			}
 		}
-		if r.Config.ShowPackages {
+		if r.Config.Options.ShowPackages {
 			renderOrphanPackages(resulList, res, false) // keep primary coloring for tree
 		}
 	}
@@ -189,43 +180,6 @@ func (r *Report) renderCheckTree() error {
 	// segment the results into lists by user input
 	// lists can optionally show the packages that were evaluated
 
-	for _, l := range uiLists {
-		bus.Report(l.Render())
-	}
-	return nil
-}
-
-func (r *Report) renderList() error {
-	var uiLists []list.Writer
-	for _, res := range r.Results {
-		r.Monitor.Increment()
-		r.Monitor.AtomicStage.Set(res.Case.UserInput)
-		resulList := newList()
-		uiLists = append(uiLists, resulList)
-		resulList.AppendItem(color.Primary.Sprintf("%s", res.Case.UserInput))
-		for _, license := range res.Evaluations.GetLicenses() {
-			resulList.Indent()
-			resulList.AppendItem(color.Light.Sprintf("%s", license))
-			resulList.UnIndent()
-			if r.Config.ShowPackages {
-				packages := res.Evaluations.Packages(license)
-				resulList.Indent()
-				resulList.Indent()
-				for _, pkg := range packages {
-					resulList.AppendItem(color.Secondary.Sprintf("%s", pkg))
-				}
-				resulList.UnIndent()
-				resulList.UnIndent()
-			}
-		}
-		if r.Config.ShowPackages {
-			renderOrphanPackages(resulList, res, true)
-		}
-	}
-	r.Monitor.AtomicStage.Set(strings.Join(r.Results.UserInputs(), ", "))
-
-	// segment the results into lists by user input
-	// lists can optionally show the packages that were evaluated
 	for _, l := range uiLists {
 		bus.Report(l.Render())
 	}

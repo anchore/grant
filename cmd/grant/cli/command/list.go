@@ -7,10 +7,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grant/cmd/grant/cli/internal/check"
+	"github.com/anchore/grant/cmd/grant/cli/internal"
+	"github.com/anchore/grant/cmd/grant/cli/internal/list"
 	"github.com/anchore/grant/cmd/grant/cli/option"
 	"github.com/anchore/grant/event"
-	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/internal/bus"
 	"github.com/anchore/grant/internal/input"
 )
@@ -69,16 +69,17 @@ func runList(cfg *ListConfig, userInput []string) (errs error) {
 		}
 	}()
 
-	reportConfig := check.ReportConfig{
-		Format:       check.Format(cfg.Output),
-		ShowPackages: cfg.ShowPackages,
-		CheckNonSPDX: cfg.CheckNonSPDX,
-		Policy:       grant.DefaultPolicy(),
-		Monitor:      monitor,
+	reportConfig := list.ReportConfig{
+		Options: internal.ReportOptions{
+			Format:       internal.Format(cfg.Output),
+			ShowPackages: cfg.ShowPackages,
+			CheckNonSPDX: cfg.CheckNonSPDX,
+		},
+		Monitor: monitor,
 	}
-	rep, err := check.NewReport(reportConfig, userInput...)
+	rep, err := list.NewReport(reportConfig, userInput...)
 	if err != nil {
 		return err
 	}
-	return rep.RenderList()
+	return rep.Render()
 }

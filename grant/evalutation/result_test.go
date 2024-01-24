@@ -25,7 +25,7 @@ func Test_NewResults(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			cases := grant.NewCases(tc.ec.Policy, tc.fixtures...)
+			cases := grant.NewCases(tc.fixtures...)
 			results := NewResults(tc.ec, cases...)
 			if tc.isFailed != results.IsFailed() {
 				t.Errorf("results.IsFailed() = %v, want %v", results.IsFailed(), tc.isFailed)

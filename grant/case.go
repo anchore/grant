@@ -24,23 +24,19 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-// Case is a collection of SBOMs and Licenses that are evaluated against a policy
-
+// Case is a collection of SBOMs and Licenses that are evaluated for a given UserInput
 type Case struct {
-	// SBOMS is a list of SBOMs that have licenses checked against the policy
+	// SBOMS is a list of SBOMs that were generated for the user input
 	SBOMS []sbom.SBOM
 
-	// Licenses is a list of licenses that are checked against the policy
+	// Licenses is a list of licenses that were generated for the user input
 	Licenses []License
 
 	// UserInput is the string that was supplied by the user to build the case
 	UserInput string
-
-	// Policy is the policy that is evaluated against the case
-	Policy Policy
 }
 
-func NewCases(p Policy, userInputs ...string) []Case {
+func NewCases(userInputs ...string) []Case {
 	cases := make([]Case, 0)
 	ch, err := NewCaseHandler()
 	if err != nil {
@@ -54,11 +50,27 @@ func NewCases(p Policy, userInputs ...string) []Case {
 			log.Errorf("unable to determine case for %s: %+v", userInput, err)
 			continue
 		}
-		c.Policy = p
 		c.UserInput = userInput
 		cases = append(cases, c)
 	}
 	return cases
+}
+
+func (c Case) GetLicenses() []License {
+	licenses := make([]License, 0)
+	for _, sb := range c.SBOMS {
+		for pkg := range sb.Artifacts.Packages.Enumerate() {
+			grantPkg := ConvertSyftPackage(pkg)
+			if len(grantPkg.Licenses) == 0 {
+				continue
+			}
+
+			licenses = append(licenses, grantPkg.Licenses...)
+		}
+	}
+
+	licenses = append(licenses, c.Licenses...)
+	return licenses
 }
 
 type CaseHandler struct {
@@ -153,13 +165,13 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 	}
 
 	// let's see if it's an SBOM
-	bytes, err := getReadSeeker(path)
+	sbomBytes, err := getReadSeeker(path)
 	if err != nil {
 		// We bail here since we can't get a reader for the file
 		return c, err
 	}
 
-	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(bytes)
+	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(sbomBytes)
 	if err != nil {
 		log.Debugf("unable to determine SBOM or licenses for %s: %+v", path, err)
 		// we want to log the error, but we don't want to return yet
@@ -184,7 +196,6 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 
 func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 	// alright we couldn't get an SBOM, let's see if the bytes are just a LICENSE (google license classifier)
-	// TODO: this is a little heavy, we might want to generate a backend and reuse it for all the files we're checking
 
 	// google license classifier is noisy, so we'll silence it for now
 	golog.SetOutput(io.Discard)
@@ -203,12 +214,12 @@ func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 	// re-enable logging for the rest of the application
 	golog.SetOutput(os.Stdout)
 
-	results := ch.Backend.GetResults()
-	if len(results) == 0 {
-		return nil, fmt.Errorf("no results from license classifier")
+	classifierResults := ch.Backend.GetResults()
+	if len(classifierResults) == 0 {
+		return nil, fmt.Errorf("no classifierResults from license classifier")
 	}
 
-	licenses := grantLicenseFromClassifierResults(results)
+	licenses := grantLicenseFromClassifierResults(classifierResults)
 	return licenses, nil
 }
 

@@ -14,6 +14,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.6.0
 	github.com/google/licenseclassifier/v2 v2.0.0
+	github.com/google/uuid v1.4.0
 	github.com/gookit/color v1.5.4
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jedib0t/go-pretty/v6 v6.4.9
@@ -96,7 +97,6 @@ require (
 	github.com/google/go-containerregistry v0.16.1 // indirect
 	github.com/google/licensecheck v0.3.1 // indirect
 	github.com/google/pprof v0.0.0-20221118152302-e6195bd50e26 // indirect
-	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
