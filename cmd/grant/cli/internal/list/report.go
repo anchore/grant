@@ -68,16 +68,18 @@ type Response struct {
 }
 
 type Result struct {
-	Input   string `json:"input" yaml:"input"`
-	License string `json:"license" yaml:"license"`
-	Package string `json:"package" yaml:"package"`
+	Input   string           `json:"input" yaml:"input"`
+	License internal.License `json:"license" yaml:"license"`
+	Package internal.Package `json:"package" yaml:"package"`
 }
 
-func NewResult(input, license, lp string) Result {
+func NewResult(input string, gl grant.License, gp *grant.Package) Result {
+	rl := internal.NewLicense(gl)
+	rp := internal.NewPackage(gp)
 	return Result{
 		Input:   input,
-		License: license,
-		Package: lp,
+		License: rl,
+		Package: rp,
 	}
 }
 
@@ -91,9 +93,12 @@ func (r *Report) renderJSON() error {
 
 	for _, c := range r.Cases {
 		resp.Inputs = append(resp.Inputs, c.UserInput)
-		licenses := c.GetLicenses()
-		for _, l := range licenses {
-			resp.Results = append(resp.Results, NewResult(c.UserInput, l.Name, ""))
+		// TODO: is it better to invert this here and grab packages -> licenses since package is the cases first class
+		licenses, _ := c.GetLicenses()
+		for _, pairs := range licenses {
+			for _, pair := range pairs {
+				resp.Results = append(resp.Results, NewResult(c.UserInput, pair.License, pair.Package))
+			}
 		}
 	}
 	jsonData, err := json.Marshal(resp)
@@ -113,10 +118,10 @@ func (r *Report) renderList() error {
 		resultList := list.NewWriter()
 		uiLists = append(uiLists, resultList)
 		resultList.AppendItem(color.Primary.Sprintf("%s", c.UserInput))
-		licenses := c.GetLicenses()
+		pairs, _ := c.GetLicenses()
 		resultList.Indent()
-		for _, l := range licenses {
-			resultList.AppendItem(l.Name)
+		for key, _ := range pairs {
+			resultList.AppendItem(color.Primary.Sprintf("%s", key))
 		}
 		resultList.UnIndent()
 	}

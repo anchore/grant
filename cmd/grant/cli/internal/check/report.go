@@ -92,52 +92,11 @@ type Response struct {
 }
 
 type Evaluation struct {
-	Input   string   `json:"input" yaml:"input"`
-	License License  `json:"license" yaml:"license"`
-	Package Package  `json:"package" yaml:"package"`
-	Passed  bool     `json:"passed" yaml:"passed"`
-	Reasons []string `json:"reasons" yaml:"reasons"`
-}
-
-type License struct {
-	SPDXExpression string   `json:"spdx_expression" yaml:"spdx_expression"`
-	Name           string   `json:"name" yaml:"name"`
-	Locations      []string `json:"locations" yaml:"locations"`
-	Reference      string   `json:"reference" yaml:"reference"`
-	IsDeprecated   bool     `json:"is_deprecated" yaml:"is_deprecated"`
-	LicenseID      string   `json:"license_id" yaml:"license_id"`
-	SeeAlso        []string `json:"see_also" yaml:"see_also"`
-	IsOsiApproved  bool     `json:"is_osi_approved" yaml:"is_osi_approved"`
-}
-
-func newLicense(l grant.License) License {
-	return License{
-		SPDXExpression: l.SPDXExpression,
-		Name:           l.Name,
-		Locations:      l.Locations,
-		Reference:      l.Reference,
-		IsDeprecated:   l.IsDeprecatedLicenseID,
-		LicenseID:      l.LicenseID,
-		SeeAlso:        l.SeeAlso,
-		IsOsiApproved:  l.IsOsiApproved,
-	}
-}
-
-type Package struct {
-	Name      string   `json:"name" yaml:"name"`
-	Version   string   `json:"version" yaml:"version"`
-	Locations []string `json:"locations" yaml:"locations"`
-}
-
-func newPackage(p *grant.Package) Package {
-	if p == nil {
-		return Package{}
-	}
-	return Package{
-		Name:      p.Name,
-		Version:   p.Version,
-		Locations: p.Locations,
-	}
+	Input   string           `json:"input" yaml:"input"`
+	License internal.License `json:"license" yaml:"license"`
+	Package internal.Package `json:"package" yaml:"package"`
+	Passed  bool             `json:"passed" yaml:"passed"`
+	Reasons []string         `json:"reasons" yaml:"reasons"`
 }
 
 func NewEvaluation(input string, le evalutation.LicenseEvaluation) Evaluation {
@@ -151,10 +110,10 @@ func NewEvaluation(input string, le evalutation.LicenseEvaluation) Evaluation {
 		reasons = append(reasons, details)
 	}
 
-	license := newLicense(le.License)
-	var pkg Package
+	license := internal.NewLicense(le.License)
+	var pkg internal.Package
 	if le.Package != nil {
-		pkg = newPackage(le.Package)
+		pkg = internal.NewPackage(le.Package)
 	}
 
 	re := Evaluation{
