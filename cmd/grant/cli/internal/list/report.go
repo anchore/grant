@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gookit/color"
+	"github.com/jedib0t/go-pretty/v6/list"
+
 	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/event"
 	"github.com/anchore/grant/grant"
@@ -103,11 +106,23 @@ func (r *Report) renderJSON() error {
 }
 
 func (r *Report) renderList() error {
-	_ = Response{
-		ReportID:  r.ReportID,
-		Timestamp: r.Timestamp,
-		Inputs:    make([]string, 0),
-		Results:   make([]Result, 0),
+	var uiLists []list.Writer
+	for _, c := range r.Cases {
+		r.Monitor.Increment()
+		r.Monitor.AtomicStage.Set(c.UserInput)
+		resultList := list.NewWriter()
+		uiLists = append(uiLists, resultList)
+		resultList.AppendItem(color.Primary.Sprintf("%s", c.UserInput))
+		licenses := c.GetLicenses()
+		resultList.Indent()
+		for _, l := range licenses {
+			resultList.AppendItem(fmt.Sprintf("%s", l.Name))
+		}
+		resultList.UnIndent()
+	}
+
+	for _, l := range uiLists {
+		bus.Report(l.Render())
 	}
 	return nil
 }
