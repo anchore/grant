@@ -80,6 +80,10 @@ func (r *Report) Render() error {
 	}
 }
 
+func (r *Report) HasFailures() bool {
+	return r.Results.IsFailed()
+}
+
 type Response struct {
 	ReportID  string       `json:"report_id" yaml:"report_id"`
 	Timestamp string       `json:"timestamp" yaml:"timestamp"`
@@ -89,30 +93,78 @@ type Response struct {
 
 type Evaluation struct {
 	Input   string   `json:"input" yaml:"input"`
-	License string   `json:"license" yaml:"license"`
-	Package string   `json:"package" yaml:"package"`
+	License License  `json:"license" yaml:"license"`
+	Package Package  `json:"package" yaml:"package"`
 	Passed  bool     `json:"passed" yaml:"passed"`
 	Reasons []string `json:"reasons" yaml:"reasons"`
 }
 
-func NewEvaluation(input string, le evalutation.LicenseEvaluation) Evaluation {
-	licenseName := le.License.SPDXExpression
-	if !le.License.IsSPDX() {
-		licenseName = le.License.Name
-	}
+type License struct {
+	SPDXExpression string   `json:"spdx_expression" yaml:"spdx_expression"`
+	Name           string   `json:"name" yaml:"name"`
+	Locations      []string `json:"locations" yaml:"locations"`
+	Reference      string   `json:"reference" yaml:"reference"`
+	IsDeprecated   bool     `json:"is_deprecated" yaml:"is_deprecated"`
+	LicenseID      string   `json:"license_id" yaml:"license_id"`
+	SeeAlso        []string `json:"see_also" yaml:"see_also"`
+	IsOsiApproved  bool     `json:"is_osi_approved" yaml:"is_osi_approved"`
+}
 
+func newLicense(l grant.License) License {
+	return License{
+		SPDXExpression: l.SPDXExpression,
+		Name:           l.Name,
+		Locations:      l.Locations,
+		Reference:      l.Reference,
+		IsDeprecated:   l.IsDeprecatedLicenseID,
+		LicenseID:      l.LicenseID,
+		SeeAlso:        l.SeeAlso,
+		IsOsiApproved:  l.IsOsiApproved,
+	}
+}
+
+type Package struct {
+	Name      string   `json:"name" yaml:"name"`
+	Version   string   `json:"version" yaml:"version"`
+	Locations []string `json:"locations" yaml:"locations"`
+}
+
+func newPackage(p *grant.Package) Package {
+	if p == nil {
+		return Package{}
+	}
+	return Package{
+		Name:      p.Name,
+		Version:   p.Version,
+		Locations: p.Locations,
+	}
+}
+
+func NewEvaluation(input string, le evalutation.LicenseEvaluation) Evaluation {
 	reasons := make([]string, 0)
 	for _, r := range le.Reason {
-		details := r.Detail
+		if r.RuleName == "" {
+			reasons = append(reasons, r.Detail)
+			continue
+		}
+		details := fmt.Sprintf("%s: %s", r.RuleName, r.Detail)
 		reasons = append(reasons, details)
 	}
+
+	license := newLicense(le.License)
+	var pkg Package
+	if le.Package != nil {
+		pkg = newPackage(le.Package)
+	}
+
 	re := Evaluation{
 		Input:   input,
-		License: licenseName,
-		Package: le.Package.Name,
+		License: license,
+		Package: pkg,
 		Passed:  le.Pass,
 		Reasons: reasons,
 	}
+
 	return re
 }
 
