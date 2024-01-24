@@ -73,30 +73,35 @@ func (c Case) GetLicenses() (map[string][]*Package, map[string]License, []Packag
 				packagesNoLicenses = append(packagesNoLicenses, *grantPkg)
 				continue
 			}
-			for _, license := range grantPkg.Licenses {
-				if license.IsSPDX() {
-					if _, ok := licenses[license.SPDXExpression]; !ok {
-						licenses[license.SPDXExpression] = license
-					}
-					if _, ok := licensePackages[license.SPDXExpression]; !ok {
-						licensePackages[license.SPDXExpression] = make([]*Package, 0)
-					}
-					licensePackages[license.SPDXExpression] = append(licensePackages[license.SPDXExpression], grantPkg)
-					continue
-				}
-
-				if _, ok := licenses[license.Name]; !ok {
-					licenses[license.Name] = license
-				}
-				if _, ok := licensePackages[license.Name]; !ok {
-					licensePackages[license.Name] = make([]*Package, 0)
-				}
-				licensePackages[license.Name] = append(licensePackages[license.Name], grantPkg)
-			}
+			buildLicenseMaps(licensePackages, licenses, grantPkg)
 		}
 	}
 
 	return licensePackages, licenses, packagesNoLicenses
+}
+
+func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string]License, pkg *Package) {
+	for _, license := range pkg.Licenses {
+		if license.IsSPDX() {
+			if _, ok := licenses[license.SPDXExpression]; !ok {
+				licenses[license.SPDXExpression] = license
+			}
+			if _, ok := licensePackages[license.SPDXExpression]; !ok {
+				licensePackages[license.SPDXExpression] = make([]*Package, 0)
+			}
+			licensePackages[license.SPDXExpression] = append(licensePackages[license.SPDXExpression], pkg)
+			continue
+		}
+
+		// NonSPDX License
+		if _, ok := licenses[license.Name]; !ok {
+			licenses[license.Name] = license
+		}
+		if _, ok := licensePackages[license.Name]; !ok {
+			licensePackages[license.Name] = make([]*Package, 0)
+		}
+		licensePackages[license.Name] = append(licensePackages[license.Name], pkg)
+	}
 }
 
 type CaseHandler struct {
