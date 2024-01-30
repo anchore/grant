@@ -73,7 +73,7 @@ func runList(cfg *ListConfig, userInput []string) (errs error) {
 		Options: internal.ReportOptions{
 			Format:       internal.Format(cfg.Output),
 			ShowPackages: cfg.ShowPackages,
-			CheckNonSPDX: cfg.CheckNonSPDX,
+			CheckNonSPDX: cfg.NonSPDX,
 		},
 		Monitor: monitor,
 	}
