@@ -120,8 +120,12 @@ func (r *Report) renderList() error {
 		resultList := list.NewWriter()
 		uiLists = append(uiLists, resultList)
 		resultList.AppendItem(color.Primary.Sprintf("%s", c.UserInput))
-		_, licenses, _ := c.GetLicenses()
+		packages, licenses, _ := c.GetLicenses()
 		for _, license := range licenses {
+			// Filter out SPDX licenses if requested to just show non-SPDX licenses
+			if r.Config.Options.CheckNonSPDX && license.IsSPDX() {
+				continue
+			}
 			if license.IsSPDX() {
 				unsortedLicenses = append(unsortedLicenses, license.SPDXExpression)
 				continue
@@ -135,6 +139,14 @@ func (r *Report) renderList() error {
 		resultList.Indent()
 		for _, license := range unsortedLicenses {
 			resultList.AppendItem(license)
+			if r.Config.Options.ShowPackages {
+				pkgs := packages[license]
+				for _, pkg := range pkgs {
+					resultList.Indent()
+					resultList.AppendItem(pkg.Name)
+					resultList.UnIndent()
+				}
+			}
 		}
 		resultList.UnIndent()
 	}
