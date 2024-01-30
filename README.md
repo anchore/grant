@@ -99,7 +99,7 @@ It can also be used to allow specific licenses, denying all others.
 config: ".grant.yaml"
 format: table # table, json
 show-packages: false # show the packages which contain the licenses --show-packages
-check-non-spdx: false # check licenses that could not be matched to an SPDX identifier --check-non-spdx
+non-spdx: false # list only licenses that could not be matched to an SPDX identifier --non-spdx
 osi-approved: false # highlight licenses that are not OSI approved --osi-approved
 rules: 
     - pattern: "*gpl*"

@@ -111,7 +111,7 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 		}
 	}()
 
-	policy, err := grant.NewPolicy(cfg.CheckNonSPDX, rules...)
+	policy, err := grant.NewPolicy(cfg.NonSPDX, rules...)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
 	}
@@ -121,7 +121,7 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 		Options: internal.ReportOptions{
 			Format:       internal.Format(cfg.Output),
 			ShowPackages: cfg.ShowPackages,
-			CheckNonSPDX: cfg.CheckNonSPDX,
+			CheckNonSPDX: cfg.NonSPDX,
 			OsiApproved:  cfg.OsiApproved,
 		},
 		Monitor: monitor,
