@@ -14,12 +14,14 @@ import (
 	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
 	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
 
-	"github.com/anchore/grant/internal"
 	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/grant/internal/spdxlicense"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
 	"github.com/anchore/syft/syft/format"
-	"github.com/anchore/syft/syft/pkg/cataloger"
+	"github.com/anchore/syft/syft/pkg/cataloger/golang"
+	"github.com/anchore/syft/syft/pkg/cataloger/java"
+	"github.com/anchore/syft/syft/pkg/cataloger/javascript"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
@@ -348,24 +350,25 @@ func generateSyftSBOM(path string) (sb sbom.SBOM, err error) {
 	if err != nil {
 		return sb, err
 	}
-	collection, relationships, release, err := syft.CatalogPackages(src, cataloger.DefaultConfig())
+	sb = getSBOM(src)
+	return sb, nil
+}
+
+func getSBOM(src source.Source) sbom.SBOM {
+	createSBOMConfig := syft.DefaultCreateSBOMConfig()
+	createSBOMConfig.WithPackagesConfig(
+		pkgcataloging.DefaultConfig().
+			WithJavaArchiveConfig(java.DefaultArchiveCatalogerConfig().WithUseNetwork(true)).
+			WithJavascriptConfig(javascript.DefaultCatalogerConfig().WithSearchRemoteLicenses(true)).
+			WithGolangConfig(golang.DefaultCatalogerConfig().
+				WithSearchLocalModCacheLicenses(true).
+				WithSearchRemoteLicenses(true)))
+	s, err := syft.CreateSBOM(context.Background(), src, nil)
 	if err != nil {
-		return sb, err
+		panic(err)
 	}
 
-	sb = sbom.SBOM{
-		Artifacts: sbom.Artifacts{
-			Packages:          collection,
-			LinuxDistribution: release,
-		},
-		Relationships: relationships,
-		Source:        src.Describe(),
-		Descriptor: sbom.Descriptor{
-			Name:    internal.ApplicationName,
-			Version: internal.ApplicationVersion,
-		},
-	}
-	return sb, nil
+	return *s
 }
 
 func isDirectory(path string) bool {
