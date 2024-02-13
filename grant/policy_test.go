@@ -18,6 +18,7 @@ func Test_DefaultPolicy(t *testing.T) {
 			want: Policy{
 				Rules: []Rule{
 					{
+						Name:       "default-deny-all",
 						Glob:       glob.MustCompile("*"),
 						Exceptions: []glob.Glob{},
 						Mode:       Deny,
@@ -92,7 +93,7 @@ func Test_Policy_DenyAll(t *testing.T) {
 			}{
 				denied: true,
 				rule: &Rule{
-					Name:       "default deny all",
+					Name:       "default-deny-all",
 					Glob:       glob.MustCompile("*"),
 					Exceptions: []glob.Glob{},
 					Mode:       Deny,
