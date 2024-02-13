@@ -45,6 +45,7 @@ func NewCases(userInputs ...string) []Case {
 		log.Errorf("unable to create case handler: %+v", err)
 		return cases
 	}
+
 	defer ch.Close()
 	for _, userInput := range userInputs {
 		c, err := ch.determineRequestCase(userInput)

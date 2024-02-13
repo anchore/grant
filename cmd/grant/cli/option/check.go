@@ -1,6 +1,8 @@
 package option
 
-import "github.com/anchore/clio"
+import (
+	"github.com/anchore/clio"
+)
 
 type Check struct {
 	List        `json:",inline" yaml:",inline" mapstructure:",squash"`
@@ -14,14 +16,7 @@ func DefaultCheck() Check {
 		List:        DefaultList(),
 		Quiet:       false,
 		OsiApproved: false,
-		Rules: []Rule{
-			{
-				Name:     "deny-all",
-				Reason:   "grant by default will deny all licenses",
-				Pattern:  "*",
-				Severity: "high",
-			},
-		},
+		Rules:       []Rule{defaultDenyAll},
 	}
 }
 

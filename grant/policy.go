@@ -14,6 +14,7 @@ type Policy struct {
 }
 
 var DefaultDenyAll = Rule{
+	Name:       "default-deny-all",
 	Glob:       glob.MustCompile("*"),
 	Exceptions: []glob.Glob{},
 	Mode:       Deny,
@@ -57,8 +58,7 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 		var toMatch string
 		if license.IsSPDX() {
 			toMatch = strings.ToLower(license.LicenseID)
-		}
-		if p.MatchNonSPDX && !license.IsSPDX() {
+		} else {
 			toMatch = strings.ToLower(license.Name)
 		}
 
