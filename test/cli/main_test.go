@@ -7,7 +7,10 @@ import (
 	"testing"
 )
 
-const grantTmpPath = "../../.tmp/grant"
+const (
+	grantTmpPath    = "../../.tmp/grant"
+	emptyConfigPath = "../../.tmp/grant_empty.yaml"
+)
 
 func buildBinary() (string, error) {
 	buildCmd := exec.Command("go", "build", "-o", grantTmpPath, "../../cmd/grant/main.go") // Adjust the last argument to your package path if necessary
@@ -15,11 +18,21 @@ func buildBinary() (string, error) {
 	return grantTmpPath, err
 }
 
+func generateEmptyConfig() (string, error) {
+	emptyConfigCmd := exec.Command("touch", emptyConfigPath)
+	err := emptyConfigCmd.Run()
+	return emptyConfigPath, err
+}
+
 // setup function that you want to run before any tests
 func setup(m *testing.M) {
 	_, err := buildBinary()
 	if err != nil {
 		log.Fatalf("Failed to build binary: %v", err)
+	}
+	_, err = generateEmptyConfig()
+	if err != nil {
+		log.Fatalf("Failed to generate empty config: %v", err)
 	}
 }
 

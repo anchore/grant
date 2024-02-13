@@ -8,3 +8,10 @@ type Rule struct {
 	Mode       string   `json:"mode" yaml:"mode" mapstructure:"mode"`
 	Exceptions []string `json:"exceptions" yaml:"exceptions" mapstructure:"exceptions"`
 }
+
+var defaultDenyAll = Rule{
+	Name:    "default-deny-all",
+	Reason:  "grant by default will deny all licenses",
+	Mode:    "deny",
+	Pattern: "*",
+}
