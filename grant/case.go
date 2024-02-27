@@ -14,8 +14,10 @@ import (
 	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
 	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
 
+	"github.com/anchore/go-collections"
 	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/grant/internal/spdxlicense"
+	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
 	"github.com/anchore/syft/syft/format"
@@ -24,6 +26,7 @@ import (
 	"github.com/anchore/syft/syft/pkg/cataloger/javascript"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/source/sourceproviders"
 )
 
 // Case is a collection of SBOMs and Licenses that are evaluated for a given UserInput
@@ -341,13 +344,26 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 
 // TODO: is the default syft config good enough here?
 // we definitely need at least all the non default license magic turned on
-func generateSyftSBOM(path string) (sb sbom.SBOM, err error) {
-	src, err := syft.GetSource(context.Background(), path, syft.DefaultGetSourceConfig())
+func generateSyftSBOM(userInput string) (sb sbom.SBOM, err error) {
+	src, err := getSource(userInput)
 	if err != nil {
 		return sb, err
 	}
 	sb = getSBOM(src)
 	return sb, nil
+}
+
+func getSource(userInput string) (source.Source, error) {
+	allSourceTags := collections.TaggedValueSet[source.Provider]{}.Join(sourceproviders.All("", nil)...).Tags()
+
+	var sources []string
+	schemeSource, newUserInput := stereoscope.ExtractSchemeSource(userInput, allSourceTags...)
+	if schemeSource != "" {
+		sources = []string{schemeSource}
+		userInput = newUserInput
+	}
+
+	return syft.GetSource(context.Background(), userInput, syft.DefaultGetSourceConfig().WithSources(sources...))
 }
 
 func getSBOM(src source.Source) sbom.SBOM {
