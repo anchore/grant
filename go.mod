@@ -10,7 +10,7 @@ require (
 	github.com/anchore/stereoscope v0.0.2-0.20240221144950-cf0e754f5b56
 	github.com/anchore/syft v1.0.0
 	github.com/charmbracelet/bubbletea v0.25.0
-	github.com/charmbracelet/lipgloss v0.9.1
+	github.com/charmbracelet/lipgloss v0.10.0
 	github.com/github/go-spdx/v2 v2.2.0
 	github.com/gkampitakis/go-snaps v0.5.2
 	github.com/gobwas/glob v0.2.3
@@ -153,7 +153,7 @@ require (
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pkg/profile v1.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/rivo/uniseg v0.4.6 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/saferwall/pe v1.5.2 // indirect
 	github.com/sagikazarmark/locafero v0.3.0 // indirect
