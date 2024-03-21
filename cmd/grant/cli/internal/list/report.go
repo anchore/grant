@@ -115,10 +115,8 @@ func (r *Report) renderCSV() error {
 			return err
 		}
 	}
-	if err := writer.Error(); err != nil {
-		return err
-	}
-	return nil
+
+	return writer.Error()
 }
 
 func getResponse(r *Report) Response {
