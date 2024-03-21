@@ -1,9 +1,11 @@
 package list
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"time"
 
@@ -55,6 +57,8 @@ func (r *Report) Render() error {
 		return r.renderList()
 	case internal.JSON:
 		return r.renderJSON()
+	case internal.CSV:
+		return r.renderCSV()
 	default:
 		r.errors = append(r.errors, fmt.Errorf("invalid format: %s; valid formats are: %s", r.Config.Options.Format, internal.ValidFormats))
 		return errors.Join(r.errors...)
@@ -84,7 +88,40 @@ func NewResult(input string, gl grant.License, gp ...*grant.Package) Result {
 	}
 }
 
-func (r *Report) renderJSON() error {
+func (r *Report) renderCSV() error {
+	response := getResponse(r)
+	headers := []string{"component", "component_version", "license", "website", "type"}
+	data := [][]string{
+		headers,
+	}
+
+	for _, rslt := range response.Results {
+		for _, pkg := range rslt.Packages {
+			data = append(data, []string{
+				pkg.Name,
+				pkg.Version,
+				rslt.License.Name,
+				rslt.License.Reference,
+				pkg.Type,
+			})
+		}
+	}
+
+	writer := csv.NewWriter(os.Stdout)
+	defer writer.Flush()
+
+	for _, record := range data {
+		if err := writer.Write(record); err != nil {
+			return err
+		}
+	}
+	if err := writer.Error(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func getResponse(r *Report) Response {
 	resp := Response{
 		ReportID:  r.ReportID,
 		Timestamp: r.Timestamp,
@@ -94,7 +131,6 @@ func (r *Report) renderJSON() error {
 
 	for _, c := range r.Cases {
 		resp.Inputs = append(resp.Inputs, c.UserInput)
-		// TODO: is it better to invert this here and grab packages -> licenses since package is the cases first class
 		licensePackages, licenses, _ := c.GetLicenses()
 		for key, l := range licenses {
 			packages := licensePackages[key]
@@ -102,6 +138,11 @@ func (r *Report) renderJSON() error {
 			resp.Results = append(resp.Results, result)
 		}
 	}
+	return resp
+}
+
+func (r *Report) renderJSON() error {
+	resp := getResponse(r)
 	jsonData, err := json.Marshal(resp)
 	if err != nil {
 		return err

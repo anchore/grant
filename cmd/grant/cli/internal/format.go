@@ -11,9 +11,10 @@ type Format string
 const (
 	JSON  Format = "json"
 	Table Format = "table"
+	CSV   Format = "csv"
 )
 
-var ValidFormats = []Format{JSON, Table}
+var ValidFormats = []Format{JSON, Table, CSV}
 
 // ValidateFormat returns a valid format or the default format if the given format is invalid
 func ValidateFormat(f Format) Format {
@@ -22,6 +23,8 @@ func ValidateFormat(f Format) Format {
 		return JSON
 	case "table":
 		return Table
+	case "csv":
+		return CSV
 	default:
 		return Table
 	}
@@ -58,6 +61,7 @@ func NewLicense(l grant.License) License {
 type Package struct {
 	Name      string   `json:"name" yaml:"name"`
 	Version   string   `json:"version" yaml:"version"`
+	Type      string   `json:"type" yaml:"type"`
 	Locations []string `json:"locations" yaml:"locations"`
 }
 
@@ -69,6 +73,7 @@ func NewPackage(p *grant.Package) Package {
 		Name:      p.Name,
 		Version:   p.Version,
 		Locations: p.Locations,
+		Type:      p.Type,
 	}
 }
 

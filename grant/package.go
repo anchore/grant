@@ -10,6 +10,7 @@ type PackageID string
 type Package struct {
 	ID        PackageID `json:"id" yaml:"id"`
 	Name      string    `json:"name" yaml:"name"`
+	Type      string    `json:"type" yaml:"type"`
 	Version   string    `json:"version" yaml:"version"`
 	Licenses  []License `json:"licenses" yaml:"licenses"`
 	Locations []string  `json:"locations" yaml:"locations"`
@@ -25,6 +26,7 @@ func ConvertSyftPackage(p syftPkg.Package) *Package {
 	return &Package{
 		Name:      p.Name,
 		Version:   p.Version,
+		Type:      string(p.Type),
 		Licenses:  ConvertSyftLicenses(p.Licenses),
 		Locations: packageLocations,
 	}
