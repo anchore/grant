@@ -56,6 +56,7 @@ tasks:
       - "{{ .TOOL_DIR }}/chronicle"
       - "{{ .TOOL_DIR }}/glow"
       - "{{ .TOOL_DIR }}/goreleaser"
+      - "{{ .TOOL_DIR }}/bouncer"
     status:
       - "{{ .TOOL_DIR }}/binny check -v"
     cmd: "{{ .TOOL_DIR }}/binny install -v"
@@ -141,7 +142,7 @@ tasks:
       - cmd: "mkdir -p {{ .TMP_DIR }}"
         silent: true
       - cmd: |
-          cat .goreleaser.yaml >> {{ .TMP_DIR }}/goreleaser.yaml
+          cat .goreleaser.yaml > {{ .TMP_DIR }}/goreleaser.yaml
           echo "dist: {{ .SNAPSHOT_DIR }}" >> {{ .TMP_DIR }}/goreleaser.yaml
       - cmd: "{{ .TOOL_DIR }}/goreleaser release --clean --skip=publish --skip=sign --snapshot --config {{ .TMP_DIR }}/goreleaser.yaml"
 
