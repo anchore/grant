@@ -3,6 +3,7 @@ release:
   draft: false
 
 env:
+  # required to support multi architecture docker builds
   - CGO_ENABLED=0
 
 builds:
@@ -35,6 +36,11 @@ builds:
       - arm64
     mod_timestamp: *build-timestamp
     ldflags: *build-ldflags
+    hooks:
+      post:
+        - cmd: .tool/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
+          env:
+            - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
 archives:
   - id: linux-archives
@@ -43,3 +49,49 @@ archives:
   - id: darwin-archives
     builds:
       - darwin-build
+
+nfpms:
+  - license: "Apache 2.0"
+    maintainer: "Anchore, Inc"
+    homepage: &website "https://github.com/anchore/grant"
+    description: &description "A tool consumes SBOMS and details license information"
+    formats:
+      - rpm
+      - deb
+
+brews:
+  - tap:
+      owner: anchore
+      name: homebrew-grant
+      token: "{{.Env.GITHUB_BREW_TOKEN}}"
+    ids:
+      - darwin-archives
+      - linux-archives
+    homepage: *website
+    description: *description
+    license: "Apache License 2.0"
+
+sboms:
+  - artifacts: archive
+    # this is relative to the snapshot/dist directory, not the root of the repo
+    cmd: ../.tool/syft
+    documents:
+      - "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.sbom"
+    args:
+      - "scan"
+      - "$artifact"
+      - "--output"
+      - "json=$document"
+
+signs:
+  - cmd: .tool/cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - "sign-blob"
+      - "--oidc-issuer=https://token.actions.githubusercontent.com"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum

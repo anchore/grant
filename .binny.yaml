@@ -12,6 +12,7 @@ tools:
         - -X main.gitDescription={{ .Version }}
         # note: sprig functions are available: http://masterminds.github.io/sprig/
         - -X main.buildDate={{ now | date "2006-01-02T15:04:05Z07:00" }}
+
   - name: binny
     version:
       want: v0.6.2
@@ -54,9 +55,17 @@ tools:
     with:
       repo: charmbracelet/glow
 
+  # used for signing the checksums file at release
+  - name: cosign
+    version:
+      want: v2.2.4
+    method: github-release
+    with:
+      repo: sigstore/cosign
+
   - name: goreleaser
     version:
-      want: v1.21.1
+      want: v1.25.1
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -70,7 +79,7 @@ tools:
 
   - name: bouncer
     version:
-      want: v0.1.0
+      want: v0.4.0
     method: github-release
     with:
       repo: wagoodman/go-bouncer
@@ -84,7 +93,7 @@ tools:
 
   - name: syft
     version:
-      want: v0.95.0
+      want: v1.2.0
     method: github-release
     with:
       repo: anchore/syft
