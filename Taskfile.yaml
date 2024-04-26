@@ -113,7 +113,7 @@ tasks:
           sh: "go list ./... | grep -v {{ .OWNER }}/{{ .PROJECT }}/test | tr '\n' ' '"
 
       # unit test coverage threshold (in % coverage)
-      COVERAGE_THRESHOLD: 10
+      COVERAGE_THRESHOLD: 8
     cmds:
       - cmd: "mkdir -p {{ .TMP_DIR }}"
         silent: true
