@@ -4,7 +4,7 @@ inputs:
   go-version:
     description: "Go version to install"
     required: true
-    default: "1.21.x"
+    default: "1.22.x"
   cache-key-prefix:
     description: "Prefix all cache keys with this value"
     required: true
