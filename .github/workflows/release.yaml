@@ -27,7 +27,7 @@ jobs:
           git tag ${{ github.event.inputs.version }}
 
       - name: Check validations results
-        uses: fountainhead/action-wait-for-check@v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be #v1.2.0
         id: validations
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
