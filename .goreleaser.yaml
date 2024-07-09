@@ -63,7 +63,7 @@ brews:
   - tap:
       owner: anchore
       name: homebrew-grant
-      token: "{{.Env.GITHUB_BREW_TOKEN}}"
+      token: "{{.Env.HOMEBREW_TOKEN}}"
     ids:
       - darwin-archives
       - linux-archives
