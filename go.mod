@@ -8,7 +8,7 @@ require (
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 	github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a
 	github.com/anchore/stereoscope v0.0.3-0.20240725180315-50ce3be7aa1f
-	github.com/anchore/syft v1.11.0
+	github.com/anchore/syft v1.11.1
 	github.com/charmbracelet/bubbletea v0.27.0
 	github.com/charmbracelet/lipgloss v0.12.1
 	github.com/github/go-spdx/v2 v2.3.1
@@ -77,7 +77,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v27.1.1+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v27.1.1+incompatible // indirect
+	github.com/docker/docker v27.1.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
