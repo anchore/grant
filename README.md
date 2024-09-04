@@ -94,6 +94,9 @@ It can also be used to allow specific licenses, denying all others.
 ![json-output](https://github.com/anchore/grant/assets/32073428/c2d89645-e323-4f99-a179-77e5a750ee6a)
 
 ## Configuration
+
+### Example: Deny GPL
+
 ```yaml
 #.grant.yaml
 config: ".grant.yaml"
@@ -108,4 +111,29 @@ rules:
       reason: "GPL licenses are not allowed per xxx-xx company policy"
       exclusions:
         - "alpine-base-layout" # We don't link against this package so we don't care about its license
+```
+
+### Example: Allow Lists
+
+In this example, all licenses are denied except BSD and MIT:
+
+```yaml
+#.grant.yaml
+rules:
+  - pattern: "BSD-*"
+    name: "bsd-allow"
+    mode: "allow"
+    reason: "BSD is compatible with our project"
+    exceptions:
+      # Packages to disallow even if they are licensed under BSD.
+      - my-package
+  - pattern: "MIT"
+    name: "mit-allow"
+    mode: "allow"
+    reason: "MIT is compatible with our project"
+  # Reject the rest.
+  - pattern: "*"
+    name: "default-deny-all"
+    mode: "deny"
+    reason: "All licenses need to be explicitly allowed"
 ```

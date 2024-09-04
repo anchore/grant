@@ -75,7 +75,7 @@ func Test_NewPolicy(t *testing.T) {
 	}
 }
 
-func Test_Policy_DenyAll(t *testing.T) {
+func Test_Policy_IsDenied(t *testing.T) {
 	tests := []struct {
 		name string
 		p    Policy
@@ -98,6 +98,57 @@ func Test_Policy_DenyAll(t *testing.T) {
 					Exceptions: []glob.Glob{},
 					Mode:       Deny,
 					Reason:     "grant by default will deny all licenses",
+				},
+			},
+		},
+
+		{
+			name: "Policy allowing all licenses",
+			p: Policy{
+				Rules: []Rule{{
+					Name:       "allow-all",
+					Glob:       glob.MustCompile("*"),
+					Exceptions: []glob.Glob{},
+					Mode:       Allow,
+					Reason:     "all licenses are allowed",
+				}},
+			},
+			want: struct {
+				denied bool
+				rule   *Rule
+			}{
+				denied: false,
+				rule: &Rule{
+					Name:       "allow-all",
+					Glob:       glob.MustCompile("*"),
+					Exceptions: []glob.Glob{},
+					Mode:       Allow,
+					Reason:     "all licenses are allowed",
+				},
+			},
+		},
+		{
+			name: "Policy ignoring all licenses",
+			p: Policy{
+				Rules: []Rule{{
+					Name:       "ignore-all",
+					Glob:       glob.MustCompile("*"),
+					Exceptions: []glob.Glob{},
+					Mode:       Ignore,
+					Reason:     "all licenses are ignored",
+				}},
+			},
+			want: struct {
+				denied bool
+				rule   *Rule
+			}{
+				denied: false,
+				rule: &Rule{
+					Name:       "ignore-all",
+					Glob:       glob.MustCompile("*"),
+					Exceptions: []glob.Glob{},
+					Mode:       Ignore,
+					Reason:     "all licenses are ignored",
 				},
 			},
 		},

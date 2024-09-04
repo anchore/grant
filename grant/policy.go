@@ -51,11 +51,8 @@ func (p Policy) IsEmpty() bool {
 // IsDenied returns true if the given license is denied by the policy
 func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 	for _, rule := range p.Rules {
-		if rule.Mode != Deny {
-			continue
-		}
-
 		var toMatch string
+
 		if license.IsSPDX() {
 			toMatch = strings.ToLower(license.LicenseID)
 		} else {
@@ -63,16 +60,18 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 		}
 
 		toMatch = strings.ToLower(toMatch)
+		// TODO: write tests for this section
 		if rule.Glob.Match(toMatch) && toMatch != "" {
 			if pkg == nil {
 				return true, &rule
 			}
 			for _, exception := range rule.Exceptions {
 				if exception.Match(pkg.Name) {
-					return false, &rule
+					return rule.Mode != Deny, &rule
 				}
 			}
-			return true, &rule
+			// true when Mode=Deny, false otherwise
+			return rule.Mode == Deny, &rule
 		}
 	}
 	return false, nil
