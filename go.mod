@@ -11,7 +11,7 @@ require (
 	github.com/anchore/syft v1.11.1
 	github.com/charmbracelet/bubbletea v0.27.0
 	github.com/charmbracelet/lipgloss v0.12.1
-	github.com/github/go-spdx/v2 v2.3.1
+	github.com/github/go-spdx/v2 v2.3.2
 	github.com/gkampitakis/go-snaps v0.5.7
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.6.0
