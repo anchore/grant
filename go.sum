@@ -101,8 +101,8 @@ github.com/anchore/fangs v0.0.0-20240903175602-e716ef12c23d h1:ZD4wdCBgJJzJybjTU
 github.com/anchore/fangs v0.0.0-20240903175602-e716ef12c23d/go.mod h1:Xh4ObY3fmoMzOEVXwDtS1uK44JC7+nRD0n29/1KYFYg=
 github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537 h1:GjNGuwK5jWjJMyVppBjYS54eOiiSNv4Ba869k4wh72Q=
 github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537/go.mod h1:1aiktV46ATCkuVg0O573ZrH56BUawTECPETbZyBcqT8=
-github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a h1:nJ2G8zWKASyVClGVgG7sfM5mwoZlZ2zYpIzN2OhjWkw=
-github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a/go.mod h1:ubLFmlsv8/DFUQrZwY5syT5/8Er3ugSr4rDFwHsE3hg=
+github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4 h1:wu6JP0Uiw4cgOJu6MwinMjEK8OV8Uf/nZgG6Xu/Ue9w=
+github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4/go.mod h1:CyK090ySIgB8Y29so1Mhqh3T/apkpL6kUsfY/c+GmfM=
 github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb h1:iDMnx6LIjtjZ46C0akqveX83WFzhpTD3eqOthawb5vU=
 github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb/go.mod h1:DmTY2Mfcv38hsHbG78xMiTDdxFtkHpgYNVDPsF2TgHk=
 github.com/anchore/go-struct-converter v0.0.0-20221118182256-c68fdcfa2092 h1:aM1rlcoLz8y5B2r4tTLMiVTrMtpfY0O8EScKJxaSaEc=
