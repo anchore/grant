@@ -1,12 +1,12 @@
 module github.com/anchore/grant
 
-go 1.22.4
+go 1.23.2
 
 require (
 	github.com/anchore/bubbly v0.0.0-20231115205105-6542675d79fe
 	github.com/anchore/clio v0.0.0-20240522144804-d81e109008aa
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
-	github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a
+	github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4
 	github.com/anchore/stereoscope v0.0.3
 	github.com/anchore/syft v1.13.0
 	github.com/charmbracelet/bubbletea v1.1.1
