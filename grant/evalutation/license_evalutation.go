@@ -44,19 +44,6 @@ func checkSBOM(ec EvaluationConfig, sb sbom.SBOM) LicenseEvaluations {
 }
 
 func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License) LicenseEvaluation {
-	if !l.IsSPDX() && ec.CheckNonSPDX {
-		if denied, rule := ec.Policy.IsDenied(l, pkg); denied {
-			var reason Reason
-			if rule != nil {
-				reason = Reason{
-					Detail:   ReasonLicenseDeniedPolicy,
-					RuleName: rule.Name,
-				}
-			}
-			return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{reason}, false)
-		}
-	}
-
 	if ec.OsiApproved && l.IsSPDX() {
 		if !l.IsOsiApproved {
 			return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{{
@@ -65,20 +52,24 @@ func checkLicense(ec EvaluationConfig, pkg *grant.Package, l grant.License) Lice
 			}}, false)
 		}
 	}
-	if denied, rule := ec.Policy.IsDenied(l, pkg); denied {
-		var reason Reason
-		if rule != nil {
-			reason = Reason{
-				Detail:   ReasonLicenseDeniedPolicy,
-				RuleName: rule.Name,
-			}
-		}
-		return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{reason}, false)
+
+	isDenied, matchedRule := ec.Policy.IsDenied(l, pkg)
+
+	// By default, we allow unmatched rules.
+	detail := ReasonLicenseAllowed
+	ruleName := ""
+
+	if isDenied {
+		detail = ReasonLicenseDeniedPolicy
+	}
+	if matchedRule != nil {
+		ruleName = matchedRule.Name
 	}
 
 	return NewLicenseEvaluation(l, pkg, ec.Policy, []Reason{{
-		Detail: ReasonLicenseAllowed,
-	}}, true)
+		Detail:   detail,
+		RuleName: ruleName,
+	}}, !isDenied)
 }
 
 type LicenseEvaluations []LicenseEvaluation

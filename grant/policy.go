@@ -50,6 +50,12 @@ func (p Policy) IsEmpty() bool {
 // IsDenied returns true if the given license is denied by the policy
 func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 	for _, rule := range p.Rules {
+		// ignore non spdx licenses if the rule is configured to not match on non spdx
+		isSPDX := license.IsSPDX()
+		matchNonSPDX := p.MatchNonSPDX
+		if !matchNonSPDX && !isSPDX {
+			continue
+		}
 		var toMatch string
 		if license.IsSPDX() {
 			toMatch = strings.ToLower(license.LicenseID)
@@ -62,7 +68,7 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 		if rule.Glob.Match(toMatch) && toMatch != "" {
 			var returnVal bool
 			// set the return value based on the rule mode
-			if rule.Mode == Allow {
+			if rule.Mode == Allow || rule.Mode == Ignore {
 				returnVal = false
 			} else {
 				returnVal = true
@@ -72,14 +78,18 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 			}
 			for _, exception := range rule.Exceptions {
 				if exception.Match(pkg.Name) {
-					// flip the return value based on the exception
-					returnVal = !returnVal
-
-					return returnVal, &rule
+					return rule.Mode != Deny, &rule
 				}
 			}
-			return returnVal, &rule
+			// true when Mode=Deny, false otherwise
+			return rule.Mode == Deny, &rule
 		}
 	}
 	return false, nil
+}
+
+// SetMatchNonSPDX updates the match option for the given policy
+func (p Policy) SetMatchNonSPDX(matchNonSPDX bool) Policy {
+	p.MatchNonSPDX = matchNonSPDX
+	return p
 }
