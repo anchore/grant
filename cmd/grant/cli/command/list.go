@@ -31,11 +31,11 @@ func List(app clio.Application) *cobra.Command {
 		Use:   "list",
 		Short: "List the licenses detected in the given OCI image, sbom, or directory/file",
 		Args:  cobra.ArbitraryArgs,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(_ *cobra.Command, args []string) error {
 			userInputs = args
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runList(cfg, userInputs)
 		},
 	}, cfg)
