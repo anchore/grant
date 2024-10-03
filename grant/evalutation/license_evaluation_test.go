@@ -57,10 +57,10 @@ func Test_checkLicense(t *testing.T) {
 		}
 	}{
 		{
-			name:    "should reject denied licenses",
-			license: grant.License{Name: "MIT"},
+			name:    "should reject denied licenses when SPDX expressions and CheckNON SPDX is False",
+			license: grant.License{ID: "MIT", SPDXExpression: "MIT", LicenseID: "MIT"},
 			// Only allow OSI licenses.
-			config: EvaluationConfig{CheckNonSPDX: true, Policy: grant.DefaultPolicy()},
+			config: EvaluationConfig{CheckNonSPDX: false, Policy: grant.DefaultPolicy().SetMatchNonSPDX(false)},
 			wants: struct {
 				Pass    bool
 				Reasons []Reason
@@ -73,10 +73,10 @@ func Test_checkLicense(t *testing.T) {
 			},
 		},
 		{
-			name:    "should reject denied licenses when CheckNonSPDX is also false",
+			name:    "should reject denied licenses when CheckNonSPDX is also true",
 			license: grant.License{Name: "foobar"},
 			// Only allow OSI licenses.
-			config: EvaluationConfig{CheckNonSPDX: false, Policy: grant.DefaultPolicy()},
+			config: EvaluationConfig{CheckNonSPDX: true, Policy: grant.DefaultPolicy().SetMatchNonSPDX(true)},
 			wants: struct {
 				Pass    bool
 				Reasons []Reason
