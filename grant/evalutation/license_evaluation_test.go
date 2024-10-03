@@ -73,6 +73,22 @@ func Test_checkLicense(t *testing.T) {
 			},
 		},
 		{
+			name:    "should reject denied licenses when CheckNonSPDX is also false",
+			license: grant.License{Name: "foobar"},
+			// Only allow OSI licenses.
+			config: EvaluationConfig{CheckNonSPDX: false, Policy: grant.DefaultPolicy()},
+			wants: struct {
+				Pass    bool
+				Reasons []Reason
+			}{
+				Pass: false,
+				Reasons: []Reason{{
+					Detail:   ReasonLicenseDeniedPolicy,
+					RuleName: "default-deny-all",
+				}},
+			},
+		},
+		{
 			name: "non-OSI approved licenses should be denied when EvaluationConfig.OsiApproved is true",
 			license: grant.License{
 				IsOsiApproved:  false,
