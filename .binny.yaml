@@ -65,14 +65,14 @@ tools:
 
   - name: goreleaser
     version:
-      want: v1.25.1
+      want: v2.3.2
     method: github-release
     with:
       repo: goreleaser/goreleaser
 
   - name: golangci-lint
     version:
-      want: v1.54.2
+      want: v1.61.0
     method: github-release
     with:
       repo: golangci/golangci-lint

@@ -68,11 +68,11 @@ func Check(app clio.Application) *cobra.Command {
 		Use:   "check",
 		Short: "Verify licenses in the SBOM conform to the configured policy",
 		Args:  cobra.ArbitraryArgs,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
+		PreRunE: func(_ *cobra.Command, args []string) error {
 			userInputs = args
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runCheck(cfg, userInputs)
 		},
 	}, cfg)

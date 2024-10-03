@@ -7,7 +7,6 @@ import (
 )
 
 // Policy is a structure of rules that define how licenses are denied
-// TODO: maybe there should be a strict option that denies all and then only allows what is explicitly allowed
 type Policy struct {
 	Rules        Rules
 	MatchNonSPDX bool
@@ -60,10 +59,17 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 		}
 
 		toMatch = strings.ToLower(toMatch)
-		// TODO: write tests for this section
+		// If there is a match and the content to match is not an empty string
 		if rule.Glob.Match(toMatch) && toMatch != "" {
+			var returnVal bool
+			// set the return value based on the rule mode
+			if rule.Mode == Allow {
+				returnVal = false
+			} else {
+				returnVal = true
+			}
 			if pkg == nil {
-				return true, &rule
+				return returnVal, &rule
 			}
 			for _, exception := range rule.Exceptions {
 				if exception.Match(pkg.Name) {
