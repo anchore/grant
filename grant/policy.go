@@ -63,7 +63,7 @@ func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
 		if rule.Glob.Match(toMatch) && toMatch != "" {
 			var returnVal bool
 			// set the return value based on the rule mode
-			if rule.Mode == Allow {
+			if rule.Mode == Allow || rule.Mode == Ignore {
 				returnVal = false
 			} else {
 				returnVal = true
