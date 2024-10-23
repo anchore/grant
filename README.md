@@ -39,13 +39,13 @@ against a set of rules provided by the user.
 
 Rules take the form of a pattern to match the license against, a name to identify the rule, a mode to either allow,
 deny, or ignore the license,
-a reason for the rule, and a list of packages that are exclusions to the rule.
+a reason for the rule, and a list of packages that are exceptions to the rule.
 ```
 pattern: "*gpl*"
 name: "deny-gpl"
 mode: "deny"
 reason: "GPL licenses are not allowed"
-exclusions:
+exceptions:
   - "alpine-base-layout" # We don't link against this package so we don't care about its license
 ```
 
@@ -109,7 +109,7 @@ rules:
       name: "deny-gpl"
       mode: "deny"
       reason: "GPL licenses are not allowed per xxx-xx company policy"
-      exclusions:
+      exceptions:
         - "alpine-base-layout" # We don't link against this package so we don't care about its license
 ```
 
