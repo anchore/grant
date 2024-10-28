@@ -10,7 +10,7 @@ require (
 	github.com/anchore/stereoscope v0.0.5-0.20241018131503-a38c93517fc7
 	github.com/anchore/syft v1.14.2
 	github.com/charmbracelet/bubbletea v1.1.2
-	github.com/charmbracelet/lipgloss v0.13.0
+	github.com/charmbracelet/lipgloss v0.13.1
 	github.com/github/go-spdx/v2 v2.3.2
 	github.com/gkampitakis/go-snaps v0.5.7
 	github.com/gobwas/glob v0.2.3
