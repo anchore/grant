@@ -7,7 +7,7 @@ require (
 	github.com/anchore/clio v0.0.0-20240522144804-d81e109008aa
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 	github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4
-	github.com/anchore/stereoscope v0.0.5-0.20241018131503-a38c93517fc7
+	github.com/anchore/stereoscope v0.0.5
 	github.com/anchore/syft v1.14.2
 	github.com/charmbracelet/bubbletea v1.1.2
 	github.com/charmbracelet/lipgloss v0.13.1
@@ -180,7 +180,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/sylabs/sif/v2 v2.19.1 // indirect
+	github.com/sylabs/sif/v2 v2.19.2 // indirect
 	github.com/sylabs/squashfs v1.0.0 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/tidwall/gjson v1.17.0 // indirect
