@@ -1,9 +1,10 @@
 package evalutation
 
 import (
+	"testing"
+
 	"github.com/gobwas/glob"
 	"github.com/google/go-cmp/cmp"
-	"testing"
 
 	"github.com/anchore/grant/grant"
 )
