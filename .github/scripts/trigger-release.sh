@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 set -eu
 
-TOOL_DIR=.tool
-GH=$TOOL_DIR/gh
-
 bold=$(tput bold)
 normal=$(tput sgr0)
 
-if ! [ -x "$(command -v $GH)" ]; then
-    echo "The GitHub CLI could not be found."
+GH_CLI=.tool/gh
+
+if ! [ -x "$(command -v $GH_CLI)" ]; then
+    echo "The GitHub CLI could not be found. run: make bootstrap"
     exit 1
 fi
 
-$GH auth status
+$GH_CLI auth status
+
+# set the default repo in cases where multiple remotes are defined
+$GH_CLI repo set-default anchore/grant
+
+export GITHUB_TOKEN="${GITHUB_TOKEN-"$($GH_CLI auth token)"}"
 
 # we need all of the git state to determine the next version. Since tagging is done by
 # the release pipeline it is possible to not have all of the tags from previous releases.
@@ -40,7 +44,7 @@ done
 
 echo "${bold}Kicking off release for ${NEXT_VERSION}${normal}..."
 echo
-$GH workflow run release.yaml -f version=${NEXT_VERSION}
+$GH_CLI workflow run release.yaml -f version=${NEXT_VERSION}
 
 echo
 echo "${bold}Waiting for release to start...${normal}"
@@ -48,6 +52,6 @@ sleep 10
 
 set +e
 
-echo "${bold}Head to the release workflow to monitor the release:${normal} $($GH run list --workflow=release.yaml --limit=1 --json url --jq '.[].url')"
-id=$($GH run list --workflow=release.yaml --limit=1 --json databaseId --jq '.[].databaseId')
-$GH run watch $id --exit-status || (echo ; echo "${bold}Logs of failed step:${normal}" && GH_PAGER="" $GH run view $id --log-failed)
+echo "${bold}Head to the release workflow to monitor the release:${normal} $($GH_CLI run list --workflow=release.yaml --limit=1 --json url --jq '.[].url')"
+id=$($GH_CLI run list --workflow=release.yaml --limit=1 --json databaseId --jq '.[].databaseId')
+$GH_CLI run watch $id --exit-status || (echo ; echo "${bold}Logs of failed step:${normal}" && GH_PAGER="" $GH_CLI run view $id --log-failed)
