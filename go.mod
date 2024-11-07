@@ -9,7 +9,7 @@ require (
 	github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4
 	github.com/anchore/stereoscope v0.0.6-0.20241101185849-cbd43fb4e5d3
 	github.com/anchore/syft v1.16.0
-	github.com/charmbracelet/bubbletea v1.1.2
+	github.com/charmbracelet/bubbletea v1.2.0
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/github/go-spdx/v2 v2.3.2
 	github.com/gkampitakis/go-snaps v0.5.7
@@ -58,7 +58,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.7.1 // indirect
 	github.com/charmbracelet/bubbles v0.20.0 // indirect
 	github.com/charmbracelet/harmonica v0.2.0 // indirect
-	github.com/charmbracelet/x/ansi v0.4.2 // indirect
+	github.com/charmbracelet/x/ansi v0.4.5 // indirect
 	github.com/charmbracelet/x/term v0.2.0 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
