@@ -9,7 +9,7 @@ require (
 	github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4
 	github.com/anchore/stereoscope v0.0.9
 	github.com/anchore/syft v1.17.0
-	github.com/charmbracelet/bubbletea v1.2.3
+	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/github/go-spdx/v2 v2.3.2
 	github.com/gkampitakis/go-snaps v0.5.7
