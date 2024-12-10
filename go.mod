@@ -7,8 +7,8 @@ require (
 	github.com/anchore/clio v0.0.0-20241115144204-29e89f9fa837
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 	github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4
-	github.com/anchore/stereoscope v0.0.10-0.20241209145719-40026b235333
-	github.com/anchore/syft v1.17.1-0.20241209180254-f9e320c5b700
+	github.com/anchore/stereoscope v0.0.10
+	github.com/anchore/syft v1.18.0
 	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/github/go-spdx/v2 v2.3.2
@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/jedib0t/go-pretty/v6 v6.6.3
+	github.com/jedib0t/go-pretty/v6 v6.6.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
