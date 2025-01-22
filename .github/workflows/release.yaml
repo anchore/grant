@@ -79,4 +79,4 @@ jobs:
           QUILL_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
           # for creating the release (requires write access to packages and content)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+          GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
