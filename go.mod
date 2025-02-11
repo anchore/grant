@@ -9,7 +9,7 @@ require (
 	github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4
 	github.com/anchore/stereoscope v0.0.14-0.20250122201633-3e5f307f86eb
 	github.com/anchore/syft v1.19.0
-	github.com/charmbracelet/bubbletea v1.3.0
+	github.com/charmbracelet/bubbletea v1.3.2
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/github/go-spdx/v2 v2.3.2
 	github.com/gkampitakis/go-snaps v0.5.10
@@ -212,8 +212,8 @@ require (
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
