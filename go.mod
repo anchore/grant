@@ -12,7 +12,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.3
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/github/go-spdx/v2 v2.3.2
-	github.com/gkampitakis/go-snaps v0.5.10
+	github.com/gkampitakis/go-snaps v0.5.11
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.6.0
 	github.com/google/licenseclassifier/v2 v2.0.0
