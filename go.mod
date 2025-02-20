@@ -1,6 +1,6 @@
 module github.com/anchore/grant
 
-go 1.23.2
+go 1.24.0
 
 require (
 	github.com/anchore/bubbly v0.0.0-20231115205105-6542675d79fe
@@ -9,17 +9,17 @@ require (
 	github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4
 	github.com/anchore/stereoscope v0.0.14-0.20250122201633-3e5f307f86eb
 	github.com/anchore/syft v1.19.0
-	github.com/charmbracelet/bubbletea v1.3.0
+	github.com/charmbracelet/bubbletea v1.3.3
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/github/go-spdx/v2 v2.3.2
-	github.com/gkampitakis/go-snaps v0.5.9
+	github.com/gkampitakis/go-snaps v0.5.11
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.6.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/jedib0t/go-pretty/v6 v6.6.5
+	github.com/jedib0t/go-pretty/v6 v6.6.6
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.8.1
@@ -94,7 +94,7 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/facebookincubator/nvdtools v0.1.5 // indirect
-	github.com/felixge/fgprof v0.9.3 // indirect
+	github.com/felixge/fgprof v0.9.5 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
@@ -212,10 +212,10 @@ require (
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/term v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/term v0.29.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
