@@ -14,7 +14,7 @@ require (
 	github.com/github/go-spdx/v2 v2.3.2
 	github.com/gkampitakis/go-snaps v0.5.11
 	github.com/gobwas/glob v0.2.3
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
