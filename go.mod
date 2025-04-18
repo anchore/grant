@@ -9,7 +9,7 @@ require (
 	github.com/anchore/clio v0.0.0-20241115144204-29e89f9fa837
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 	github.com/anchore/go-logger v0.0.0-20240925152809-a16bcaef4ee4
-	github.com/anchore/stereoscope v0.1.2
+	github.com/anchore/stereoscope v0.1.3
 	github.com/anchore/syft v1.20.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/charmbracelet/lipgloss v1.1.0
