@@ -8,7 +8,7 @@ require (
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 	github.com/anchore/go-logger v0.0.0-20250318195838-07ae343dd722
 	github.com/anchore/stereoscope v0.1.5
-	github.com/anchore/syft v1.27.0
+	github.com/anchore/syft v1.27.1
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/github/go-spdx/v2 v2.3.3
