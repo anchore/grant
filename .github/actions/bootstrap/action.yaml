@@ -46,5 +46,11 @@ runs:
     - name: Install apt packages
       if: inputs.bootstrap-apt-packages != ''
       shell: bash
+      env:
+        APT_PACKAGES: ${{ inputs.bootstrap-apt-packages }}
       run: |
-        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y ${{ inputs.bootstrap-apt-packages }}
+        # Parse space-separated package list into array for safe handling
+        read -ra packages <<< "$APT_PACKAGES"
+        if [ ${#packages[@]} -gt 0 ]; then
+          DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y "${packages[@]}"
+        fi
