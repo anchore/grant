@@ -1,0 +1,5 @@
+rules:
+  unpinned-uses:
+    ignore:
+      # Allow unpinned uses of trusted internal anchore/workflows actions
+      - update-anchore-dependencies.yml

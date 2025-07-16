@@ -8,9 +8,14 @@ on:
       - transferred
       - labeled
 
+permissions:
+  issues: read
+
 jobs:
 
   run:
+    permissions:
+      issues: read
     uses: "anchore/workflows/.github/workflows/oss-project-board-add.yaml@main"
     secrets:
       token: ${{ secrets.OSS_PROJECT_GH_TOKEN }}
