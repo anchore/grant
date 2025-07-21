@@ -19,12 +19,20 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+        with:
+          persist-credentials: false
 
       - name: Check if tag already exists
         # note: this will fail if the tag already exists
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
         run: |
-          [[ "${{ github.event.inputs.version }}" == v* ]] || (echo "version '${{ github.event.inputs.version }}' does not have a 'v' prefix" && exit 1)
-          git tag ${{ github.event.inputs.version }}
+          # Validate and sanitize version input
+          if [[ ! "$VERSION_INPUT" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?(\+[a-zA-Z0-9-]+)?$ ]]; then
+            echo "Invalid version format: '$VERSION_INPUT'. Expected format: v1.2.3 or v1.2.3-alpha or v1.2.3+build"
+            exit 1
+          fi
+          git tag "$VERSION_INPUT"
 
       - name: Check validations results
         uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be #v1.2.0
@@ -37,8 +45,10 @@ jobs:
 
       - name: Quality gate
         if: steps.validations.outputs.conclusion != 'success'
+        env:
+          VALIDATION_STATUS: ${{ steps.validations.outputs.conclusion }}
         run: |
-          echo "Validations Status: ${{ steps.validations.conclusion }}"
+          echo "Validations Status: $VALIDATION_STATUS"
           false
 
   release:
@@ -53,6 +63,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -60,13 +71,19 @@ jobs:
           FORCE_COLOR: true
 
       - name: Tag release
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Validate and sanitize version input
+          if [[ ! "$VERSION_INPUT" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?(\+[a-zA-Z0-9-]+)?$ ]]; then
+            echo "Invalid version format: '$VERSION_INPUT'. Expected format: v1.2.3 or v1.2.3-alpha or v1.2.3+build"
+            exit 1
+          fi
           git config user.name "anchoreci"
           git config user.email "anchoreci@users.noreply.github.com"
-          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
+          git tag -a "$VERSION_INPUT" -m "Release $VERSION_INPUT"
           git push origin --tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & publish release artifacts
         run: make ci-release
