@@ -3,6 +3,7 @@
 /.tools
 /.tool
 /.task
+/bin
 
 # release locations
 /snapshot
