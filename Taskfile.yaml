@@ -41,7 +41,7 @@ tasks:
     status:
       - "test -f {{ .TOOL_DIR }}/binny"
     # we just need a release of binny, doesn't matter which one (binny will update itself, this is just a bootstrap step)
-    cmd: "curl -sSfL https://raw.githubusercontent.com/{{ .OWNER }}/binny/main/install.sh | sh -s -- -b {{ .TOOL_DIR }}"
+    cmd: "curl -sSfL https://get.anchore.io/binny | sh -s -- -b {{ .TOOL_DIR }}"
     silent: true
 
   tools:
