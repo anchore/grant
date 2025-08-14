@@ -5,11 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	golog "log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
 	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
@@ -29,6 +29,41 @@ import (
 	"github.com/anchore/syft/syft/source/sourceproviders"
 )
 
+var commonCase = []string{
+	"LICENSE",
+	"LICENSE.*",
+	"LICENCE",
+	"LICENCE.*",
+	"COPYING",
+	"COPYING.*",
+	"NOTICE",
+	"NOTICE.*",
+}
+
+// generateLicensePatterns creates file patterns based on SPDX license IDs
+func generateLicensePatterns() []string {
+	patterns := make([]string, 0)
+	
+	// Add common patterns
+	patterns = append(patterns, commonCase...)
+	
+	// Get all SPDX license keys and create patterns
+	licenseKeys := spdxlicense.GetAllLicenseKeys()
+	for _, key := range licenseKeys {
+		// Create case-insensitive patterns for each license ID
+		// e.g., "gpl-3.0" becomes patterns for GPL-3.0, gpl-3.0, etc.
+		upper := strings.ToUpper(key)
+		patterns = append(patterns, 
+			fmt.Sprintf("*%s*", upper),
+			fmt.Sprintf("*%s*", key),
+			fmt.Sprintf("%s", upper),
+			fmt.Sprintf("%s", key),
+		)
+	}
+	
+	return patterns
+}
+
 // Case is a collection of SBOMs and Licenses that are evaluated for a given UserInput
 type Case struct {
 	// SBOMS is a list of SBOMs that were generated for the user input
@@ -42,8 +77,12 @@ type Case struct {
 }
 
 func NewCases(userInputs ...string) []Case {
+	return NewCasesWithConfig(CaseConfig{}, userInputs...)
+}
+
+func NewCasesWithConfig(config CaseConfig, userInputs ...string) []Case {
 	cases := make([]Case, 0)
-	ch, err := NewCaseHandler()
+	ch, err := NewCaseHandlerWithConfig(config)
 	if err != nil {
 		log.Errorf("unable to create case handler: %+v", err)
 		return cases
@@ -112,15 +151,26 @@ func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string
 
 type CaseHandler struct {
 	Backend *backend.ClassifierBackend
+	Config  CaseConfig
+}
+
+type CaseConfig struct {
+	// SBOMOnly when true, skips license file search and only generates SBOM
+	SBOMOnly bool
 }
 
 func NewCaseHandler() (*CaseHandler, error) {
+	return NewCaseHandlerWithConfig(CaseConfig{})
+}
+
+func NewCaseHandlerWithConfig(config CaseConfig) (*CaseHandler, error) {
 	be, err := backend.New()
 	if err != nil {
 		return &CaseHandler{}, err
 	}
 	return &CaseHandler{
 		Backend: be,
+		Config:  config,
 	}, nil
 }
 
@@ -266,29 +316,80 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 		Licenses: make([]License, 0),
 	}
 
-	// the closure that will be used to visit each file node
-	visit := func(s string, d fs.DirEntry, err error) error {
+	var wg sync.WaitGroup
+	var sbomMutex sync.Mutex
+	var licenseMutex sync.Mutex
+	var sbomErr error
+
+	// Concurrently generate SBOM
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		sb, err := generateSyftSBOM(root)
 		if err != nil {
-			return err
+			log.Debugf("unable to generate SBOM for source %s: %+v", root, err)
+			sbomErr = err
+			return
 		}
-		if !d.IsDir() {
-			// This isn't broken, the license classifier just returned two licenses
-			r, err := ch.handleFile(s)
-			if err != nil {
-				// TODO: some log for the error here?
-				return nil
-			}
-			dirCase.SBOMS = append(dirCase.SBOMS, r.SBOMS...)
-			dirCase.Licenses = append(dirCase.Licenses, r.Licenses...)
-		}
-		return nil
+		sbomMutex.Lock()
+		dirCase.SBOMS = append(dirCase.SBOMS, sb)
+		sbomMutex.Unlock()
+	}()
+
+	// Concurrently search for license files (unless SBOMOnly is set)
+	if !ch.Config.SBOMOnly {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ch.searchLicenseFiles(root, &dirCase, &licenseMutex)
+		}()
 	}
 
-	err = filepath.WalkDir(root, visit)
-	if err != nil {
-		return c, err
+	wg.Wait()
+
+	// If both SBOM generation failed and no licenses were found, return an error
+	if sbomErr != nil && len(dirCase.Licenses) == 0 && len(dirCase.SBOMS) == 0 {
+		return dirCase, fmt.Errorf("unable to generate SBOM or find licenses for %s: %w", root, sbomErr)
 	}
+
 	return dirCase, nil
+}
+
+// searchLicenseFiles searches for license files in the given directory
+func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *sync.Mutex) {
+	patterns := generateLicensePatterns()
+	visited := make(map[string]bool)
+	
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(filepath.Join(root, pattern))
+		if err != nil {
+			continue
+		}
+		for _, match := range matches {
+			// Skip if we've already processed this file
+			if visited[match] {
+				continue
+			}
+			visited[match] = true
+			
+			// Only process regular files, not directories
+			if !isFile(match) {
+				continue
+			}
+			
+			licenses, err := ch.handleLicenseFile(match)
+			if err != nil {
+				log.Debugf("unable to classify license file %s: %+v", match, err)
+				continue
+			}
+			
+			if len(licenses) > 0 {
+				mutex.Lock()
+				dirCase.Licenses = append(dirCase.Licenses, licenses...)
+				mutex.Unlock()
+			}
+		}
+	}
 }
 
 func handleContainer(image string) (c Case, err error) {
@@ -343,7 +444,7 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 }
 
 // TODO: is the default syft config good enough here?
-// we definitely need at least all the non default license magic turned on
+// do we need at least all the non default license magic turned on
 func generateSyftSBOM(userInput string) (sb sbom.SBOM, err error) {
 	src, err := getSource(userInput)
 	if err != nil {

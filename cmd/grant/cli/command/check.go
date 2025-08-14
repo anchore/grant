@@ -123,6 +123,7 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 			ShowPackages: cfg.ShowPackages,
 			CheckNonSPDX: cfg.NonSPDX,
 			OsiApproved:  cfg.OsiApproved,
+			SBOMOnly:     cfg.SBOMOnly,
 		},
 		Monitor: monitor,
 	}

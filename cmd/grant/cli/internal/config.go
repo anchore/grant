@@ -10,4 +10,5 @@ type ReportOptions struct {
 	ShowPackages bool
 	CheckNonSPDX bool
 	OsiApproved  bool
+	SBOMOnly     bool
 }

@@ -36,3 +36,15 @@ func GetLicenseByID(id string) (license SPDXLicense, err error) {
 
 	return license, nil
 }
+
+func GetAllLicenseKeys() []string {
+	if index == nil {
+		return []string{}
+	}
+	
+	keys := make([]string, 0, len(index))
+	for k := range index {
+		keys = append(keys, k)
+	}
+	return keys
+}
