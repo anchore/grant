@@ -227,14 +227,16 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(sbomBytes)
 	if err != nil {
 		log.Debugf("unable to determine SBOM or licenses for %s: %+v", path, err)
-		// we want to log the error, but we don't want to return yet
+		// we want to log the debug output, but we don't want to return yet
 	}
+
 	if sb != nil {
 		return Case{
 			SBOMS:    []sbom.SBOM{*sb},
 			Licenses: make([]License, 0),
 		}, nil
 	}
+
 	licenses, err := ch.handleLicenseFile(path)
 	if err != nil {
 		return c, fmt.Errorf("unable to determine SBOM or licenses for %s: %w", path, err)
@@ -321,41 +323,63 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 	return dirCase, nil
 }
 
-// searchLicenseFiles searches for license files in the given directory
+// searchLicenseFiles searches for license files recursively in the given directory
 func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *sync.Mutex) {
 	patterns := licensepatterns.Patterns
 	visited := make(map[string]bool)
 
-	for _, pattern := range patterns {
-		matches, err := filepath.Glob(filepath.Join(root, pattern))
+	log.Debugf("Starting recursive license search in %s with %d patterns", root, len(patterns))
+
+	// check all directories in scan target for potential licenses
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			continue
+			return nil // Continue walking even if there's an error with a specific directory
 		}
-		for _, match := range matches {
-			// Skip if we've already processed this file
-			if visited[match] {
-				continue
-			}
-			visited[match] = true
 
-			// Only process regular files, not directories
-			if !isFile(match) {
-				continue
-			}
+		// skip directories, only process files
+		if d.IsDir() {
+			return nil
+		}
 
-			licenses, err := ch.handleLicenseFile(match)
+		// skip if we've already processed this file
+		if visited[path] {
+			return nil
+		}
+
+		// look for file in license patterns
+		filename := filepath.Base(path)
+		for _, pattern := range patterns {
+			matched, err := filepath.Match(pattern, filename)
 			if err != nil {
-				log.Debugf("unable to classify license file %s: %+v", match, err)
 				continue
 			}
+			if matched {
+				log.Debugf("Found potential license file: %s (pattern: %s)", path, pattern)
+				visited[path] = true
 
-			if len(licenses) > 0 {
-				mutex.Lock()
-				dirCase.Licenses = append(dirCase.Licenses, licenses...)
-				mutex.Unlock()
+				licenses, err := ch.handleLicenseFile(path)
+				if err != nil {
+					log.Debugf("unable to classify license file %s: %+v", path, err)
+					continue
+				}
+
+				log.Debugf("Successfully classified %d licenses from %s", len(licenses), path)
+				if len(licenses) > 0 {
+					mutex.Lock()
+					dirCase.Licenses = append(dirCase.Licenses, licenses...)
+					mutex.Unlock()
+				}
+				break // Found a match, no need to check other patterns for this file
 			}
 		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Debugf("error walking directory %s: %+v", root, err)
 	}
+	log.Debugf("Completed recursive license search in %s", root)
 }
 
 func handleContainer(image string) (c Case, err error) {
