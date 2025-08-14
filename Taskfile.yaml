@@ -157,6 +157,25 @@ tasks:
       - cmd: .github/scripts/trigger-release.sh
         silent: true
 
+  ## Generate tasks #################################
+
+  generate:
+    desc: Generate all code (SPDX license index and license patterns)
+    cmds:
+      - task: generate-spdx-licenses
+      - task: generate-license-patterns
+
+  generate-spdx-licenses:
+    desc: Generate SPDX license index from latest SPDX license list
+    cmds:
+      - cmd: "cd internal/spdxlicense/generate && go run generate_license_index.go"
+
+  generate-license-patterns:
+    desc: Generate license file search patterns
+    deps: [generate-spdx-licenses]
+    cmds:
+      - cmd: "cd internal/licensepatterns/generate && go run generate_patterns.go"
+
   ## CI-only targets #################################
 
   ci-check:

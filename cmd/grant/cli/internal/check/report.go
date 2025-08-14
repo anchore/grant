@@ -50,11 +50,11 @@ func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 	}
 
 	rc.Options.Format = internal.ValidateFormat(rc.Options.Format)
-	
-	// Convert internal options to grant config
+
 	grantConfig := grant.CaseConfig{
 		SBOMOnly: rc.Options.SBOMOnly,
 	}
+
 	cases := grant.NewCasesWithConfig(grantConfig, userRequests...)
 	ec := evalutation.EvaluationConfig{
 		Policy:       rc.Policy,

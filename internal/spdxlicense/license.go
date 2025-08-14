@@ -41,7 +41,7 @@ func GetAllLicenseKeys() []string {
 	if index == nil {
 		return []string{}
 	}
-	
+
 	keys := make([]string, 0, len(index))
 	for k := range index {
 		keys = append(keys, k)

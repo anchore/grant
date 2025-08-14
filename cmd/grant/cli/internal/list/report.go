@@ -40,8 +40,7 @@ type ReportConfig struct {
 // Where do we render packages that had no licenses?
 func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 	rc.Options.Format = internal.ValidateFormat(rc.Options.Format)
-	
-	// Convert internal options to grant config
+
 	grantConfig := grant.CaseConfig{
 		SBOMOnly: rc.Options.SBOMOnly,
 	}

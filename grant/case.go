@@ -15,6 +15,7 @@ import (
 	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
 
 	"github.com/anchore/go-collections"
+	"github.com/anchore/grant/internal/licensepatterns"
 	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/grant/internal/spdxlicense"
 	"github.com/anchore/stereoscope"
@@ -28,41 +29,6 @@ import (
 	"github.com/anchore/syft/syft/source"
 	"github.com/anchore/syft/syft/source/sourceproviders"
 )
-
-var commonCase = []string{
-	"LICENSE",
-	"LICENSE.*",
-	"LICENCE",
-	"LICENCE.*",
-	"COPYING",
-	"COPYING.*",
-	"NOTICE",
-	"NOTICE.*",
-}
-
-// generateLicensePatterns creates file patterns based on SPDX license IDs
-func generateLicensePatterns() []string {
-	patterns := make([]string, 0)
-	
-	// Add common patterns
-	patterns = append(patterns, commonCase...)
-	
-	// Get all SPDX license keys and create patterns
-	licenseKeys := spdxlicense.GetAllLicenseKeys()
-	for _, key := range licenseKeys {
-		// Create case-insensitive patterns for each license ID
-		// e.g., "gpl-3.0" becomes patterns for GPL-3.0, gpl-3.0, etc.
-		upper := strings.ToUpper(key)
-		patterns = append(patterns, 
-			fmt.Sprintf("*%s*", upper),
-			fmt.Sprintf("*%s*", key),
-			fmt.Sprintf("%s", upper),
-			fmt.Sprintf("%s", key),
-		)
-	}
-	
-	return patterns
-}
 
 // Case is a collection of SBOMs and Licenses that are evaluated for a given UserInput
 type Case struct {
@@ -357,9 +323,9 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 
 // searchLicenseFiles searches for license files in the given directory
 func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *sync.Mutex) {
-	patterns := generateLicensePatterns()
+	patterns := licensepatterns.Patterns
 	visited := make(map[string]bool)
-	
+
 	for _, pattern := range patterns {
 		matches, err := filepath.Glob(filepath.Join(root, pattern))
 		if err != nil {
@@ -371,18 +337,18 @@ func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *syn
 				continue
 			}
 			visited[match] = true
-			
+
 			// Only process regular files, not directories
 			if !isFile(match) {
 				continue
 			}
-			
+
 			licenses, err := ch.handleLicenseFile(match)
 			if err != nil {
 				log.Debugf("unable to classify license file %s: %+v", match, err)
 				continue
 			}
-			
+
 			if len(licenses) > 0 {
 				mutex.Lock()
 				dirCase.Licenses = append(dirCase.Licenses, licenses...)

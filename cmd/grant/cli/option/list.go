@@ -21,6 +21,6 @@ func DefaultList() List {
 func (o *List) AddFlags(flags clio.FlagSet) {
 	flags.BoolVarP(&o.ShowPackages, "show-packages", "", "expand the license lists to show packages that contained the detected license")
 	flags.BoolVarP(&o.NonSPDX, "non-spdx", "", "show licenses that could not be matched to the SPDX license list")
-	flags.BoolVarP(&o.SBOMOnly, "sbom-only", "", "generate SBOM only, skip license file search")
+	flags.BoolVarP(&o.SBOMOnly, "sbom-only", "", "directory source: generate SBOM only and skip local license file search")
 	flags.StringVarP(&o.Output, "output", "o", "output format (table, json, yaml)")
 }
