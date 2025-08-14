@@ -116,8 +116,9 @@ func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string
 }
 
 type CaseHandler struct {
-	Backend *backend.ClassifierBackend
-	Config  CaseConfig
+	Backend      *backend.ClassifierBackend
+	Config       CaseConfig
+	backendMutex sync.Mutex
 }
 
 type CaseConfig struct {
@@ -254,22 +255,27 @@ func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 
 	// google license classifier is noisy, so we'll silence it for now
 	golog.SetOutput(io.Discard)
-	if errs := ch.Backend.ClassifyLicensesWithContext(
+
+	ch.backendMutex.Lock()
+	errs := ch.Backend.ClassifyLicensesWithContext(
 		context.Background(),
 		1000,
 		[]string{path},
 		false,
-	); errs != nil {
-		ch.Close()
+	)
+	if errs != nil {
+		ch.backendMutex.Unlock()
 		for _, err := range errs {
 			log.Errorf("unable to classify license: %+v", err)
 		}
 		return nil, fmt.Errorf("unable to classify license: %+v", errs)
 	}
-	// re-enable logging for the rest of the application
-	golog.SetOutput(os.Stdout)
 
 	classifierResults := ch.Backend.GetResults()
+	ch.backendMutex.Unlock()
+
+	// re-enable logging for the rest of the application
+	golog.SetOutput(os.Stdout)
 	if len(classifierResults) == 0 {
 		return nil, fmt.Errorf("no classifierResults from license classifier")
 	}
@@ -323,6 +329,32 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 	return dirCase, nil
 }
 
+// Common directories that typically don't contain relevant license files
+var skipDirectories = map[string]bool{
+	".git":          true,
+	".svn":          true,
+	".hg":           true,
+	".bzr":          true,
+	"vendor":        true,
+	".idea":         true,
+	".vscode":       true,
+	"build":         true,
+	"dist":          true,
+	"target":        true,
+	"bin":           true,
+	"obj":           true,
+	".gradle":       true,
+	".mvn":          true,
+	"__pycache__":   true,
+	".pytest_cache": true,
+	".mypy_cache":   true,
+	".tox":          true,
+	".coverage":     true,
+	".cache":        true,
+	"tmp":           true,
+	"temp":          true,
+}
+
 // searchLicenseFiles searches for license files recursively in the given directory
 func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *sync.Mutex) {
 	patterns := licensepatterns.Patterns
@@ -336,8 +368,12 @@ func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *syn
 			return nil // Continue walking even if there's an error with a specific directory
 		}
 
-		// skip directories, only process files
 		if d.IsDir() {
+			dirName := d.Name()
+			if skipDirectories[dirName] {
+				log.Debugf("Skipping directory: %s", path)
+				return filepath.SkipDir
+			}
 			return nil
 		}
 
