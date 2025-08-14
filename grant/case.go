@@ -291,9 +291,9 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 	}
 
 	var wg sync.WaitGroup
-	var sbomMutex sync.Mutex
-	var licenseMutex sync.Mutex
 	var sbomErr error
+	var licenseErr error
+	var foundLicenses []License
 
 	// Concurrently generate SBOM
 	wg.Add(1)
@@ -305,9 +305,7 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 			sbomErr = err
 			return
 		}
-		sbomMutex.Lock()
 		dirCase.SBOMS = append(dirCase.SBOMS, sb)
-		sbomMutex.Unlock()
 	}()
 
 	// Concurrently search for license files (unless SBOMOnly is set)
@@ -315,14 +313,27 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			ch.searchLicenseFiles(root, &dirCase, &licenseMutex)
+			licenses, err := ch.searchLicenseFiles(root)
+			if err != nil {
+				licenseErr = err
+				return
+			}
+			foundLicenses = licenses
 		}()
 	}
 
 	wg.Wait()
 
+	// Add found licenses to the case
+	if len(foundLicenses) > 0 {
+		dirCase.Licenses = append(dirCase.Licenses, foundLicenses...)
+	}
+
 	// If both SBOM generation failed and no licenses were found, return an error
 	if sbomErr != nil && len(dirCase.Licenses) == 0 && len(dirCase.SBOMS) == 0 {
+		if licenseErr != nil {
+			return dirCase, fmt.Errorf("unable to generate SBOM or find licenses for %s: SBOM error: %w, License error: %v", root, sbomErr, licenseErr)
+		}
 		return dirCase, fmt.Errorf("unable to generate SBOM or find licenses for %s: %w", root, sbomErr)
 	}
 
@@ -356,9 +367,10 @@ var skipDirectories = map[string]bool{
 }
 
 // searchLicenseFiles searches for license files recursively in the given directory
-func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *sync.Mutex) {
+func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 	patterns := licensepatterns.Patterns
 	visited := make(map[string]bool)
+	var foundLicenses []License
 
 	log.Debugf("Starting recursive license search in %s with %d patterns", root, len(patterns))
 
@@ -401,9 +413,7 @@ func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *syn
 
 				log.Debugf("Successfully classified %d licenses from %s", len(licenses), path)
 				if len(licenses) > 0 {
-					mutex.Lock()
-					dirCase.Licenses = append(dirCase.Licenses, licenses...)
-					mutex.Unlock()
+					foundLicenses = append(foundLicenses, licenses...)
 				}
 				break // Found a match, no need to check other patterns for this file
 			}
@@ -414,8 +424,10 @@ func (ch *CaseHandler) searchLicenseFiles(root string, dirCase *Case, mutex *syn
 
 	if err != nil {
 		log.Debugf("error walking directory %s: %+v", root, err)
+		return foundLicenses, err
 	}
-	log.Debugf("Completed recursive license search in %s", root)
+	log.Debugf("Completed recursive license search in %s, found %d licenses", root, len(foundLicenses))
+	return foundLicenses, nil
 }
 
 func handleContainer(image string) (c Case, err error) {
