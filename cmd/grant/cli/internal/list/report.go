@@ -42,7 +42,7 @@ func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 	rc.Options.Format = internal.ValidateFormat(rc.Options.Format)
 
 	grantConfig := grant.CaseConfig{
-		SBOMOnly: rc.Options.SBOMOnly,
+		DisableFileSearch: rc.Options.DisableFileSearch,
 	}
 	cases := grant.NewCasesWithConfig(grantConfig, userRequests...)
 

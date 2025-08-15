@@ -122,8 +122,8 @@ type CaseHandler struct {
 }
 
 type CaseConfig struct {
-	// SBOMOnly when true, skips license file search and only generates SBOM
-	SBOMOnly bool
+	// DisableFileSearch when true, skips license file search and only generates SBOM
+	DisableFileSearch bool
 }
 
 func NewCaseHandler() (*CaseHandler, error) {
@@ -308,8 +308,8 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 		dirCase.SBOMS = append(dirCase.SBOMS, sb)
 	}()
 
-	// Concurrently search for license files (unless SBOMOnly is set)
-	if !ch.Config.SBOMOnly {
+	// Concurrently search for license files (unless DisableFileSearch is set)
+	if !ch.Config.DisableFileSearch {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

@@ -151,7 +151,7 @@ func TestHandleDir_PerformanceWithManyFiles(t *testing.T) {
 	t.Logf("Found %d SBOMs and %d licenses in %v", len(result.SBOMS), len(result.Licenses), duration)
 }
 
-func TestHandleDir_SBOMOnlyConfig(t *testing.T) {
+func TestHandleDir_DisableFileSearchConfig(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create license files with full license text that should be detected
@@ -173,19 +173,19 @@ func TestHandleDir_SBOMOnlyConfig(t *testing.T) {
 	// Test directory without package files to ensure SBOM generation might fail
 	// but license detection still works
 
-	// Test with SBOMOnly = true
-	ch, err := NewCaseHandlerWithConfig(CaseConfig{SBOMOnly: true})
+	// Test with DisableFileSearch = true
+	ch, err := NewCaseHandlerWithConfig(CaseConfig{DisableFileSearch: true})
 	require.NoError(t, err)
 	defer ch.Close()
 
 	result, err := ch.handleDir(tempDir)
 	require.NoError(t, err)
 
-	// Should not find licenses when SBOMOnly is true
-	t.Logf("With SBOMOnly=true: Found %d SBOMs and %d licenses", len(result.SBOMS), len(result.Licenses))
-	assert.Equal(t, 0, len(result.Licenses), "Should not find licenses when SBOMOnly is true")
+	// Should not find licenses when DisableFileSearch is true
+	t.Logf("With DisableFileSearch=true: Found %d SBOMs and %d licenses", len(result.SBOMS), len(result.Licenses))
+	assert.Equal(t, 0, len(result.Licenses), "Should not find licenses when DisableFileSearch is true")
 
-	// Test with SBOMOnly = false (default)
+	// Test with DisableFileSearch = false (default)
 	ch2, err := NewCaseHandler()
 	require.NoError(t, err)
 	defer ch2.Close()
@@ -193,14 +193,14 @@ func TestHandleDir_SBOMOnlyConfig(t *testing.T) {
 	result2, err := ch2.handleDir(tempDir)
 	require.NoError(t, err)
 
-	// Should find licenses when SBOMOnly is false
-	t.Logf("With SBOMOnly=false: Found %d SBOMs and %d licenses", len(result2.SBOMS), len(result2.Licenses))
-	assert.GreaterOrEqual(t, len(result2.Licenses), 1, "Should find licenses when SBOMOnly is false")
+	// Should find licenses when DisableFileSearch is false
+	t.Logf("With DisableFileSearch=false: Found %d SBOMs and %d licenses", len(result2.SBOMS), len(result2.Licenses))
+	assert.GreaterOrEqual(t, len(result2.Licenses), 1, "Should find licenses when DisableFileSearch is false")
 
 	// Verify we actually detected licenses and log what we found
 	for _, license := range result2.Licenses {
 		t.Logf("Found license: %s (ID: %s)", license.Name, license.LicenseID)
 	}
 	// Just verify that licenses were found - the specific type detection depends on the classifier
-	assert.True(t, len(result2.Licenses) > 0, "Should detect licenses when SBOMOnly is false")
+	assert.True(t, len(result2.Licenses) > 0, "Should detect licenses when DisableFileSearch is false")
 }

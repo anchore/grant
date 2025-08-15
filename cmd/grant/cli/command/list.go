@@ -74,7 +74,7 @@ func runList(cfg *ListConfig, userInput []string) (errs error) {
 			Format:       internal.Format(cfg.Output),
 			ShowPackages: cfg.ShowPackages,
 			CheckNonSPDX: cfg.NonSPDX,
-			SBOMOnly:     cfg.SBOMOnly,
+			DisableFileSearch:     cfg.DisableFileSearch,
 		},
 		Monitor: monitor,
 	}
