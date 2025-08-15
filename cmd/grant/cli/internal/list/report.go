@@ -40,7 +40,11 @@ type ReportConfig struct {
 // Where do we render packages that had no licenses?
 func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 	rc.Options.Format = internal.ValidateFormat(rc.Options.Format)
-	cases := grant.NewCases(userRequests...)
+
+	grantConfig := grant.CaseConfig{
+		DisableFileSearch: rc.Options.DisableFileSearch,
+	}
+	cases := grant.NewCasesWithConfig(grantConfig, userRequests...)
 
 	return &Report{
 		ReportID:  internal.NewReportID(),

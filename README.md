@@ -104,6 +104,7 @@ format: table # table, json
 show-packages: false # show the packages which contain the licenses --show-packages
 non-spdx: false # list only licenses that could not be matched to an SPDX identifier --non-spdx
 osi-approved: false # highlight licenses that are not OSI approved --osi-approved
+disable-file-search: false # skip grant's license file search (e.g., LICENSE, COPYING files not associated with packages) --disable-file-search
 rules: 
     - pattern: "*gpl*"
       name: "deny-gpl"
@@ -137,3 +138,16 @@ rules:
     mode: "deny"
     reason: "All licenses need to be explicitly allowed"
 ```
+
+### License Detection Modes
+
+By default, Grant performs two types of license detection:
+
+1. **SBOM-based detection**: Analyzes package manifests and metadata to identify licenses associated with specific packages
+2. **File-based detection**: Searches the filesystem for standalone license files (LICENSE, COPYING, etc.) that may not be associated with any specific package
+
+The `--disable-file-search` option allows you to skip the second type of detection while still performing SBOM generation and package-based license detection. This can be useful when:
+- You only want licenses that are directly associated with packages
+- You need faster scanning by avoiding filesystem traversal for license files
+
+**Note**: SBOM generation includes its own file analysis process which will still run regardless of the `--disable-file-search` setting.

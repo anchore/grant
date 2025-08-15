@@ -50,7 +50,12 @@ func NewReport(rc ReportConfig, userRequests ...string) (*Report, error) {
 	}
 
 	rc.Options.Format = internal.ValidateFormat(rc.Options.Format)
-	cases := grant.NewCases(userRequests...)
+
+	grantConfig := grant.CaseConfig{
+		DisableFileSearch: rc.Options.DisableFileSearch,
+	}
+
+	cases := grant.NewCasesWithConfig(grantConfig, userRequests...)
 	ec := evalutation.EvaluationConfig{
 		Policy:       rc.Policy,
 		CheckNonSPDX: rc.Options.CheckNonSPDX,

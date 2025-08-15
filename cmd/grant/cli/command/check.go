@@ -119,10 +119,11 @@ func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
 	reportConfig := check.ReportConfig{
 		Policy: policy,
 		Options: internal.ReportOptions{
-			Format:       internal.Format(cfg.Output),
-			ShowPackages: cfg.ShowPackages,
-			CheckNonSPDX: cfg.NonSPDX,
-			OsiApproved:  cfg.OsiApproved,
+			Format:            internal.Format(cfg.Output),
+			ShowPackages:      cfg.ShowPackages,
+			CheckNonSPDX:      cfg.NonSPDX,
+			OsiApproved:       cfg.OsiApproved,
+			DisableFileSearch: cfg.DisableFileSearch,
 		},
 		Monitor: monitor,
 	}

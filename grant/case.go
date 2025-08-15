@@ -5,16 +5,17 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	golog "log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
 	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
 
 	"github.com/anchore/go-collections"
+	"github.com/anchore/grant/internal/licensepatterns"
 	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/grant/internal/spdxlicense"
 	"github.com/anchore/stereoscope"
@@ -42,8 +43,12 @@ type Case struct {
 }
 
 func NewCases(userInputs ...string) []Case {
+	return NewCasesWithConfig(CaseConfig{}, userInputs...)
+}
+
+func NewCasesWithConfig(config CaseConfig, userInputs ...string) []Case {
 	cases := make([]Case, 0)
-	ch, err := NewCaseHandler()
+	ch, err := NewCaseHandlerWithConfig(config)
 	if err != nil {
 		log.Errorf("unable to create case handler: %+v", err)
 		return cases
@@ -111,16 +116,28 @@ func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string
 }
 
 type CaseHandler struct {
-	Backend *backend.ClassifierBackend
+	Backend      *backend.ClassifierBackend
+	Config       CaseConfig
+	backendMutex sync.Mutex
+}
+
+type CaseConfig struct {
+	// DisableFileSearch when true, skips license file search and only generates SBOM
+	DisableFileSearch bool
 }
 
 func NewCaseHandler() (*CaseHandler, error) {
+	return NewCaseHandlerWithConfig(CaseConfig{})
+}
+
+func NewCaseHandlerWithConfig(config CaseConfig) (*CaseHandler, error) {
 	be, err := backend.New()
 	if err != nil {
 		return &CaseHandler{}, err
 	}
 	return &CaseHandler{
 		Backend: be,
+		Config:  config,
 	}, nil
 }
 
@@ -211,14 +228,16 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(sbomBytes)
 	if err != nil {
 		log.Debugf("unable to determine SBOM or licenses for %s: %+v", path, err)
-		// we want to log the error, but we don't want to return yet
+		// we want to log the debug output, but we don't want to return yet
 	}
+
 	if sb != nil {
 		return Case{
 			SBOMS:    []sbom.SBOM{*sb},
 			Licenses: make([]License, 0),
 		}, nil
 	}
+
 	licenses, err := ch.handleLicenseFile(path)
 	if err != nil {
 		return c, fmt.Errorf("unable to determine SBOM or licenses for %s: %w", path, err)
@@ -236,22 +255,27 @@ func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 
 	// google license classifier is noisy, so we'll silence it for now
 	golog.SetOutput(io.Discard)
-	if errs := ch.Backend.ClassifyLicensesWithContext(
+
+	ch.backendMutex.Lock()
+	errs := ch.Backend.ClassifyLicensesWithContext(
 		context.Background(),
 		1000,
 		[]string{path},
 		false,
-	); errs != nil {
-		ch.Close()
+	)
+	if errs != nil {
+		ch.backendMutex.Unlock()
 		for _, err := range errs {
 			log.Errorf("unable to classify license: %+v", err)
 		}
 		return nil, fmt.Errorf("unable to classify license: %+v", errs)
 	}
-	// re-enable logging for the rest of the application
-	golog.SetOutput(os.Stdout)
 
 	classifierResults := ch.Backend.GetResults()
+	ch.backendMutex.Unlock()
+
+	// re-enable logging for the rest of the application
+	golog.SetOutput(os.Stdout)
 	if len(classifierResults) == 0 {
 		return nil, fmt.Errorf("no classifierResults from license classifier")
 	}
@@ -266,29 +290,144 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 		Licenses: make([]License, 0),
 	}
 
-	// the closure that will be used to visit each file node
-	visit := func(s string, d fs.DirEntry, err error) error {
+	var wg sync.WaitGroup
+	var sbomErr error
+	var licenseErr error
+	var foundLicenses []License
+
+	// Concurrently generate SBOM
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		sb, err := generateSyftSBOM(root)
 		if err != nil {
-			return err
+			log.Debugf("unable to generate SBOM for source %s: %+v", root, err)
+			sbomErr = err
+			return
 		}
-		if !d.IsDir() {
-			// This isn't broken, the license classifier just returned two licenses
-			r, err := ch.handleFile(s)
+		dirCase.SBOMS = append(dirCase.SBOMS, sb)
+	}()
+
+	// Concurrently search for license files (unless DisableFileSearch is set)
+	if !ch.Config.DisableFileSearch {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			licenses, err := ch.searchLicenseFiles(root)
 			if err != nil {
-				// TODO: some log for the error here?
-				return nil
+				licenseErr = err
+				return
 			}
-			dirCase.SBOMS = append(dirCase.SBOMS, r.SBOMS...)
-			dirCase.Licenses = append(dirCase.Licenses, r.Licenses...)
-		}
-		return nil
+			foundLicenses = licenses
+		}()
 	}
 
-	err = filepath.WalkDir(root, visit)
-	if err != nil {
-		return c, err
+	wg.Wait()
+
+	// Add found licenses to the case
+	if len(foundLicenses) > 0 {
+		dirCase.Licenses = append(dirCase.Licenses, foundLicenses...)
 	}
+
+	// If both SBOM generation failed and no licenses were found, return an error
+	if sbomErr != nil && len(dirCase.Licenses) == 0 && len(dirCase.SBOMS) == 0 {
+		if licenseErr != nil {
+			return dirCase, fmt.Errorf("unable to generate SBOM or find licenses for %s: SBOM error: %w, License error: %v", root, sbomErr, licenseErr)
+		}
+		return dirCase, fmt.Errorf("unable to generate SBOM or find licenses for %s: %w", root, sbomErr)
+	}
+
 	return dirCase, nil
+}
+
+// Common directories that typically don't contain relevant license files
+var skipDirectories = map[string]bool{
+	".git":          true,
+	".svn":          true,
+	".hg":           true,
+	".bzr":          true,
+	"vendor":        true,
+	".idea":         true,
+	".vscode":       true,
+	"build":         true,
+	"dist":          true,
+	"target":        true,
+	"bin":           true,
+	"obj":           true,
+	".gradle":       true,
+	".mvn":          true,
+	"__pycache__":   true,
+	".pytest_cache": true,
+	".mypy_cache":   true,
+	".tox":          true,
+	".coverage":     true,
+	".cache":        true,
+	"tmp":           true,
+	"temp":          true,
+}
+
+// searchLicenseFiles searches for license files recursively in the given directory
+func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
+	patterns := licensepatterns.Patterns
+	visited := make(map[string]bool)
+	var foundLicenses []License
+
+	log.Debugf("Starting recursive license search in %s with %d patterns", root, len(patterns))
+
+	// check all directories in scan target for potential licenses
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil // Continue walking even if there's an error with a specific directory
+		}
+
+		if d.IsDir() {
+			dirName := d.Name()
+			if skipDirectories[dirName] {
+				log.Debugf("Skipping directory: %s", path)
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// skip if we've already processed this file
+		if visited[path] {
+			return nil
+		}
+
+		// look for file in license patterns
+		filename := filepath.Base(path)
+		for _, pattern := range patterns {
+			matched, err := filepath.Match(pattern, filename)
+			if err != nil {
+				continue
+			}
+			if matched {
+				log.Debugf("Found potential license file: %s (pattern: %s)", path, pattern)
+				visited[path] = true
+
+				licenses, err := ch.handleLicenseFile(path)
+				if err != nil {
+					log.Debugf("unable to classify license file %s: %+v", path, err)
+					continue
+				}
+
+				log.Debugf("Successfully classified %d licenses from %s", len(licenses), path)
+				if len(licenses) > 0 {
+					foundLicenses = append(foundLicenses, licenses...)
+				}
+				break // Found a match, no need to check other patterns for this file
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Debugf("error walking directory %s: %+v", root, err)
+		return foundLicenses, err
+	}
+	log.Debugf("Completed recursive license search in %s, found %d licenses", root, len(foundLicenses))
+	return foundLicenses, nil
 }
 
 func handleContainer(image string) (c Case, err error) {
@@ -343,7 +482,7 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 }
 
 // TODO: is the default syft config good enough here?
-// we definitely need at least all the non default license magic turned on
+// do we need at least all the non default license magic turned on
 func generateSyftSBOM(userInput string) (sb sbom.SBOM, err error) {
 	src, err := getSource(userInput)
 	if err != nil {
