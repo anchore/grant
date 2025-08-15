@@ -71,10 +71,10 @@ func runList(cfg *ListConfig, userInput []string) (errs error) {
 
 	reportConfig := list.ReportConfig{
 		Options: internal.ReportOptions{
-			Format:       internal.Format(cfg.Output),
-			ShowPackages: cfg.ShowPackages,
-			CheckNonSPDX: cfg.NonSPDX,
-			DisableFileSearch:     cfg.DisableFileSearch,
+			Format:            internal.Format(cfg.Output),
+			ShowPackages:      cfg.ShowPackages,
+			CheckNonSPDX:      cfg.NonSPDX,
+			DisableFileSearch: cfg.DisableFileSearch,
 		},
 		Monitor: monitor,
 	}

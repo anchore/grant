@@ -6,9 +6,9 @@ package internal
 // TODO: licenses no packages
 
 type ReportOptions struct {
-	Format       Format
-	ShowPackages bool
-	CheckNonSPDX bool
-	OsiApproved  bool
-	DisableFileSearch     bool
+	Format            Format
+	ShowPackages      bool
+	CheckNonSPDX      bool
+	OsiApproved       bool
+	DisableFileSearch bool
 }

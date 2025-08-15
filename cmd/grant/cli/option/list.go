@@ -3,18 +3,18 @@ package option
 import "github.com/anchore/clio"
 
 type List struct {
-	Output       string `json:"output" yaml:"output" mapstructure:"output"`
-	ShowPackages bool   `json:"show-packages" yaml:"show-packages" mapstructure:"show-packages"`
-	NonSPDX      bool   `json:"non-spdx" yaml:"non-spdx" mapstructure:"non-spdx"`
-	DisableFileSearch     bool   `json:"disable-file-search" yaml:"disable-file-search" mapstructure:"disable-file-search"`
+	Output            string `json:"output" yaml:"output" mapstructure:"output"`
+	ShowPackages      bool   `json:"show-packages" yaml:"show-packages" mapstructure:"show-packages"`
+	NonSPDX           bool   `json:"non-spdx" yaml:"non-spdx" mapstructure:"non-spdx"`
+	DisableFileSearch bool   `json:"disable-file-search" yaml:"disable-file-search" mapstructure:"disable-file-search"`
 }
 
 func DefaultList() List {
 	return List{
-		Output:       "table",
-		ShowPackages: false,
-		NonSPDX:      false,
-		DisableFileSearch:     false,
+		Output:            "table",
+		ShowPackages:      false,
+		NonSPDX:           false,
+		DisableFileSearch: false,
 	}
 }
 
