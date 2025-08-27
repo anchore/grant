@@ -1,0 +1,25 @@
+# Grant - License Compliance Tool
+
+Grant is a command-line tool for viewing and analyzing licenses in container images, SBOM documents, and filesystems. It helps build license compliance reports by applying configurable rules.
+
+## Key Components
+
+- **CLI Interface**: Main entry point in `cmd/grant/main.go`
+- **Commands**: Check, list, and inspect operations for license analysis
+- **Core Logic**: License evaluation, policy rules, and pattern matching in `grant/` directory
+- **Configuration**: YAML-based rule configuration with allow/deny patterns
+- **Output Formats**: Table and JSON reporting
+
+## Primary Use Cases
+
+1. Scan container images for licenses: `grant check redis:latest`
+2. Analyze SBOM documents: `grant check alpine.spdx.json`
+3. Apply license compliance policies with configurable rules
+4. Generate reports for license compliance workflows
+
+## Architecture
+
+- Go-based CLI tool using the Anchore Clio framework
+- SPDX license identification and pattern matching
+- Rule-based evaluation engine with glob pattern support
+- Integration with Syft for SBOM generation and analysis
