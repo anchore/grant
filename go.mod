@@ -22,7 +22,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.8
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.10.0
+	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.10.0
 	github.com/wagoodman/go-partybus v0.0.0-20230516145632-8ccac152c651
 	github.com/wagoodman/go-progress v0.0.0-20230925121702-07e42b3cdba0
@@ -216,7 +216,7 @@ require (
 	github.com/spdx/tools-golang v0.5.5 // indirect
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/spf13/pflag v1.0.8 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/spf13/viper v1.20.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/sylabs/sif/v2 v2.21.1 // indirect
