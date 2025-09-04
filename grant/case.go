@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
 	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
+	_ "modernc.org/sqlite" // sqlite used for rpmDB compatibility in syft
 
 	"github.com/anchore/go-collections"
 	"github.com/anchore/grant/internal/licensepatterns"
