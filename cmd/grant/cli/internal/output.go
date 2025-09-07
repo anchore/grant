@@ -38,7 +38,7 @@ func outputCheckResultsJSON(results []CheckResult) error {
 }
 
 func outputCheckResultsTable(results []CheckResult, showPackages bool) error {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 8, 0, 1, ' ', 0)
 	defer w.Flush()
 
 	// Header
