@@ -51,11 +51,8 @@ func New(id clio.Identification) clio.Application {
 				return nil
 			},
 		)
-
 	app := clio.New(*clioCfg)
-
 	root := command.Root(app)
-
 	root.AddCommand(
 		command.Check(app),
 		command.List(app),

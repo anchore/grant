@@ -1,54 +1,55 @@
 ## Summary
 
-Grant is a license compliance tool that reads and audits license from container images, SBOM documents, and directory scans.
-It generates a pass or fail check depending on if the read licenses adhear to the user's supplied rulesjk
+Grant is a license compliance tool that reads and audits licenses from container images, SBOM documents, and file system scans.
+It returns a deny or pass depending on if the discovered licenses adhere to the user's supplied policy.
 
-### Syft Updates Needed to Support Grant
+### Core Usage:
 
-- [Google String Classifier License](https://github.com/google/licenseclassifier/tree/main/stringclassifier)
+As a CI operator, I would like my image's SBOM to be searched for permitted/denied licenses.
+I can then gate software releases/promotions based on my organizations license compliance.
 
-Syft's core elements of files and packages should be enhanced to include more information for grant's processing:
-
-For more details on this redesign see [Syft Licesnse Revamp](https://github.com/anchore/syft/issues/1577).
-
-It's important licenses be included in both core types. 
-
-For image scans packages are most important. Syft can read a package managers declared license and then use the `String Classifier` to conclude that the declared license exists and is accurate.
-
-For direcotry scans files will be the most important. Directory scans have no concept of owned files from a package manager. Files should be read and licenses concluded based on the string classifer.
-
-#### Grant Notes on data shape
-- Pay attention to syft compatibility when shape changes
-- Our decode implicitly knows all previous versions (check this)
-- cyclonedx format needs to be examined for compatibility (possibly show warning)
-
-### Stories:
-
-As a CI operator, I would like my image's SBOM to be searched for permitted/denied licenses
-so that I may gate software based on my organizations license compliance.
-
-I will provide a config of either allow list or deny list license.
-These license will be in the format of Identifiers found in the spdx license list:
+I will provide a config that allows for certain licenses with a list of packages as exceptions.
+These licenses will be in the format of Identifiers found in the spdx license list:
 	- [spdx license list](https://spdx.org/licenses/)
 	
-I want grant to fail with a status code 1 and informative message when my SBOM contains licenses not permitted by my organization.
+I want grant to deny with a status code 1 and informative message when my SBOM contains packages with licenses not allowed by my config.
 
-### Questions
+Config:
+```
+# Default behavior: DENY all licenses except those explicitly permitted
+# Default behavior: DENY packages without licenses
 
-- How do I want to see unowned files that are Forbidden for an image scan?
+# Allowed licenses (glob patterns supported)
+allow:
+  - MIT
+  - MIT-*
+  - Apache-2.0
+  - Apache-2.0-*
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - BSD-3-Clause-Clear
+  - ISC
+  - 0BSD
+  - Unlicense
+  - CC0-1.0
+
+# Software packages to skip license checking entirely (package manager packages)
+ignore-packages:
+  - github.com/mycompany/*  # Our own Go modules
+  - @mycompany/*           # Our own npm packages
+  - mycompany-*            # Our own packages with prefix
+```
+
+### Open Questions
+- How do users want to see unowned files that are Forbidden for an image scan?
 - I've been given an SBOM and it does not illustrate the source (directory or OCI image). Are all license equal?
 
-
-### Command CLI Design
-`SOME-INPUT = sbom, dir:., registry:alpine:latest`
-
-List all the license for a given input
-
-##### Grant List && Grant SPDX
-
-This shows all the licenses as identifiers from the SPDX license list with the packages and ID as children
+## Commands
+### grant check
+### grant List
+This shows all the licenses as SPDX identifiers from the SPDX license list with the packages as children
 ```
-grant license list <SOME-INPUT>
+grant list redis:latest
 MIT
 	ID p1 declared xxxxx
 	ID p2 concluded xxxx
@@ -60,10 +61,10 @@ NPL-1.0
 	ID p1 declared xxxx
 ```
 
+### grant spdx list
 List the latest version of the spdx license list
 ```
 grant spdx list <SOME_SPDX_ID>
-
 BSD Zero Clause License			0BSD		
 Attribution Assurance License	AAL		
 Abstyles License				Abstyles		
@@ -123,7 +124,7 @@ Third party?---> deps.dev as input directly****
 // Go build cache --> Syft Sbom --> Grant (Better golang licenses)
 
 
-#### Notes
+### Misc Notes
 License Declared vs License Concluded (Looking at the text vs reading the package data)
 
 Pure syft downstream tool

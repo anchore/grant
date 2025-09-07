@@ -2,21 +2,14 @@ package command
 
 import (
 	"fmt"
-	"slices"
-	"strings"
 
-	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grant/cmd/grant/cli/internal"
-	"github.com/anchore/grant/cmd/grant/cli/internal/check"
 	"github.com/anchore/grant/cmd/grant/cli/option"
-	"github.com/anchore/grant/event"
 	"github.com/anchore/grant/grant"
-	"github.com/anchore/grant/internal/bus"
-	"github.com/anchore/grant/internal/input"
 )
 
 var ErrPolicyFailure = errors.New("check failed")
@@ -26,118 +19,93 @@ type CheckConfig struct {
 	option.Check `json:"" yaml:",inline" mapstructure:",squash"`
 }
 
-func (cfg *CheckConfig) RulesFromConfig() (rules grant.Rules, err error) {
-	rules = make(grant.Rules, 0)
-	for _, rule := range cfg.Rules {
-		pattern := strings.ToLower(rule.Pattern) // all patterns are case insensitive
-		patternGlob, err := glob.Compile(pattern)
-		if err != nil {
-			return rules, err
-		}
-		exceptions := make([]glob.Glob, 0)
-		for _, exception := range rule.Exceptions {
-			exception = strings.ToLower(exception)
-			exceptionGlob, err := glob.Compile(exception)
-			if err != nil {
-				return rules, err
-			}
-			exceptions = append(exceptions, exceptionGlob)
-		}
-		rules = append(rules, grant.Rule{
-			Name:               rule.Name,
-			Glob:               patternGlob,
-			OriginalPattern:    rule.Pattern,
-			Exceptions:         exceptions,
-			OriginalExceptions: rule.Exceptions,
-			Mode:               grant.RuleMode(rule.Mode),
-			Severity:           grant.RuleSeverity(rule.Severity),
-			Reason:             rule.Reason,
-		})
-	}
-	return rules, nil
-}
-
 func Check(app clio.Application) *cobra.Command {
 	cfg := &CheckConfig{
 		Check: option.DefaultCheck(),
 	}
 
-	// userInputs are the oci images, sboms, or directories/files to check
-	var userInputs []string
 	return app.SetupCommand(&cobra.Command{
-		Use:   "check",
-		Short: "Verify licenses in the SBOM conform to the configured policy",
-		Args:  cobra.ArbitraryArgs,
-		PreRunE: func(_ *cobra.Command, args []string) error {
-			userInputs = args
-			return nil
-		},
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runCheck(cfg, userInputs)
+		Use:   "check [SOURCE]...",
+		Short: "check the licenses of packages in the given source",
+		Long: "Check scans the given source (container image, directory, or SBOM file) for package license information " +
+			"and evaluates it against the configured policy. By default, Grant denies all licenses except those " +
+			"explicitly permitted in the 'allow' list.",
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runCheck(cfg, args)
 		},
 	}, cfg)
 }
 
-func runCheck(cfg *CheckConfig, userInput []string) (errs error) {
-	// check if user provided source by stdin
-	// note: cat sbom.json | grant check spdx.json - is supported
-	// it will generate results for both stdin and spdx.json
-	isStdin, _ := input.IsStdinPipeOrRedirect()
-	if isStdin && !slices.Contains(userInput, "-") {
-		userInput = append(userInput, "-")
-	}
-
-	rules, err := cfg.RulesFromConfig()
+func runCheck(cfg *CheckConfig, args []string) error {
+	// Build policy from configuration
+	policy, err := buildPolicy(cfg)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build rules from config: %s", cfg.Config))
+		return fmt.Errorf("failed to build policy: %w", err)
 	}
 
-	monitor := bus.PublishTask(
-		event.Title{
-			Default:      "Check licenses",
-			WhileRunning: "Checking licenses",
-			OnSuccess:    "Checked licenses",
-		},
-		"",
-		len(userInput),
-	)
+	// Track overall results
+	hasFailures := false
+	var allResults []internal.CheckResult
 
-	defer func() {
-		if errs != nil {
-			monitor.SetError(errs)
-		} else {
-			monitor.AtomicStage.Set(strings.Join(userInput, ", "))
-			monitor.SetCompleted()
-		}
-	}()
+	// Process each source
+	for _, source := range args {
 
-	policy, err := grant.NewPolicy(cfg.NonSPDX, rules...)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("could not check licenses; could not build policy from config: %s", cfg.Config))
-	}
-
-	reportConfig := check.ReportConfig{
-		Policy: policy,
-		Options: internal.ReportOptions{
-			Format:            internal.Format(cfg.Output),
-			ShowPackages:      cfg.ShowPackages,
-			CheckNonSPDX:      cfg.NonSPDX,
-			OsiApproved:       cfg.OsiApproved,
+		// Generate case from source
+		cases := grant.NewCasesWithConfig(grant.CaseConfig{
 			DisableFileSearch: cfg.DisableFileSearch,
-		},
-		Monitor: monitor,
-	}
-	rep, err := check.NewReport(reportConfig, userInput...)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("unable to create report for inputs %s", userInput))
+		}, source)
+
+		if len(cases) == 0 {
+			return fmt.Errorf("no cases generated for source: %s", source)
+		}
+
+		// Evaluate each case (typically just one per source)
+		for _, c := range cases {
+			result, err := c.Evaluate(policy)
+			if err != nil {
+				return fmt.Errorf("failed to evaluate case for source %q: %w", source, err)
+			}
+
+			// Convert to CLI result format
+			checkResult := internal.CheckResult{
+				Source:           source,
+				EvaluationResult: *result,
+				Compliant:        result.IsCompliant(),
+			}
+			allResults = append(allResults, checkResult)
+
+			if !result.IsCompliant() {
+				hasFailures = true
+			}
+		}
 	}
 
-	err = rep.Render()
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("unable to render report for inputs %s", userInput))
+	// Output results
+	if err := internal.OutputCheckResults(allResults, cfg.Output, cfg.ShowPackages); err != nil {
+		return fmt.Errorf("failed to output results: %w", err)
 	}
-	if rep.HasFailures() {
+
+	// Return error if any checks failed
+	if hasFailures {
 		return ErrPolicyFailure
 	}
+
 	return nil
+}
+
+
+func buildPolicy(cfg *CheckConfig) (*grant.Policy, error) {
+	// If config file is specified, load from file
+	if cfg.Config != "" {
+		return grant.LoadPolicyFromFile(cfg.Config)
+	}
+
+	// Otherwise, build policy from CLI options
+	policy := &grant.Policy{
+		Allow:          cfg.Allow,
+		IgnorePackages: cfg.IgnorePackages,
+	}
+
+	return policy, nil
 }

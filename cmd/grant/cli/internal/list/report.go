@@ -30,6 +30,7 @@ type Report struct {
 type ReportConfig struct {
 	Options internal.ReportOptions
 	Monitor *event.ManualStagedProgress
+	Sources []string // Track original sources
 }
 
 // NewReport will generate a new report for the given format for the list command.
@@ -127,16 +128,21 @@ func getResponse(r *Report) Response {
 	resp := Response{
 		ReportID:  r.ReportID,
 		Timestamp: r.Timestamp,
-		Inputs:    make([]string, 0),
+		Inputs:    r.Config.Sources,
 		Results:   make([]Result, 0),
 	}
 
-	for _, c := range r.Cases {
-		resp.Inputs = append(resp.Inputs, c.UserInput)
+	for i, c := range r.Cases {
+		// Use original source if available, otherwise fallback
+		input := "unknown-source"
+		if i < len(r.Config.Sources) {
+			input = r.Config.Sources[i]
+		}
+		
 		licensePackages, licenses, _ := c.GetLicenses()
 		for key, l := range licenses {
 			packages := licensePackages[key]
-			result := NewResult(c.UserInput, l, packages...)
+			result := NewResult(input, l, packages...)
 			resp.Results = append(resp.Results, result)
 		}
 	}
@@ -156,13 +162,20 @@ func (r *Report) renderJSON() error {
 
 func (r *Report) renderList() error {
 	var uiLists []list.Writer
-	for _, c := range r.Cases {
+	for i, c := range r.Cases {
 		r.Monitor.Increment()
-		r.Monitor.AtomicStage.Set(c.UserInput)
+		
+		// Use original source if available, otherwise fallback
+		input := "unknown-source"
+		if i < len(r.Config.Sources) {
+			input = r.Config.Sources[i]
+		}
+		
+		r.Monitor.AtomicStage.Set(input)
 		unsortedLicenses := make([]string, 0)
 		resultList := list.NewWriter()
 		uiLists = append(uiLists, resultList)
-		resultList.AppendItem(color.Primary.Sprintf("%s", c.UserInput))
+		resultList.AppendItem(color.Primary.Sprintf("%s", input))
 		packages, licenses, _ := c.GetLicenses()
 		for _, license := range licenses {
 			// Filter out SPDX licenses if requested to just show non-SPDX licenses

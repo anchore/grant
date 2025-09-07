@@ -2,302 +2,202 @@ package grant
 
 import (
 	"testing"
-
-	"github.com/gobwas/glob"
-	"github.com/google/go-cmp/cmp"
 )
 
-func Test_DefaultPolicy(t *testing.T) {
+func TestLoadPolicy(t *testing.T) {
 	tests := []struct {
-		name           string
-		want           Policy
-		compareOptions []cmp.Option
+		name     string
+		yaml     string
+		expected Policy
+		wantErr  bool
 	}{
 		{
-			name: "DefaultPolicy() returns the expected default policy",
-			want: Policy{
-				Rules: []Rule{
-					{
-						Name:       "default-deny-all",
-						Glob:       glob.MustCompile("*"),
-						Exceptions: []glob.Glob{},
-						Mode:       Deny,
-						Reason:     "grant by default will deny all licenses",
-					},
-				},
-				MatchNonSPDX: false,
+			name: "minimal config",
+			yaml: `allow:
+  - MIT
+  - Apache-2.0
+  - BSD-*`,
+			expected: Policy{
+				Allow: []string{"MIT", "Apache-2.0", "BSD-*"},
 			},
-			compareOptions: []cmp.Option{},
+		},
+		{
+			name: "config with ignore-packages",
+			yaml: `allow:
+  - MIT
+  - Apache-2.0
+ignore-packages:
+  - github.com/mycompany/*
+  - @mycompany/*
+  - internal-*`,
+			expected: Policy{
+				Allow:          []string{"MIT", "Apache-2.0"},
+				IgnorePackages: []string{"github.com/mycompany/*", "@mycompany/*", "internal-*"},
+			},
+		},
+		{
+			name:     "empty config",
+			yaml:     ``,
+			expected: Policy{},
+		},
+		{
+			name: "only ignore-packages",
+			yaml: `ignore-packages:
+  - github.com/anchore/*`,
+			expected: Policy{
+				IgnorePackages: []string{"github.com/anchore/*"},
+			},
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := DefaultPolicy()
-			if diff := cmp.Diff(tc.want, got, tc.compareOptions...); diff != "" {
-				t.Errorf("DefaultPolicy() mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func Test_NewPolicy(t *testing.T) {
-	tests := []struct {
-		name           string
-		want           Policy
-		rules          []Rule
-		matchNonSPDX   bool
-		compareOptions []cmp.Option
-		wantErr        bool
-	}{
-		{
-			name: "NewPolicy() returns the expected policy with no rules",
-			want: Policy{
-				Rules:        Rules{DefaultDenyAll},
-				MatchNonSPDX: false,
-			},
-			compareOptions: []cmp.Option{},
-			wantErr:        false,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := NewPolicy(tc.matchNonSPDX, tc.rules...)
-			if (err != nil) != tc.wantErr {
-				t.Errorf("NewPolicy() error = %v, wantErr %v", err, tc.wantErr)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			policy, err := LoadPolicy([]byte(tt.yaml))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LoadPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(tc.want, got, tc.compareOptions...); diff != "" {
-				t.Errorf("NewPolicy() mismatch (-want +got):\n%s", diff)
+			if !policiesEqual(*policy, tt.expected) {
+				t.Errorf("LoadPolicy() = %v, want %v", *policy, tt.expected)
 			}
 		})
 	}
 }
 
-func Test_Policy_IsDenied(t *testing.T) {
-	tests := []struct {
-		name string
-		p    Policy
-		want struct {
-			denied bool
-			rule   *Rule
-		}
-	}{
-		{
-			name: "Policy Default Deny All denies all licenses",
-			p:    DefaultPolicy(),
-			want: struct {
-				denied bool
-				rule   *Rule
-			}{
-				denied: true,
-				rule: &Rule{
-					Name:       "default-deny-all",
-					Glob:       glob.MustCompile("*"),
-					Exceptions: []glob.Glob{},
-					Mode:       Deny,
-					Reason:     "grant by default will deny all licenses",
-				},
-			},
-		},
-
-		{
-			name: "Policy allowing all licenses",
-			p: Policy{
-				Rules: []Rule{{
-					Name:       "allow-all",
-					Glob:       glob.MustCompile("*"),
-					Exceptions: []glob.Glob{},
-					Mode:       Allow,
-					Reason:     "all licenses are allowed",
-				}},
-			},
-			want: struct {
-				denied bool
-				rule   *Rule
-			}{
-				denied: false,
-				rule: &Rule{
-					Name:       "allow-all",
-					Glob:       glob.MustCompile("*"),
-					Exceptions: []glob.Glob{},
-					Mode:       Allow,
-					Reason:     "all licenses are allowed",
-				},
-			},
-		},
-		{
-			name: "Policy ignoring all licenses",
-			p: Policy{
-				Rules: []Rule{{
-					Name:       "ignore-all",
-					Glob:       glob.MustCompile("*"),
-					Exceptions: []glob.Glob{},
-					Mode:       Ignore,
-					Reason:     "all licenses are ignored",
-				}},
-			},
-			want: struct {
-				denied bool
-				rule   *Rule
-			}{
-				denied: false,
-				rule: &Rule{
-					Name:       "ignore-all",
-					Glob:       glob.MustCompile("*"),
-					Exceptions: []glob.Glob{},
-					Mode:       Ignore,
-					Reason:     "all licenses are ignored",
-				},
-			},
-		},
+func TestPolicy_IsLicensePermitted(t *testing.T) {
+	policy := &Policy{
+		Allow: []string{"MIT", "Apache-2.0", "BSD-*", "GPL-3.0+"},
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			denied, rule := tc.p.IsDenied(License{LicenseID: "MIT", SPDXExpression: "MIT"}, nil)
-			if denied != tc.want.denied {
-				t.Errorf("Expected %t, got %t", tc.want.denied, denied)
-			}
-			if diff := cmp.Diff(tc.want.rule, rule); diff != "" {
-				t.Errorf("IsDenied() mismatch (-want +got):\n%s", diff)
+
+	tests := []struct {
+		name    string
+		license string
+		want    bool
+	}{
+		{"exact match MIT", "MIT", true},
+		{"exact match Apache", "Apache-2.0", true},
+		{"glob match BSD-2", "BSD-2-Clause", true},
+		{"glob match BSD-3", "BSD-3-Clause", true},
+		{"exact match GPL with plus", "GPL-3.0+", true},
+		{"denied license GPL-2.0", "GPL-2.0", false},
+		{"denied license ISC", "ISC", false},
+		{"empty license", "", false},
+		{"case sensitive", "mit", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := policy.IsLicensePermitted(tt.license); got != tt.want {
+				t.Errorf("Policy.IsLicensePermitted(%q) = %v, want %v", tt.license, got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_Policy_Exceptions(t *testing.T) {
-	tests := []struct {
-		name string
-		p    Policy
-		want struct {
-			denied bool
-			rule   *Rule
-		}
-	}{
-		{
-			name: "Policy Default Deny All denies all licenses",
-			p: Policy{
-				Rules: Rules{Rule{
-					Name:       "default-deny-all",
-					Glob:       glob.MustCompile("*"),
-					Exceptions: []glob.Glob{glob.MustCompile("MIT")},
-					Mode:       Deny,
-					Reason:     "grant by default will deny all licenses",
-				}},
-				MatchNonSPDX: false,
-			},
-			want: struct {
-				denied bool
-				rule   *Rule
-			}{
-				denied: false,
-				rule: &Rule{
-					Name:       "default-deny-all",
-					Glob:       glob.MustCompile("*"),
-					Exceptions: []glob.Glob{glob.MustCompile("MIT")},
-					Mode:       Deny,
-					Reason:     "grant by default will deny all licenses",
-				},
-			},
-		},
+func TestPolicy_IsLicensePermitted_EmptyAllow(t *testing.T) {
+	policy := &Policy{
+		Allow: []string{},
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			denied, rule := tc.p.IsDenied(License{LicenseID: "MIT", SPDXExpression: "MIT"}, &Package{ID: "MIT", Name: "MIT"})
-			if denied != tc.want.denied {
-				t.Errorf("Expected %t, got %t", tc.want.denied, denied)
-			}
-			if diff := cmp.Diff(tc.want.rule, rule); diff != "" {
-				t.Errorf("IsDenied() mismatch (-want +got):\n%s", diff)
+
+	tests := []struct {
+		license string
+		want    bool
+	}{
+		{"MIT", false},
+		{"Apache-2.0", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.license, func(t *testing.T) {
+			if got := policy.IsLicensePermitted(tt.license); got != tt.want {
+				t.Errorf("Policy.IsLicensePermitted(%q) with empty allow = %v, want %v", tt.license, got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_Policy_Allow(t *testing.T) {
-	tests := []struct {
-		name string
-		p    Policy
-		want struct {
-			denied bool
-			rule   *Rule
-		}
-	}{
-		{
-			name: "Policy Allow MIT",
-			p: Policy{
-				Rules: Rules{Rule{
-					Name:       "allow MIT",
-					Glob:       glob.MustCompile("mit"),
-					Exceptions: []glob.Glob{},
-					Mode:       Allow,
-					Reason:     "grant allow MIT",
-				}, Rule{
-					Name:       "deny gpl",
-					Glob:       glob.MustCompile("gpl"),
-					Exceptions: []glob.Glob{},
-					Mode:       Deny,
-					Reason:     "grant deny gpl",
-				}},
-				MatchNonSPDX: false,
-			},
-			want: struct {
-				denied bool
-				rule   *Rule
-			}{
-				denied: false,
-				rule: &Rule{
-					Name:       "allow MIT",
-					Glob:       glob.MustCompile("mit"),
-					Exceptions: []glob.Glob{},
-					Mode:       Allow,
-					Reason:     "grant allow MIT",
-				},
-			},
-		},
-		{
-			name: "Policy Deny MIT",
-			p: Policy{
-				Rules: Rules{Rule{
-					Name:       "deny MIT",
-					Glob:       glob.MustCompile("mit"),
-					Exceptions: []glob.Glob{},
-					Mode:       Deny,
-					Reason:     "grant deny MIT",
-				}, Rule{
-					Name:       "allow gpl",
-					Glob:       glob.MustCompile("gpl"),
-					Exceptions: []glob.Glob{},
-					Mode:       Allow,
-					Reason:     "grant allow gpl",
-				}},
-				MatchNonSPDX: false,
-			},
-			want: struct {
-				denied bool
-				rule   *Rule
-			}{
-				denied: true,
-				rule: &Rule{
-					Name:       "deny MIT",
-					Glob:       glob.MustCompile("mit"),
-					Exceptions: []glob.Glob{},
-					Mode:       Deny,
-					Reason:     "grant deny MIT",
-				},
-			},
+func TestPolicy_IsPackageIgnored(t *testing.T) {
+	policy := &Policy{
+		IgnorePackages: []string{
+			"github.com/mycompany/*",
+			"@mycompany/*",
+			"internal",
+			"test-*",
+			"crew",
 		},
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			denied, rule := tc.p.IsDenied(License{LicenseID: "MIT", SPDXExpression: "MIT"}, nil)
-			if denied != tc.want.denied {
-				t.Errorf("Expected %t, got %t", tc.want.denied, denied)
-			}
-			if diff := cmp.Diff(tc.want.rule, rule); diff != "" {
-				t.Errorf("IsDenied() mismatch (-want +got):\n%s", diff)
+
+	tests := []struct {
+		name        string
+		packageName string
+		want        bool
+	}{
+		// Exact matches
+		{"exact match internal", "internal", true},
+		{"exact match crew", "crew", true},
+
+		// Glob patterns with /*
+		{"github glob match", "github.com/mycompany/repo", true},
+		{"github glob match nested", "github.com/mycompany/deep/repo", true},
+		{"npm scoped package match", "@mycompany/utils", true},
+		{"npm scoped package nested", "@mycompany/deep/utils", true},
+
+		// Glob patterns with *
+		{"prefix match test", "test-utils", true},
+		{"prefix match test-package", "test-package-name", true},
+
+		// Non-matches
+		{"similar but not matching github", "github.com/mycompany", false},
+		{"different org", "github.com/other/repo", false},
+		{"different npm scope", "@other/utils", false},
+		{"partial prefix", "tes", false},
+		{"empty package", "", false},
+		{"case sensitive", "Internal", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := policy.IsPackageIgnored(tt.packageName); got != tt.want {
+				t.Errorf("Policy.IsPackageIgnored(%q) = %v, want %v", tt.packageName, got, tt.want)
 			}
 		})
 	}
+}
+
+func TestPolicy_IsPackageIgnored_EmptyIgnorePackages(t *testing.T) {
+	policy := &Policy{
+		IgnorePackages: []string{},
+	}
+
+	tests := []string{"github.com/mycompany/repo", "internal", "test", ""}
+	for _, packageName := range tests {
+		t.Run(packageName, func(t *testing.T) {
+			if got := policy.IsPackageIgnored(packageName); got != false {
+				t.Errorf("Policy.IsPackageIgnored(%q) with empty ignore = %v, want false", packageName, got)
+			}
+		})
+	}
+}
+
+func policiesEqual(a, b Policy) bool {
+	if !stringSlicesEqual(a.Allow, b.Allow) {
+		return false
+	}
+	if !stringSlicesEqual(a.IgnorePackages, b.IgnorePackages) {
+		return false
+	}
+	return true
+}
+
+func stringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }

@@ -1,95 +1,81 @@
 package grant
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/gobwas/glob"
+	"gopkg.in/yaml.v3"
 )
 
-// Policy is a structure of rules that define how licenses are denied
+// Policy represents a simplified grant policy that can be decoded from YAML
 type Policy struct {
-	Rules        Rules
-	MatchNonSPDX bool
+	// Allow is a list of permitted licenses (supports glob patterns)
+	Allow []string `yaml:"allow,omitempty"`
+	
+	// IgnorePackages is a list of software package name patterns to skip license checking entirely
+	// These are package manager package names (npm, Go modules, Debian packages, etc.)
+	// Examples: "github.com/anchore/syft", "github.com/anchore/*", "crew", "lite"
+	IgnorePackages []string `yaml:"ignore-packages,omitempty"`
 }
 
-var DefaultDenyAll = Rule{
-	Name:       "default-deny-all",
-	Glob:       glob.MustCompile("*"),
-	Exceptions: []glob.Glob{},
-	Mode:       Deny,
-	Reason:     "grant by default will deny all licenses",
-}
-
-// DefaultPolicy returns a policy that denies all licenses
-func DefaultPolicy() Policy {
-	return Policy{
-		Rules: []Rule{DefaultDenyAll},
-	}
-}
-
-// NewPolicy builds a policy from lists of allow, deny, and ignore glob patterns
-// It lower cases all patterns to make matching against the spdx license set case-insensitive
-func NewPolicy(matchNonSPDX bool, rules ...Rule) (p Policy, err error) {
-	if len(rules) == 0 {
-		return Policy{
-			Rules:        Rules{DefaultDenyAll},
-			MatchNonSPDX: matchNonSPDX,
-		}, nil
-	}
-	return Policy{
-		Rules:        rules,
-		MatchNonSPDX: matchNonSPDX,
-	}, nil
-}
-
-// IsEmpty returns true if the policy has no allow or deny licenses
-func (p Policy) IsEmpty() bool {
-	return len(p.Rules) == 0
-}
-
-// IsDenied returns true if the given license is denied by the policy
-func (p Policy) IsDenied(license License, pkg *Package) (bool, *Rule) {
-	for _, rule := range p.Rules {
-		// ignore non spdx licenses if the rule is configured to not match on non spdx
-		isSPDX := license.IsSPDX()
-		matchNonSPDX := p.MatchNonSPDX
-		if !matchNonSPDX && !isSPDX {
-			continue
+// IsLicensePermitted checks if a license is permitted by the policy
+func (p *Policy) IsLicensePermitted(license string) bool {
+	for _, permitted := range p.Allow {
+		// Direct match
+		if license == permitted {
+			return true
 		}
-		var toMatch string
-		if license.IsSPDX() {
-			toMatch = strings.ToLower(license.LicenseID)
-		} else {
-			toMatch = strings.ToLower(license.Name)
-		}
-
-		toMatch = strings.ToLower(toMatch)
-		// If there is a match and the content to match is not an empty string
-		if rule.Glob.Match(toMatch) && toMatch != "" {
-			var returnVal bool
-			// set the return value based on the rule mode
-			if rule.Mode == Allow || rule.Mode == Ignore {
-				returnVal = false
-			} else {
-				returnVal = true
-			}
-			if pkg == nil {
-				return returnVal, &rule
-			}
-			for _, exception := range rule.Exceptions {
-				if exception.Match(pkg.Name) {
-					return rule.Mode != Deny, &rule
-				}
-			}
-			// true when Mode=Deny, false otherwise
-			return rule.Mode == Deny, &rule
+		
+		// Glob pattern match
+		if matched, err := filepath.Match(permitted, license); err == nil && matched {
+			return true
 		}
 	}
-	return false, nil
+	
+	return false
 }
 
-// SetMatchNonSPDX updates the match option for the given policy
-func (p Policy) SetMatchNonSPDX(matchNonSPDX bool) Policy {
-	p.MatchNonSPDX = matchNonSPDX
-	return p
+// IsPackageIgnored checks if a software package should be ignored based on ignore-packages patterns
+func (p *Policy) IsPackageIgnored(packageName string) bool {
+	for _, pattern := range p.IgnorePackages {
+		// Direct match
+		if packageName == pattern {
+			return true
+		}
+		
+		// Glob pattern match - handle path-like patterns
+		if matched, err := filepath.Match(pattern, packageName); err == nil && matched {
+			return true
+		}
+		
+		// Handle patterns like "github.com/mycompany/*" 
+		if strings.HasSuffix(pattern, "/*") {
+			prefix := strings.TrimSuffix(pattern, "/*")
+			if strings.HasPrefix(packageName, prefix+"/") {
+				return true
+			}
+		}
+	}
+	
+	return false
+}
+
+// LoadPolicy loads a policy from YAML bytes
+func LoadPolicy(data []byte) (*Policy, error) {
+	var policy Policy
+	if err := yaml.Unmarshal(data, &policy); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal policy: %w", err)
+	}
+	return &policy, nil
+}
+
+// LoadPolicyFromFile loads a policy from a YAML file
+func LoadPolicyFromFile(filename string) (*Policy, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read policy file: %w", err)
+	}
+	return LoadPolicy(data)
 }

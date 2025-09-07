@@ -31,18 +31,19 @@ import (
 	"github.com/anchore/syft/syft/source/sourceproviders"
 )
 
-// Case is a collection of SBOMs and Licenses that are evaluated for a given UserInput
+// Case is a collection of SBOMs and Licenses up for evaluation
 type Case struct {
 	// SBOMS is a list of SBOMs that were generated for the user input
 	SBOMS []sbom.SBOM
 
 	// Licenses is a list of licenses that were generated for the user input
+	// Note: since SBOMs are package centric this contains licenses that appeared
+	// during grants file system scan that could not be associated to a package.
+	// these can be disabled with the --disable-file-search flag
 	Licenses []License
-
-	// UserInput is the string that was supplied by the user to build the case
-	UserInput string
 }
 
+// TODO: we need to review this empty config being passed; default is better than empty
 func NewCases(userInputs ...string) []Case {
 	return NewCasesWithConfig(CaseConfig{}, userInputs...)
 }
@@ -62,7 +63,6 @@ func NewCasesWithConfig(config CaseConfig, userInputs ...string) []Case {
 			log.Errorf("unable to determine case for %s: %+v", userInput, err)
 			continue
 		}
-		c.UserInput = userInput
 		cases = append(cases, c)
 	}
 	return cases
@@ -116,6 +116,7 @@ func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string
 	}
 }
 
+// TODO: we definitly only want ONE backend for all of Grant
 type CaseHandler struct {
 	Backend      *backend.ClassifierBackend
 	Config       CaseConfig
@@ -147,12 +148,11 @@ func (ch *CaseHandler) Close() {
 }
 
 // A valid userRequest can be:
-// - a path to an SBOM file
-// - a path to a license
-// - a path to a directory
-// - a path to an archive
-// - a path to a directory (with any of the above)
-// - a container image (ubuntu:latest)
+// - a container image -> (ubuntu:latest)
+// - a path to an SBOM file -> startup.cdx.json
+// - a path to a license -> file:MIT
+// - a path to an archive -> licenses.zip
+// - a path to a directory (which conatins any of the above) -> dir:./licenses
 func (ch *CaseHandler) determineRequestCase(userRequest string) (c Case, err error) {
 	switch {
 	case isStdin(userRequest):
@@ -178,9 +178,8 @@ func handleStdin() (c Case, err error) {
 	}
 	if sb != nil {
 		return Case{
-			SBOMS:     []sbom.SBOM{*sb},
-			Licenses:  make([]License, 0),
-			UserInput: sb.Source.Name,
+			SBOMS:    []sbom.SBOM{*sb},
+			Licenses: make([]License, 0),
 		}, nil
 	}
 	return c, fmt.Errorf("unable to determine SBOM or licenses for stdin")
@@ -213,9 +212,8 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 		// if there are licenses in the archive, syft should be enhanced to include them in the SBOM
 		// this overlap is a little weird, but grant should be able to take license files as input
 		return Case{
-			SBOMS:     []sbom.SBOM{sb},
-			Licenses:  make([]License, 0),
-			UserInput: path,
+			SBOMS:    []sbom.SBOM{sb},
+			Licenses: make([]License, 0),
 		}, nil
 	}
 
@@ -245,9 +243,8 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 	}
 
 	return Case{
-		SBOMS:     make([]sbom.SBOM, 0),
-		Licenses:  licenses,
-		UserInput: path,
+		SBOMS:    make([]sbom.SBOM, 0),
+		Licenses: licenses,
 	}, nil
 }
 
@@ -457,7 +454,6 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 	for _, license := range r {
 		// TODO: sometimes the license classifier gives us more information than just the name.
 		// How do we want to handle this or include it in the grant.License?
-
 		if license.MatchType == "License" {
 			spdxLicense, err := spdxlicense.GetLicenseByID(license.Name)
 			if err != nil {

@@ -77,6 +77,7 @@ func runList(cfg *ListConfig, userInput []string) (errs error) {
 			DisableFileSearch: cfg.DisableFileSearch,
 		},
 		Monitor: monitor,
+		Sources: userInput, // Pass sources to track them
 	}
 	rep, err := list.NewReport(reportConfig, userInput...)
 	if err != nil {
