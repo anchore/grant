@@ -18,6 +18,12 @@ type Policy struct {
 	// These are package manager package names (npm, Go modules, Debian packages, etc.)
 	// Examples: "github.com/anchore/syft", "github.com/anchore/*", "crew", "lite"
 	IgnorePackages []string `yaml:"ignore-packages,omitempty"`
+	
+	// RequireLicense when true, denies packages with no detected licenses
+	RequireLicense bool `yaml:"require-license,omitempty"`
+	
+	// RequireKnownLicense when true, denies non-SPDX / unparsable licenses
+	RequireKnownLicense bool `yaml:"require-known-license,omitempty"`
 }
 
 // IsLicensePermitted checks if a license is permitted by the policy

@@ -118,6 +118,11 @@ func handleSPDXLicense(license syftPkg.License, licenses []License, licenseLocat
 }
 
 func addNonSPDXLicense(licenses []License, license syftPkg.License, locations []string) []License {
+	// Filter out sha256: licenses - these are content hashes from Syft when license detection fails
+	if strings.HasPrefix(license.Value, "sha256:") {
+		return licenses
+	}
+	
 	return append(licenses, License{
 		Name:      license.Value,
 		Locations: locations,

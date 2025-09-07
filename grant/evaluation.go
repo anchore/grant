@@ -94,10 +94,16 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 	// Categorize licenses
 	var allowedLicenses []License
 	var deniedLicenses []License
+	var unknownLicenses []License
 	
 	for _, license := range pkg.Licenses {
 		licenseStr := license.String()
-		if policy.IsLicensePermitted(licenseStr) {
+		
+		// Check if RequireKnownLicense is enabled and license is not SPDX
+		if policy.RequireKnownLicense && !license.IsSPDX() {
+			unknownLicenses = append(unknownLicenses, license)
+			deniedLicenses = append(deniedLicenses, license)
+		} else if policy.IsLicensePermitted(licenseStr) {
 			allowedLicenses = append(allowedLicenses, license)
 		} else {
 			deniedLicenses = append(deniedLicenses, license)
@@ -105,7 +111,15 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 	}
 	
 	// Determine overall package result
-	if len(deniedLicenses) > 0 {
+	if len(unknownLicenses) > 0 {
+		// If any license is unknown and RequireKnownLicense is true
+		return PackageResult{
+			Package:         *pkg,
+			AllowedLicenses: allowedLicenses,
+			DeniedLicenses:  deniedLicenses,
+			Reason:          fmt.Sprintf("package denied due to %d unknown licenses", len(unknownLicenses)),
+		}
+	} else if len(deniedLicenses) > 0 {
 		// If any license is denied, the whole package is denied
 		return PackageResult{
 			Package:         *pkg,
@@ -139,10 +153,18 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 		}
 	}
 	
-	// Packages without licenses are denied by default per the simplified design
+	// If RequireLicense is true, deny packages without licenses
+	if policy.RequireLicense {
+		return PackageResult{
+			Package: *pkg,
+			Reason:  "package denied - no licenses found",
+		}
+	}
+	
+	// Otherwise, allow packages without licenses
 	return PackageResult{
 		Package: *pkg,
-		Reason:  "package denied - no licenses found",
+		Reason:  "package allowed - no license requirement",
 	}
 }
 

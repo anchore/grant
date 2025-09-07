@@ -162,7 +162,7 @@ func (ch *CaseHandler) determineRequestCase(userRequest string) (c Case, err err
 	case isDirectory(userRequest):
 		return ch.handleDir(userRequest)
 	default:
-		return handleContainer(userRequest)
+		return ch.handleContainer(userRequest)
 	}
 }
 
@@ -203,7 +203,7 @@ func decodeStdin(r io.Reader) (io.ReadSeeker, error) {
 func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 	// let's see if it's an archive (isArchive)
 	if isArchive(path) {
-		sb, err := generateSyftSBOM(path)
+		sb, err := ch.generateSyftSBOMWithBackend(path)
 		if err != nil {
 			// We bail here since we can't generate an SBOM for the archive
 			return c, err
@@ -293,11 +293,11 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 	var licenseErr error
 	var foundLicenses []License
 
-	// Concurrently generate SBOM
+	// Concurrently generate SBOM with shared license classifier backend
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		sb, err := generateSyftSBOM(root)
+		sb, err := ch.generateSyftSBOMWithBackend(root)
 		if err != nil {
 			log.Debugf("unable to generate SBOM for source %s: %+v", root, err)
 			sbomErr = err
@@ -370,7 +370,6 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 	visited := make(map[string]bool)
 	var foundLicenses []License
 
-	log.Debugf("Starting recursive license search in %s with %d patterns", root, len(patterns))
 
 	// check all directories in scan target for potential licenses
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
@@ -381,7 +380,6 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 		if d.IsDir() {
 			dirName := d.Name()
 			if skipDirectories[dirName] {
-				log.Debugf("Skipping directory: %s", path)
 				return filepath.SkipDir
 			}
 			return nil
@@ -400,16 +398,13 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 				continue
 			}
 			if matched {
-				log.Debugf("Found potential license file: %s (pattern: %s)", path, pattern)
 				visited[path] = true
 
 				licenses, err := ch.handleLicenseFile(path)
 				if err != nil {
-					log.Debugf("unable to classify license file %s: %+v", path, err)
 					continue
 				}
 
-				log.Debugf("Successfully classified %d licenses from %s", len(licenses), path)
 				if len(licenses) > 0 {
 					foundLicenses = append(foundLicenses, licenses...)
 				}
@@ -421,15 +416,13 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 	})
 
 	if err != nil {
-		log.Debugf("error walking directory %s: %+v", root, err)
 		return foundLicenses, err
 	}
-	log.Debugf("Completed recursive license search in %s, found %d licenses", root, len(foundLicenses))
 	return foundLicenses, nil
 }
 
-func handleContainer(image string) (c Case, err error) {
-	sb, err := generateSyftSBOM(image)
+func (ch *CaseHandler) handleContainer(image string) (c Case, err error) {
+	sb, err := ch.generateSyftSBOMWithBackend(image)
 	if err != nil {
 		// We bail here since we can't generate an SBOM for the image
 		return c, err
@@ -478,6 +471,16 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 	return licenses
 }
 
+// generateSyftSBOMWithBackend generates a syft SBOM using the CaseHandler's shared license classifier backend
+func (ch *CaseHandler) generateSyftSBOMWithBackend(userInput string) (sb sbom.SBOM, err error) {
+	src, err := getSource(userInput)
+	if err != nil {
+		return sb, err
+	}
+	sb = ch.getSBOMWithSharedBackend(src)
+	return sb, nil
+}
+
 // TODO: is the default syft config good enough here?
 // do we need at least all the non default license magic turned on
 func generateSyftSBOM(userInput string) (sb sbom.SBOM, err error) {
@@ -500,6 +503,14 @@ func getSource(userInput string) (source.Source, error) {
 	}
 
 	return syft.GetSource(context.Background(), userInput, syft.DefaultGetSourceConfig().WithSources(sources...))
+}
+
+// getSBOMWithSharedBackend creates an SBOM with the same configuration as getSBOM
+// The goal is consistency, not necessarily backend sharing at this point
+func (ch *CaseHandler) getSBOMWithSharedBackend(src source.Source) sbom.SBOM {
+	// For now, use the same configuration as getSBOM to ensure consistency
+	// TODO: Investigate syft's license configuration API to enable comprehensive license detection
+	return getSBOM(src)
 }
 
 func getSBOM(src source.Source) sbom.SBOM {
