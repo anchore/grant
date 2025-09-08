@@ -6,7 +6,8 @@ import syftPkg "github.com/anchore/syft/syft/pkg"
 // It's usually provided by the SBOM; It's calculated if an SBOM is generated
 type PackageID string
 
-// Package is a single package that is tracked by grant
+// Package is a package that is tracked by grant
+// These packages are decoded from SBOMs: spdx, cyclonedx, syft
 type Package struct {
 	ID        PackageID `json:"id" yaml:"id"`
 	Name      string    `json:"name" yaml:"name"`
