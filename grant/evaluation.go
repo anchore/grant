@@ -8,13 +8,13 @@ import (
 type EvaluationResult struct {
 	// AllowedPackages are packages that passed the policy evaluation
 	AllowedPackages []PackageResult `json:"allowed_packages"`
-	
+
 	// DeniedPackages are packages that failed the policy evaluation
 	DeniedPackages []PackageResult `json:"denied_packages"`
-	
+
 	// IgnoredPackages are packages that were ignored per policy
 	IgnoredPackages []PackageResult `json:"ignored_packages"`
-	
+
 	// Summary provides high-level statistics
 	Summary EvaluationSummary `json:"summary"`
 }
@@ -22,13 +22,13 @@ type EvaluationResult struct {
 // PackageResult represents the evaluation result for a single package
 type PackageResult struct {
 	Package Package `json:"package"`
-	
+
 	// AllowedLicenses are licenses that passed policy evaluation
 	AllowedLicenses []License `json:"allowed_licenses,omitempty"`
-	
+
 	// DeniedLicenses are licenses that failed policy evaluation
 	DeniedLicenses []License `json:"denied_licenses,omitempty"`
-	
+
 	// Reason explains why the package was allowed/denied/ignored
 	Reason string `json:"reason"`
 }
@@ -46,16 +46,16 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 	if policy == nil {
 		return nil, fmt.Errorf("policy cannot be nil")
 	}
-	
+
 	result := &EvaluationResult{
 		AllowedPackages: make([]PackageResult, 0),
 		DeniedPackages:  make([]PackageResult, 0),
 		IgnoredPackages: make([]PackageResult, 0),
 	}
-	
+
 	// Get all licenses and packages from the case
 	licensePackages, _, packagesNoLicenses := c.GetLicenses()
-	
+
 	// Evaluate packages with licenses
 	for _, packages := range licensePackages {
 		for _, pkg := range packages {
@@ -63,13 +63,13 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 			c.categorizePackageResult(&packageResult, result)
 		}
 	}
-	
+
 	// Evaluate packages without licenses (these are typically denied unless ignored)
 	for _, pkg := range packagesNoLicenses {
 		packageResult := c.evaluatePackageNoLicense(&pkg, policy)
 		c.categorizePackageResult(&packageResult, result)
 	}
-	
+
 	// Calculate summary
 	result.Summary = EvaluationSummary{
 		TotalPackages:   len(result.AllowedPackages) + len(result.DeniedPackages) + len(result.IgnoredPackages),
@@ -77,7 +77,7 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 		DeniedPackages:  len(result.DeniedPackages),
 		IgnoredPackages: len(result.IgnoredPackages),
 	}
-	
+
 	return result, nil
 }
 
@@ -90,15 +90,15 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 			Reason:  "package ignored per policy",
 		}
 	}
-	
+
 	// Categorize licenses
 	var allowedLicenses []License
 	var deniedLicenses []License
 	var unknownLicenses []License
-	
+
 	for _, license := range pkg.Licenses {
 		licenseStr := license.String()
-		
+
 		// Check if RequireKnownLicense is enabled and license is not SPDX
 		if policy.RequireKnownLicense && !license.IsSPDX() {
 			unknownLicenses = append(unknownLicenses, license)
@@ -109,7 +109,7 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 			deniedLicenses = append(deniedLicenses, license)
 		}
 	}
-	
+
 	// Determine overall package result
 	if len(unknownLicenses) > 0 {
 		// If any license is unknown and RequireKnownLicense is true
@@ -152,7 +152,7 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 			Reason:  "package ignored per policy",
 		}
 	}
-	
+
 	// If RequireLicense is true, deny packages without licenses
 	if policy.RequireLicense {
 		return PackageResult{
@@ -160,7 +160,7 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 			Reason:  "package denied - no licenses found",
 		}
 	}
-	
+
 	// Otherwise, allow packages without licenses
 	return PackageResult{
 		Package: *pkg,

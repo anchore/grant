@@ -36,8 +36,6 @@ allow:
 # Software packages to skip license checking entirely (package manager packages)
 ignore-packages:
   - github.com/mycompany/*  # Our own Go modules
-  - @mycompany/*           # Our own npm packages
-  - mycompany-*            # Our own packages with prefix
 ```
 
 ### Open Questions

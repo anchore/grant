@@ -370,7 +370,6 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 	visited := make(map[string]bool)
 	var foundLicenses []License
 
-
 	// check all directories in scan target for potential licenses
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {

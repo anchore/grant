@@ -122,7 +122,7 @@ func addNonSPDXLicense(licenses []License, license syftPkg.License, locations []
 	if strings.HasPrefix(license.Value, "sha256:") {
 		return licenses
 	}
-	
+
 	return append(licenses, License{
 		Name:      license.Value,
 		Locations: locations,

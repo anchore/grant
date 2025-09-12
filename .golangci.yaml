@@ -1,14 +1,13 @@
+# golangci-lint v2.4.0
 issues:
   max-same-issues: 25
   uniq-by-line: false
-
-  # TODO: enable this when we have coverage on docstring comments
-#  # The list of ids of default excludes to include or disable.
-#  include:
-#    - EXC0002 # disable excluding of issues about comments from golint
+  # Don't report findings from dependencies
+  exclude-dirs:
+    - "*/go/pkg/mod/*"
 
 linters:
-  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates
   disable-all: true
   enable:
     - asciicheck
@@ -22,7 +21,8 @@ linters:
     - gocritic
     - gocyclo
     - gofmt
-    - goimports
+    # NOTE: If you use gosimports/gci elsewhere, keep goimports disabled to avoid conflicts.
+    # - goimports
     - goprintffuncname
     - gosec
     - gosimple
@@ -41,41 +41,60 @@ linters:
 
 linters-settings:
   funlen:
-    # Checks the number of lines in a function.
-    # If lower than 0, disable the check.
-    # Default: 60
-    lines: 70
-    # Checks the number of statements in a function.
-    # If lower than 0, disable the check.
-    # Default: 40
-    statements: 50
+    lines: 70        # default 60
+    statements: 50   # default 40
+
+  # Make sure typechecking uses the correct language level.
+  # (golangci-lint v2.* can pass this through to tools that support it.)
+  typecheck:
+    go: "1.25"
+
+  staticcheck:
+    # Keep staticcheck aligned with your Go version so rules don’t over/under-report.
+    go: "1.25"
+    checks: ["all"]  # you can list exclusions here later if needed
+
+  revive:
+    # A sane base; add/override rules as your project needs evolve.
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: error-naming
+      - name: errorf
+      - name: exported
+      - name: imports-blacklist
+        disabled: true     # enable with a curated list if you want depguard-like behavior
+      - name: if-return
+      - name: receiver-naming
+      - name: indent-error-flow
+      - name: var-naming
+      - name: time-naming
+      - name: unexported-naming
+      - name: package-comments
+        disabled: true     # TODO: enable when you add top-level package doc coverage
 
 run:
   timeout: 10m
+  # Make linting deterministic and ensure deps are fetched when needed.
+  modules-download-mode: mod
+  # If you build with tags, set them here so typecheck matches your build:
+  # build-tags:
+  #   - netgo
+  #   - osusergo
 
-# do not enable...
-#    - deadcode          # The owner seems to have abandoned the linter. Replaced by "unused".
-#    - depguard          # We don't have a configuration for this yet
-#    - goprintffuncname  # does not catch all cases and there are exceptions
-#    - nakedret          # does not catch all cases and should not fail a build
-#    - gochecknoglobals
-#    - gochecknoinits    # this is too aggressive
-#    - rowserrcheck disabled per generics https://github.com/golangci/golangci-lint/issues/2649
-#    - godot
-#    - godox
-#    - goerr113
-#    - goimports   # we're using gosimports now instead to account for extra whitespaces (see https://github.com/golang/go/issues/20818)
-#    - golint      # deprecated
-#    - gomnd       # this is too aggressive
-#    - interfacer  # this is a good idea, but is no longer supported and is prone to false positives
-#    - lll         # without a way to specify per-line exception cases, this is not usable
-#    - maligned    # this is an excellent linter, but tricky to optimize and we are not sensitive to memory layout optimizations
-#    - nestif
-#    - nolintlint   # as of go1.19 this conflicts with the behavior of gofmt, which is a deal-breaker (lint-fix will still fail when running lint)
-#    - prealloc     # following this rule isn't consistently a good idea, as it sometimes forces unnecessary allocations that result in less idiomatic code
-#    - rowserrcheck # not in a repo with sql, so this is not useful
-#    - scopelint    # deprecated
-#    - structcheck  # The owner seems to have abandoned the linter. Replaced by "unused".
-#    - testpackage
-#    - varcheck     # The owner seems to have abandoned the linter. Replaced by "unused".
-#    - wsl          # this doens't have an auto-fixer yet and is pretty noisy (https://github.com/bombsimon/wsl/issues/90)
+output:
+  sort-results: true
+  print-issued-lines: true
+  # Keep output stable across environments (paths can vary in CI/local).
+  path-prefix: ""
+
+# Keep as reference for things you explicitly do NOT want enabled:
+# - deadcode (replaced by 'unused')
+# - structcheck, varcheck (replaced by 'unused')
+# - golint (deprecated)
+# - scopelint (deprecated)
+# - rowserrcheck (not useful here / generics issues)
+# - gochecknoglobals/gochecknoinits (too aggressive)
+# - lll (no per-line exceptions)
+# - prealloc (not consistently beneficial)
+# - wsl (no autofixer; noisy)

@@ -13,15 +13,15 @@ import (
 type Policy struct {
 	// Allow is a list of permitted licenses (supports glob patterns)
 	Allow []string `yaml:"allow,omitempty"`
-	
+
 	// IgnorePackages is a list of software package name patterns to skip license checking entirely
 	// These are package manager package names (npm, Go modules, Debian packages, etc.)
 	// Examples: "github.com/anchore/syft", "github.com/anchore/*", "crew", "lite"
 	IgnorePackages []string `yaml:"ignore-packages,omitempty"`
-	
+
 	// RequireLicense when true, denies packages with no detected licenses
 	RequireLicense bool `yaml:"require-license,omitempty"`
-	
+
 	// RequireKnownLicense when true, denies non-SPDX / unparsable licenses
 	RequireKnownLicense bool `yaml:"require-known-license,omitempty"`
 }
@@ -33,13 +33,13 @@ func (p *Policy) IsLicensePermitted(license string) bool {
 		if license == permitted {
 			return true
 		}
-		
+
 		// Glob pattern match
 		if matched, err := filepath.Match(permitted, license); err == nil && matched {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -50,13 +50,13 @@ func (p *Policy) IsPackageIgnored(packageName string) bool {
 		if packageName == pattern {
 			return true
 		}
-		
+
 		// Glob pattern match - handle path-like patterns
 		if matched, err := filepath.Match(pattern, packageName); err == nil && matched {
 			return true
 		}
-		
-		// Handle patterns like "github.com/mycompany/*" 
+
+		// Handle patterns like "github.com/mycompany/*"
 		if strings.HasSuffix(pattern, "/*") {
 			prefix := strings.TrimSuffix(pattern, "/*")
 			if strings.HasPrefix(packageName, prefix+"/") {
@@ -64,7 +64,7 @@ func (p *Policy) IsPackageIgnored(packageName string) bool {
 			}
 		}
 	}
-	
+
 	return false
 }
 

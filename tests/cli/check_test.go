@@ -17,8 +17,8 @@ func Test_CheckCmd(t *testing.T) {
 			args: []string{"-c", emptyConfigPath, "check", "dir:../../."},
 			expectedInOutput: []string{
 				"check failed",
-				"✗",           // Non-compliant indicator
-				"DENIED",      // Shows denied packages
+				"✗",      // Non-compliant indicator
+				"DENIED", // Shows denied packages
 			},
 		},
 	}

@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	
-	"github.com/anchore/grant/grant"
+
 	"github.com/mitchellh/go-homedir"
+
+	"github.com/anchore/grant/grant"
 )
 
 // Config represents the CLI configuration
@@ -15,7 +16,7 @@ type Config struct {
 	OutputFormat string
 	Quiet        bool
 	Verbose      bool
-	
+
 	// Policy configuration
 	Policy *grant.Policy
 }
@@ -24,11 +25,11 @@ type Config struct {
 func DefaultConfigLocations() []string {
 	locations := []string{
 		"grant.yaml",
-		"grant.yml", 
+		"grant.yml",
 		".grant.yaml",
 		".grant.yml",
 	}
-	
+
 	// Add home directory locations
 	if homeDir, err := homedir.Dir(); err == nil {
 		locations = append(locations, []string{
@@ -38,7 +39,7 @@ func DefaultConfigLocations() []string {
 			filepath.Join(homeDir, ".config", "grant", "grant.yml"),
 		}...)
 	}
-	
+
 	return locations
 }
 
@@ -50,14 +51,14 @@ func LoadConfig(configFile string) (*Config, error) {
 		Quiet:        false,
 		Verbose:      false,
 	}
-	
+
 	// Load policy
 	policy, err := loadPolicyConfig(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load policy: %w", err)
 	}
 	config.Policy = policy
-	
+
 	return config, nil
 }
 
@@ -71,7 +72,7 @@ func loadPolicyConfig(configFile string) (*grant.Policy, error) {
 			return nil, fmt.Errorf("specified config file not found: %s", configFile)
 		}
 	}
-	
+
 	// Look for config files in default locations
 	for _, location := range DefaultConfigLocations() {
 		if _, err := os.Stat(location); err == nil {
@@ -82,7 +83,7 @@ func loadPolicyConfig(configFile string) (*grant.Policy, error) {
 			// Continue looking if this file exists but is invalid
 		}
 	}
-	
+
 	// Return default policy
 	return grant.LoadPolicyOrDefault("")
 }
@@ -117,18 +118,18 @@ ignore-packages:
 require-license: true        # Deny packages with no detected licenses
 require-known-license: false # Deny non-SPDX / unparsable licenses
 `
-	
+
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
-	
+
 	// Write config file
 	if err := os.WriteFile(path, []byte(defaultConfig), 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -141,11 +142,11 @@ func ValidateConfig(config *Config) error {
 	default:
 		return fmt.Errorf("invalid output format: %s (must be 'json' or 'table')", config.OutputFormat)
 	}
-	
+
 	// Validate policy
 	if config.Policy == nil {
 		return fmt.Errorf("policy is required")
 	}
-	
+
 	return nil
 }

@@ -208,8 +208,8 @@ ignore-packages:
 			wantErr: false,
 		},
 		{
-			name: "empty config is valid",
-			yaml: ``,
+			name:    "empty config is valid",
+			yaml:    ``,
 			wantErr: false,
 		},
 		{

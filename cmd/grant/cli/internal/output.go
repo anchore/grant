@@ -6,10 +6,10 @@ import (
 	"os"
 	"sort"
 	"strings"
-	
-	"github.com/jedib0t/go-pretty/v6/table"
+
 	"github.com/gookit/color"
-	
+	"github.com/jedib0t/go-pretty/v6/table"
+
 	"github.com/anchore/grant/grant"
 )
 
@@ -45,16 +45,16 @@ func (o *Output) outputTargetTable(target grant.TargetResult) error {
 	fmt.Printf("Target: %s (%s)\n", target.Source.Ref, target.Source.Type)
 	fmt.Printf("Status: %s\n", o.formatStatus(target.Evaluation.Status))
 	fmt.Println()
-	
+
 	// Print summary
 	o.printSummary(target.Evaluation.Summary)
 	fmt.Println()
-	
+
 	// Print detailed findings if there are packages
 	if len(target.Evaluation.Findings.Packages) > 0 {
 		return o.printPackageTable(target.Evaluation.Findings.Packages)
 	}
-	
+
 	return nil
 }
 
@@ -78,7 +78,7 @@ func (o *Output) formatStatus(status string) string {
 func (o *Output) printSummary(summary grant.EvaluationSummaryJSON) {
 	fmt.Println("Summary:")
 	fmt.Printf("  Packages: %d total", summary.Packages.Total)
-	
+
 	if summary.Packages.Allowed > 0 {
 		fmt.Printf(", %s allowed", color.Green.Sprint(summary.Packages.Allowed))
 	}
@@ -92,7 +92,7 @@ func (o *Output) printSummary(summary grant.EvaluationSummaryJSON) {
 		fmt.Printf(", %s unlicensed", color.Gray.Sprint(summary.Packages.Unlicensed))
 	}
 	fmt.Println()
-	
+
 	if summary.Licenses.Unique > 0 {
 		fmt.Printf("  Licenses: %d unique", summary.Licenses.Unique)
 		if summary.Licenses.Allowed > 0 {
@@ -113,7 +113,7 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 	if len(packages) == 0 {
 		return nil
 	}
-	
+
 	// Filter to only show denied packages
 	deniedPackages := []grant.PackageFinding{}
 	for _, pkg := range packages {
@@ -121,25 +121,25 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 			deniedPackages = append(deniedPackages, pkg)
 		}
 	}
-	
+
 	if len(deniedPackages) == 0 {
 		fmt.Println("No denied packages found.")
 		return nil
 	}
-	
+
 	// Sort denied packages alphabetically by name
 	sort.Slice(deniedPackages, func(i, j int) bool {
 		return deniedPackages[i].Name < deniedPackages[j].Name
 	})
-	
+
 	// Create table
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleDefault)
-	
+
 	// Set headers - simplified to focus on the issues
 	t.AppendHeader(table.Row{"Package", "Version", "Problematic Licenses"})
-	
+
 	// Add rows for denied packages only
 	for _, pkg := range deniedPackages {
 		// Only show the licenses that caused the denial
@@ -148,14 +148,14 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 		if version == "" {
 			version = "(no version)"
 		}
-		
+
 		t.AppendRow(table.Row{
 			pkg.Name,
 			version,
 			problematicLicenses,
 		})
 	}
-	
+
 	fmt.Printf("Denied Packages (%d):\n", len(deniedPackages))
 	t.Render()
 	return nil
@@ -182,7 +182,7 @@ func (o *Output) formatLicenses(licenses []grant.LicenseDetail) string {
 	if len(licenses) == 0 {
 		return color.Gray.Sprint("(none)")
 	}
-	
+
 	var formatted []string
 	for _, license := range licenses {
 		licenseStr := license.ID
@@ -191,7 +191,7 @@ func (o *Output) formatLicenses(licenses []grant.LicenseDetail) string {
 		}
 		formatted = append(formatted, licenseStr)
 	}
-	
+
 	return strings.Join(formatted, ", ")
 }
 
@@ -200,19 +200,19 @@ func (o *Output) formatProblematicLicenses(licenses []grant.LicenseDetail) strin
 	if len(licenses) == 0 {
 		return color.Red.Sprint("(no licenses found)")
 	}
-	
+
 	var problematic []string
 	for _, license := range licenses {
 		licenseStr := license.ID
 		if license.Name != "" && license.ID == "" {
 			licenseStr = license.Name
 		}
-		
+
 		// Shorten long license strings (like sha256 hashes)
 		if strings.HasPrefix(licenseStr, "sha256:") && len(licenseStr) > 20 {
 			licenseStr = "sha256:" + licenseStr[7:15] + "..."
 		}
-		
+
 		// Format problematic licenses in red
 		if licenseStr == "" || licenseStr == "(none)" {
 			problematic = append(problematic, color.Red.Sprint("(unknown)"))
@@ -220,16 +220,16 @@ func (o *Output) formatProblematicLicenses(licenses []grant.LicenseDetail) strin
 			problematic = append(problematic, color.Red.Sprint(licenseStr))
 		}
 	}
-	
+
 	if len(problematic) == 0 {
 		return color.Red.Sprint("(no licenses found)")
 	}
-	
+
 	// If there are many licenses, show count
 	if len(problematic) > 5 {
 		return strings.Join(problematic[:5], ", ") + color.Gray.Sprintf(" (+%d more)", len(problematic)-5)
 	}
-	
+
 	return strings.Join(problematic, ", ")
 }
 
@@ -238,7 +238,7 @@ func (o *Output) formatLocations(locations []string) string {
 	if len(locations) == 0 {
 		return ""
 	}
-	
+
 	// Show first location, indicate if there are more
 	first := locations[0]
 	if len(locations) > 1 {
@@ -251,21 +251,21 @@ func (o *Output) formatLocations(locations []string) string {
 func (o *Output) OutputSummaryOnly(result *grant.RunResponse) error {
 	totalCompliant := 0
 	totalTargets := len(result.Run.Targets)
-	
+
 	for _, target := range result.Run.Targets {
 		if target.Evaluation.Status == "compliant" {
 			totalCompliant++
 		}
 	}
-	
+
 	if totalCompliant == totalTargets {
 		fmt.Printf("%s All %d targets are compliant\n", color.Green.Sprint("✓"), totalTargets)
 		return nil
 	} else {
 		nonCompliant := totalTargets - totalCompliant
-		fmt.Printf("%s %d of %d targets are non-compliant\n", 
+		fmt.Printf("%s %d of %d targets are non-compliant\n",
 			color.Red.Sprint("✗"), nonCompliant, totalTargets)
-		
+
 		// List non-compliant targets
 		for _, target := range result.Run.Targets {
 			if target.Evaluation.Status != "compliant" {
@@ -284,7 +284,7 @@ func (o *Output) OutputQuiet(result *grant.RunResponse) error {
 			nonCompliantCount++
 		}
 	}
-	
+
 	if nonCompliantCount > 0 {
 		fmt.Printf("%d\n", nonCompliantCount)
 	}

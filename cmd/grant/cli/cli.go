@@ -2,7 +2,7 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
-	
+
 	"github.com/anchore/grant/cmd/grant/cli/command"
 	"github.com/anchore/grant/internal"
 )

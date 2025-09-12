@@ -3,19 +3,19 @@ package command
 import (
 	"fmt"
 	"os"
-	
+
 	"github.com/spf13/cobra"
-	
+
 	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/grant"
 )
 
 // GlobalConfig holds configuration that applies to all commands
 type GlobalConfig struct {
-	ConfigFile string
+	ConfigFile   string
 	OutputFormat string
-	Quiet bool
-	Verbose bool
+	Quiet        bool
+	Verbose      bool
 }
 
 // GetGlobalConfig extracts global configuration from cobra command
@@ -24,7 +24,7 @@ func GetGlobalConfig(cmd *cobra.Command) *GlobalConfig {
 	outputFormat, _ := cmd.Flags().GetString("output")
 	quiet, _ := cmd.Flags().GetBool("quiet")
 	verbose, _ := cmd.Flags().GetBool("verbose")
-	
+
 	return &GlobalConfig{
 		ConfigFile:   configFile,
 		OutputFormat: outputFormat,
@@ -43,7 +43,7 @@ func LoadPolicyFromConfig(config *GlobalConfig) (*grant.Policy, error) {
 		}
 		return policy, nil
 	}
-	
+
 	// Load default policy
 	policy, err := grant.LoadPolicyOrDefault("")
 	if err != nil {
@@ -62,7 +62,7 @@ func HandleError(err error, quiet bool) {
 // OutputResult outputs the result in the specified format
 func OutputResult(result *grant.RunResponse, format string) error {
 	output := internal.NewOutput()
-	
+
 	switch format {
 	case "json":
 		return output.OutputJSON(result)

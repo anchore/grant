@@ -4,7 +4,7 @@ allow:
   - "BSD-*"
   - "ISC"
 
-ignore-packages: 
+ignore-packages:
   - "github.com/anchore/syft"  # Ignore the noisy package
 
 require-license: true

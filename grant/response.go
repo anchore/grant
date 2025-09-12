@@ -4,9 +4,9 @@ import "github.com/anchore/grant/internal"
 
 // RunResponse represents the complete JSON response structure for grant operations
 type RunResponse struct {
-	Tool    string      `json:"tool"`
-	Version string      `json:"version"`
-	Run     RunDetails  `json:"run"`
+	Tool    string     `json:"tool"`
+	Version string     `json:"version"`
+	Run     RunDetails `json:"run"`
 }
 
 // RunDetails contains the execution details and results
@@ -18,9 +18,9 @@ type RunDetails struct {
 
 // PolicyConfig represents the policy configuration used in the run
 type PolicyConfig struct {
-	Rules                PolicyRules `json:"rules"`
-	RequireLicense       bool        `json:"requireLicense"`
-	RequireKnownLicense  bool        `json:"requireKnownLicense"`
+	Rules               PolicyRules `json:"rules"`
+	RequireLicense      bool        `json:"requireLicense"`
+	RequireKnownLicense bool        `json:"requireKnownLicense"`
 }
 
 // PolicyRules contains the allow and ignore rules
@@ -31,8 +31,8 @@ type PolicyRules struct {
 
 // TargetResult represents the evaluation result for a single target
 type TargetResult struct {
-	Source     SourceInfo           `json:"source"`
-	Evaluation TargetEvaluation     `json:"evaluation"`
+	Source     SourceInfo       `json:"source"`
+	Evaluation TargetEvaluation `json:"evaluation"`
 }
 
 // SourceInfo contains information about the source being evaluated
@@ -44,9 +44,9 @@ type SourceInfo struct {
 
 // TargetEvaluation contains the evaluation results for a target
 type TargetEvaluation struct {
-	Status   string                  `json:"status"` // compliant | noncompliant
-	Summary  EvaluationSummaryJSON   `json:"summary"`
-	Findings EvaluationFindings      `json:"findings"`
+	Status   string                `json:"status"` // compliant | noncompliant
+	Summary  EvaluationSummaryJSON `json:"summary"`
+	Findings EvaluationFindings    `json:"findings"`
 }
 
 // EvaluationSummaryJSON provides statistics about packages and licenses
@@ -79,13 +79,13 @@ type EvaluationFindings struct {
 
 // PackageFinding represents a single package finding
 type PackageFinding struct {
-	ID        string           `json:"id"`
-	Name      string           `json:"name"`
-	Type      string           `json:"type"`
-	Version   string           `json:"version"`
-	Decision  string           `json:"decision"` // allow | deny | ignore
-	Licenses  []LicenseDetail  `json:"licenses"`
-	Locations []string         `json:"locations"`
+	ID        string          `json:"id"`
+	Name      string          `json:"name"`
+	Type      string          `json:"type"`
+	Version   string          `json:"version"`
+	Decision  string          `json:"decision"` // allow | deny | ignore
+	Licenses  []LicenseDetail `json:"licenses"`
+	Locations []string        `json:"locations"`
 }
 
 // LicenseDetail contains detailed license information
@@ -133,10 +133,10 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 	allowedLicenses := make(map[string]bool)
 	deniedLicenses := make(map[string]bool)
 	unrecognizedLicenses := make(map[string]bool)
-	
+
 	// Count unlicensed packages
 	unlicensedCount := 0
-	
+
 	// Process all packages to gather statistics
 	for _, pkg := range evalResult.AllowedPackages {
 		for _, license := range pkg.Package.Licenses {
@@ -148,7 +148,7 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 			unlicensedCount++
 		}
 	}
-	
+
 	for _, pkg := range evalResult.DeniedPackages {
 		if len(pkg.Package.Licenses) == 0 {
 			unlicensedCount++
@@ -157,7 +157,7 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 				licenseStr := license.String()
 				uniqueLicenses[licenseStr] = true
 				deniedLicenses[licenseStr] = true
-				
+
 				// Track non-SPDX licenses separately for license summary
 				if license.Name != "" && license.SPDXExpression == "" {
 					unrecognizedLicenses[licenseStr] = true
@@ -165,15 +165,15 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 			}
 		}
 	}
-	
+
 	// Build findings with deduplication
 	findings := EvaluationFindings{
 		Packages: []PackageFinding{},
 	}
-	
+
 	// Use a map to deduplicate packages by their unique identifier (name@version)
 	packageMap := make(map[string]PackageFinding)
-	
+
 	// Add allowed packages
 	for _, pkg := range evalResult.AllowedPackages {
 		finding := packageToFinding(pkg.Package, "allow")
@@ -182,7 +182,7 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 			packageMap[key] = finding
 		}
 	}
-	
+
 	// Add denied packages with only their denied licenses
 	for _, pkg := range evalResult.DeniedPackages {
 		finding := packageToFindingWithDeniedLicenses(pkg.Package, "deny", pkg.DeniedLicenses)
@@ -191,7 +191,7 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 			packageMap[key] = finding
 		}
 	}
-	
+
 	// Add ignored packages
 	for _, pkg := range evalResult.IgnoredPackages {
 		finding := packageToFinding(pkg.Package, "ignore")
@@ -200,18 +200,18 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 			packageMap[key] = finding
 		}
 	}
-	
+
 	// Convert map back to slice
 	for _, finding := range packageMap {
 		findings.Packages = append(findings.Packages, finding)
 	}
-	
+
 	// Determine compliance status
 	status := "compliant"
 	if len(evalResult.DeniedPackages) > 0 {
 		status = "noncompliant"
 	}
-	
+
 	return TargetEvaluation{
 		Status: status,
 		Summary: EvaluationSummaryJSON{
@@ -223,10 +223,10 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 				Unlicensed: unlicensedCount,
 			},
 			Licenses: LicenseSummary{
-				Unique:      len(uniqueLicenses),
-				Allowed:     len(allowedLicenses),
-				Denied:      len(deniedLicenses),
-				NonSPDX:     len(unrecognizedLicenses),
+				Unique:  len(uniqueLicenses),
+				Allowed: len(allowedLicenses),
+				Denied:  len(deniedLicenses),
+				NonSPDX: len(unrecognizedLicenses),
 			},
 		},
 		Findings: findings,
@@ -251,13 +251,13 @@ func packageToFinding(pkg Package, decision string) PackageFinding {
 		}
 		licenseDetails = append(licenseDetails, detail)
 	}
-	
+
 	// Generate package ID
 	pkgID := pkg.Type + ":" + pkg.Name
 	if pkg.Version != "" {
 		pkgID += "@" + pkg.Version
 	}
-	
+
 	return PackageFinding{
 		ID:        pkgID,
 		Name:      pkg.Name,
@@ -273,7 +273,7 @@ func packageToFinding(pkg Package, decision string) PackageFinding {
 func packageToFindingWithDeniedLicenses(pkg Package, decision string, deniedLicenses []License) PackageFinding {
 	// Only include the licenses that were actually denied
 	licenseDetails := []LicenseDetail{}
-	
+
 	if decision == "deny" && len(pkg.Licenses) == 0 {
 		// Package denied due to no licenses
 		licenseDetails = []LicenseDetail{} // Keep empty to indicate no licenses
@@ -300,13 +300,13 @@ func packageToFindingWithDeniedLicenses(pkg Package, decision string, deniedLice
 			}
 		}
 	}
-	
+
 	// Generate package ID
 	pkgID := pkg.Type + ":" + pkg.Name
 	if pkg.Version != "" {
 		pkgID += "@" + pkg.Version
 	}
-	
+
 	return PackageFinding{
 		ID:        pkgID,
 		Name:      pkg.Name,
