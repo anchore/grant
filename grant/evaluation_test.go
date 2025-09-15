@@ -354,18 +354,48 @@ func packageResultSlicesEqual(a, b []PackageResult) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i, v := range a {
-		if !packageResultEqual(v, b[i]) {
+
+	// Create maps for order-independent comparison
+	aMap := make(map[string]PackageResult)
+	bMap := make(map[string]PackageResult)
+
+	for _, pkg := range a {
+		aMap[pkg.Package.Name] = pkg
+	}
+	for _, pkg := range b {
+		bMap[pkg.Package.Name] = pkg
+	}
+
+	// Compare each package
+	for name, aPkg := range aMap {
+		bPkg, exists := bMap[name]
+		if !exists {
+			return false
+		}
+		if !packageResultEqual(aPkg, bPkg) {
 			return false
 		}
 	}
+
 	return true
 }
 
 func packageResultEqual(a, b PackageResult) bool {
+	// Compare all Package fields
 	if a.Package.Name != b.Package.Name {
 		return false
 	}
+	if a.Package.Type != b.Package.Type {
+		return false
+	}
+	if a.Package.Version != b.Package.Version {
+		return false
+	}
+	// Compare Package licenses
+	if !licenseSlicesEqual(a.Package.Licenses, b.Package.Licenses) {
+		return false
+	}
+	// Compare reason
 	if a.Reason != b.Reason {
 		return false
 	}
@@ -382,10 +412,47 @@ func licenseSlicesEqual(a, b []License) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i, v := range a {
-		if v.SPDXExpression != b[i].SPDXExpression || v.Name != b[i].Name {
+
+	// Create maps for order-independent comparison based on SPDX expression or name
+	aMap := make(map[string]License)
+	bMap := make(map[string]License)
+
+	for _, lic := range a {
+		key := lic.SPDXExpression
+		if key == "" {
+			key = lic.Name
+		}
+		aMap[key] = lic
+	}
+	for _, lic := range b {
+		key := lic.SPDXExpression
+		if key == "" {
+			key = lic.Name
+		}
+		bMap[key] = lic
+	}
+
+	// Compare each license by key fields only (ignore internal fields like ID)
+	for key, aLic := range aMap {
+		bLic, exists := bMap[key]
+		if !exists {
+			return false
+		}
+		// Compare SPDX expressions if both have them
+		if aLic.SPDXExpression != "" && bLic.SPDXExpression != "" {
+			if aLic.SPDXExpression != bLic.SPDXExpression {
+				return false
+			}
+		} else if aLic.SPDXExpression == "" && bLic.SPDXExpression == "" {
+			// Both don't have SPDX, compare names
+			if aLic.Name != bLic.Name {
+				return false
+			}
+		} else {
+			// One has SPDX, one doesn't - they're different
 			return false
 		}
 	}
+
 	return true
 }

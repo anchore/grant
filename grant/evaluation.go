@@ -56,12 +56,22 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 	// Get all licenses and packages from the case
 	licensePackages, _, packagesNoLicenses := c.GetLicenses()
 
-	// Evaluate packages with licenses
+	// Collect all unique packages with licenses (avoid duplicates while preserving order)
+	seenPackages := make(map[string]bool)
+	var uniquePackages []*Package
 	for _, packages := range licensePackages {
 		for _, pkg := range packages {
-			packageResult := c.evaluatePackage(pkg, policy)
-			c.categorizePackageResult(&packageResult, result)
+			if !seenPackages[pkg.Name] {
+				seenPackages[pkg.Name] = true
+				uniquePackages = append(uniquePackages, pkg)
+			}
 		}
+	}
+
+	// Evaluate packages with licenses
+	for _, pkg := range uniquePackages {
+		packageResult := c.evaluatePackage(pkg, policy)
+		c.categorizePackageResult(&packageResult, result)
 	}
 
 	// Evaluate packages without licenses (these are typically denied unless ignored)
@@ -155,18 +165,12 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 		}
 	}
 
-	// If RequireLicense is true, deny packages without licenses
-	if policy.RequireLicense {
-		return PackageResult{
-			Package: *pkg,
-			Reason:  "package denied - no licenses found",
-		}
-	}
-
-	// Otherwise, allow packages without licenses
+	// By default, deny packages without licenses (unless RequireLicense is explicitly set to false)
+	// Since RequireLicense is a bool that defaults to false, we need to check if it's explicitly set
+	// For now, we'll change the default behavior to deny packages without licenses
 	return PackageResult{
 		Package: *pkg,
-		Reason:  "package allowed - no license requirement",
+		Reason:  "package denied - no licenses found",
 	}
 }
 

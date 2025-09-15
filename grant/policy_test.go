@@ -28,7 +28,7 @@ func TestLoadPolicy(t *testing.T) {
   - Apache-2.0
 ignore-packages:
   - github.com/mycompany/*
-  - @mycompany/*
+  - "@mycompany/*"
   - internal-*`,
 			expected: Policy{
 				Allow:          []string{"MIT", "Apache-2.0"},
