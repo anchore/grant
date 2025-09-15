@@ -72,3 +72,4 @@ func OutputResult(result *grant.RunResponse, format string) error {
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
+

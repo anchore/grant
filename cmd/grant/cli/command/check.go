@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 
 	"github.com/gookit/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 
+	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/grant"
 )
 
@@ -55,6 +55,17 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	summaryOnly, _ := cmd.Flags().GetBool("summary-only")
 	noLicensesOnly, _ := cmd.Flags().GetBool("no-licenses-only")
 
+	// Setup real-time UI for progress display (unless quiet mode)
+	var realtimeUI *internal.RealtimeUI
+	if !globalConfig.Quiet && globalConfig.OutputFormat == "table" {
+		realtimeUI = internal.NewRealtimeUI(globalConfig.Quiet)
+
+		// Show initial progress for the first target
+		if len(args) > 0 {
+			realtimeUI.ShowScanProgress(args[0], "image")
+		}
+	}
+
 	// Load policy
 	policy, err := LoadPolicyFromConfig(globalConfig)
 	if err != nil {
@@ -87,6 +98,18 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Update real-time UI with actual results
+	if realtimeUI != nil && len(result.Run.Targets) > 0 {
+		target := result.Run.Targets[0]
+		realtimeUI.ShowCatalogedContents(
+			target.Evaluation.Summary.Packages.Total,
+			target.Evaluation.Summary.Licenses.Unique,
+			len(target.Evaluation.Findings.Packages),
+		)
+	}
+
+	// No finalization needed for RealtimeUI
+
 	// Handle output
 	if globalConfig.Quiet {
 		// In quiet mode, just output non-compliant count and set exit code
@@ -101,7 +124,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return handleNoLicensesOnlyOutput(result, globalConfig.OutputFormat)
 	}
 
-	// Normal output
+	// Normal output (the real-time UI already showed progress)
 	if err := OutputResult(result, globalConfig.OutputFormat); err != nil {
 		HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
 		return err
@@ -202,9 +225,9 @@ func handleNoLicensesOnlyOutput(result *grant.RunResponse, format string) error 
 
 // outputTargetTableNoLicensesOnly outputs a single target as a table, showing only packages without licenses
 func outputTargetTableNoLicensesOnly(target grant.TargetResult) error {
-	// Print target header
-	fmt.Printf("Target: %s (%s)\n", target.Source.Ref, target.Source.Type)
-	fmt.Printf("Status: %s\n", formatStatus(target.Evaluation.Status))
+	// Print progress-style header
+	fmt.Printf(" ✔ Checking %s                                                                             %s\n", target.Source.Ref, target.Source.Type)
+	fmt.Printf(" ✔ License compliance check                                %s\n", formatStatus(target.Evaluation.Status))
 	fmt.Println()
 
 	// Filter to packages without licenses
@@ -215,9 +238,8 @@ func outputTargetTableNoLicensesOnly(target grant.TargetResult) error {
 		}
 	}
 
-	// Print summary focused on unlicensed packages
-	fmt.Println("Summary:")
-	fmt.Printf("  Packages without licenses: %d\n", len(packagesWithoutLicenses))
+	// Print summary in grype/syft style
+	fmt.Printf(" ✔ Scanned for packages without licenses     [%d found]\n", len(packagesWithoutLicenses))
 	fmt.Println()
 
 	// Print detailed table if there are packages without licenses
@@ -289,15 +311,15 @@ func filterResultForNoLicenses(result *grant.RunResponse) *grant.RunResponse {
 func formatStatus(status string) string {
 	switch status {
 	case "compliant":
-		return color.Green.Sprint("✓ COMPLIANT")
+		return color.Green.Sprint("[compliant]")
 	case "noncompliant":
-		return color.Red.Sprint("✗ NON-COMPLIANT")
+		return color.Red.Sprint("[non-compliant]")
 	case "error":
-		return color.Red.Sprint("✗ ERROR")
+		return color.Red.Sprint("[error]")
 	case "list":
-		return color.Blue.Sprint("📋 LISTING")
+		return color.Blue.Sprint("[list]")
 	default:
-		return strings.ToUpper(status)
+		return fmt.Sprintf("[%s]", status)
 	}
 }
 
@@ -312,13 +334,19 @@ func printPackageTableNoLicensesOnly(packages []grant.PackageFinding) error {
 		return packages[i].Name < packages[j].Name
 	})
 
-	// Create table with same structure as default output
+	// Create table with no borders (grype/syft style)
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.SetStyle(table.StyleDefault)
 
-	// Use the same headers as the default table
-	t.AppendHeader(table.Row{"Package", "Version", "Problematic Licenses"})
+	// Configure table style to match grype/syft
+	t.Style().Options.SeparateHeader = false
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = false
+	t.Style().Options.SeparateFooter = false
+	t.Style().Options.SeparateRows = false
+
+	// Use uppercase headers to match grype style
+	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE STATUS"})
 
 	// Add rows for packages without licenses
 	for _, pkg := range packages {
@@ -337,8 +365,10 @@ func printPackageTableNoLicensesOnly(packages []grant.PackageFinding) error {
 		})
 	}
 
-	// Use the same title format as default output
-	fmt.Printf("Packages without licenses (%d):\n", len(packages))
+	// Use cleaner title format
+	if len(packages) > 0 {
+		fmt.Printf("\nPackages without licenses\n")
+	}
 	t.Render()
 	return nil
 }

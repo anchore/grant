@@ -480,6 +480,21 @@ func (ch *CaseHandler) generateSyftSBOMWithBackend(userInput string) (sb sbom.SB
 	return sb, nil
 }
 
+// generateSyftSBOMWithUI generates a syft SBOM with UI progress updates
+func (ch *CaseHandler) generateSyftSBOMWithUI(userInput string, showProgress bool) (sb sbom.SBOM, err error) {
+	if showProgress {
+		// This will be called by the UI when events are received
+		// For now, we'll use the existing method but with bus events
+	}
+
+	src, err := getSource(userInput)
+	if err != nil {
+		return sb, err
+	}
+	sb = ch.getSBOMWithSharedBackend(src)
+	return sb, nil
+}
+
 // TODO: is the default syft config good enough here?
 // do we need at least all the non default license magic turned on
 func generateSyftSBOM(userInput string) (sb sbom.SBOM, err error) {

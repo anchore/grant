@@ -41,17 +41,18 @@ func (o *Output) OutputTable(result *grant.RunResponse) error {
 
 // outputTargetTable outputs a single target as a table
 func (o *Output) outputTargetTable(target grant.TargetResult) error {
-	// Print target header
-	fmt.Printf("Target: %s (%s)\n", target.Source.Ref, target.Source.Type)
-	fmt.Printf("Status: %s\n", o.formatStatus(target.Evaluation.Status))
-	fmt.Println()
-
-	// Print summary
-	o.printSummary(target.Evaluation.Summary)
-	fmt.Println()
+	// Always show the final compliance summary tree
+	DisplaySummaryTree(
+		target.Evaluation.Summary.Packages.Total,
+		target.Evaluation.Summary.Packages.Denied,
+		target.Evaluation.Summary.Packages.Allowed,
+		target.Evaluation.Summary.Packages.Ignored,
+		target.Evaluation.Summary.Packages.Unlicensed,
+	)
 
 	// Print detailed findings if there are packages
 	if len(target.Evaluation.Findings.Packages) > 0 {
+		fmt.Println() // Single newline before table
 		return o.printPackageTable(target.Evaluation.Findings.Packages)
 	}
 
@@ -62,15 +63,15 @@ func (o *Output) outputTargetTable(target grant.TargetResult) error {
 func (o *Output) formatStatus(status string) string {
 	switch status {
 	case "compliant":
-		return color.Green.Sprint("✓ COMPLIANT")
+		return color.Green.Sprint("[compliant]")
 	case "noncompliant":
-		return color.Red.Sprint("✗ NON-COMPLIANT")
+		return color.Red.Sprint("[non-compliant]")
 	case "error":
-		return color.Red.Sprint("✗ ERROR")
+		return color.Red.Sprint("[error]")
 	case "list":
-		return color.Blue.Sprint("📋 LISTING")
+		return color.Blue.Sprint("[list]")
 	default:
-		return strings.ToUpper(status)
+		return fmt.Sprintf("[%s]", status)
 	}
 }
 
@@ -108,6 +109,17 @@ func (o *Output) printSummary(summary grant.EvaluationSummaryJSON) {
 	}
 }
 
+// printSummaryWithTree prints the evaluation summary with tree structure
+func (o *Output) printSummaryWithTree(summary grant.EvaluationSummaryJSON) {
+	DisplaySummaryTree(
+		summary.Packages.Total,
+		summary.Packages.Denied,
+		summary.Packages.Allowed,
+		summary.Packages.Ignored,
+		summary.Packages.Unlicensed,
+	)
+}
+
 // printPackageTable prints packages in a table format
 func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 	if len(packages) == 0 {
@@ -132,13 +144,19 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 		return deniedPackages[i].Name < deniedPackages[j].Name
 	})
 
-	// Create table
+	// Create table with no borders (grype/syft style)
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.SetStyle(table.StyleDefault)
 
-	// Set headers - simplified to focus on the issues
-	t.AppendHeader(table.Row{"Package", "Version", "Problematic Licenses"})
+	// Configure table style to match grype/syft
+	t.Style().Options.SeparateHeader = false
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = false
+	t.Style().Options.SeparateFooter = false
+	t.Style().Options.SeparateRows = false
+
+	// Set headers with uppercase to match grype style
+	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE"})
 
 	// Add rows for denied packages only
 	for _, pkg := range deniedPackages {
@@ -156,7 +174,7 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 		})
 	}
 
-	fmt.Printf("Denied Packages (%d):\n", len(deniedPackages))
+	// Remove the header - just render table directly
 	t.Render()
 	return nil
 }
