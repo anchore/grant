@@ -22,6 +22,7 @@ type Config struct {
 }
 
 // DefaultConfigLocations returns the default locations to look for config files
+// following the XDG Base Directory Specification
 func DefaultConfigLocations() []string {
 	locations := []string{
 		"grant.yaml",
@@ -30,13 +31,44 @@ func DefaultConfigLocations() []string {
 		".grant.yml",
 	}
 
-	// Add home directory locations
+	// Add XDG Base Directory specification locations
+	// Reference: https://specifications.freedesktop.org/basedir-spec/latest/
+
+	// XDG_CONFIG_HOME (defaults to $HOME/.config)
+	configHome := os.Getenv("XDG_CONFIG_HOME")
+	if configHome == "" {
+		if homeDir, err := homedir.Dir(); err == nil {
+			configHome = filepath.Join(homeDir, ".config")
+		}
+	}
+
+	if configHome != "" {
+		locations = append(locations, []string{
+			filepath.Join(configHome, "grant", "grant.yaml"),
+			filepath.Join(configHome, "grant", "grant.yml"),
+		}...)
+	}
+
+	// XDG_CONFIG_DIRS (defaults to /etc/xdg)
+	configDirs := os.Getenv("XDG_CONFIG_DIRS")
+	if configDirs == "" {
+		configDirs = "/etc/xdg"
+	}
+
+	for _, dir := range filepath.SplitList(configDirs) {
+		if dir != "" {
+			locations = append(locations, []string{
+				filepath.Join(dir, "grant", "grant.yaml"),
+				filepath.Join(dir, "grant", "grant.yml"),
+			}...)
+		}
+	}
+
+	// Add legacy home directory locations for backward compatibility
 	if homeDir, err := homedir.Dir(); err == nil {
 		locations = append(locations, []string{
 			filepath.Join(homeDir, ".grant.yaml"),
 			filepath.Join(homeDir, ".grant.yml"),
-			filepath.Join(homeDir, ".config", "grant", "grant.yaml"),
-			filepath.Join(homeDir, ".config", "grant", "grant.yml"),
 		}...)
 	}
 
@@ -64,7 +96,7 @@ func LoadConfig(configFile string) (*Config, error) {
 
 // loadPolicyConfig loads policy from config file or defaults
 func loadPolicyConfig(configFile string) (*grant.Policy, error) {
-	// If config file is explicitly provided, try to load it
+	// If config file is explicitly provided, it must exist and be valid
 	if configFile != "" {
 		if _, err := os.Stat(configFile); err == nil {
 			return grant.LoadPolicyFromFile(configFile)
@@ -73,7 +105,7 @@ func loadPolicyConfig(configFile string) (*grant.Policy, error) {
 		}
 	}
 
-	// Look for config files in default locations
+	// Look for config files in default locations (following XDG spec hierarchy)
 	for _, location := range DefaultConfigLocations() {
 		if _, err := os.Stat(location); err == nil {
 			policy, err := grant.LoadPolicyFromFile(location)
@@ -81,10 +113,11 @@ func loadPolicyConfig(configFile string) (*grant.Policy, error) {
 				return policy, nil
 			}
 			// Continue looking if this file exists but is invalid
+			// Log the error but don't fail the entire process
 		}
 	}
 
-	// Return default policy
+	// Return default policy if no config file found
 	return grant.LoadPolicyOrDefault("")
 }
 

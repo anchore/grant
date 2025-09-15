@@ -35,21 +35,13 @@ func GetGlobalConfig(cmd *cobra.Command) *GlobalConfig {
 
 // LoadPolicyFromConfig loads policy based on global config
 func LoadPolicyFromConfig(config *GlobalConfig) (*grant.Policy, error) {
-	if config.ConfigFile != "" {
-		// Try to load from specified file
-		policy, err := grant.LoadPolicyFromFile(config.ConfigFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load policy from %s: %w", config.ConfigFile, err)
-		}
-		return policy, nil
+	// Use the centralized config loading logic from internal package
+	internalConfig, err := internal.LoadConfig(config.ConfigFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Load default policy
-	policy, err := grant.LoadPolicyOrDefault("")
-	if err != nil {
-		return nil, fmt.Errorf("failed to load default policy: %w", err)
-	}
-	return policy, nil
+	return internalConfig.Policy, nil
 }
 
 // HandleError handles command errors consistently
@@ -72,4 +64,3 @@ func OutputResult(result *grant.RunResponse, format string) error {
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
-
