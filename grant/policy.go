@@ -79,7 +79,7 @@ func LoadPolicy(data []byte) (*Policy, error) {
 
 // LoadPolicyFromFile loads a policy from a YAML file
 func LoadPolicyFromFile(filename string) (*Policy, error) {
-	data, err := os.ReadFile(filename)
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read policy file: %w", err)
 	}

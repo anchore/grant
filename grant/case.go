@@ -116,7 +116,7 @@ func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string
 	}
 }
 
-// TODO: we definitly only want ONE backend for all of Grant
+// TODO: we definitely only want ONE backend for all of Grant
 type CaseHandler struct {
 	Backend      *backend.ClassifierBackend
 	Config       CaseConfig
@@ -152,7 +152,7 @@ func (ch *CaseHandler) Close() {
 // - a path to an SBOM file -> startup.cdx.json
 // - a path to a license -> file:MIT
 // - a path to an archive -> licenses.zip
-// - a path to a directory (which conatins any of the above) -> dir:./licenses
+// - a path to a directory (which contains any of the above) -> dir:./licenses
 func (ch *CaseHandler) determineRequestCase(userRequest string) (c Case, err error) {
 	switch {
 	case isStdin(userRequest):
@@ -434,7 +434,7 @@ func (ch *CaseHandler) handleContainer(image string) (c Case, err error) {
 }
 
 func getReadSeeker(path string) (io.ReadSeeker, error) {
-	file, err := os.Open(path)
+	file, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, fmt.Errorf("unable to open file: %w", err)
 	}
@@ -477,32 +477,6 @@ func (ch *CaseHandler) generateSyftSBOMWithBackend(userInput string) (sb sbom.SB
 		return sb, err
 	}
 	sb = ch.getSBOMWithSharedBackend(src)
-	return sb, nil
-}
-
-// generateSyftSBOMWithUI generates a syft SBOM with UI progress updates
-func (ch *CaseHandler) generateSyftSBOMWithUI(userInput string, showProgress bool) (sb sbom.SBOM, err error) {
-	if showProgress {
-		// This will be called by the UI when events are received
-		// For now, we'll use the existing method but with bus events
-	}
-
-	src, err := getSource(userInput)
-	if err != nil {
-		return sb, err
-	}
-	sb = ch.getSBOMWithSharedBackend(src)
-	return sb, nil
-}
-
-// TODO: is the default syft config good enough here?
-// do we need at least all the non default license magic turned on
-func generateSyftSBOM(userInput string) (sb sbom.SBOM, err error) {
-	src, err := getSource(userInput)
-	if err != nil {
-		return sb, err
-	}
-	sb = getSBOM(src)
 	return sb, nil
 }
 

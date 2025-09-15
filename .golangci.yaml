@@ -1,4 +1,5 @@
 # golangci-lint v2.4.0
+version: "2"
 issues:
   max-same-issues: 25
   uniq-by-line: false
@@ -20,20 +21,15 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - gofmt
     # NOTE: If you use gosimports/gci elsewhere, keep goimports disabled to avoid conflicts.
     # - goimports
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - misspell
     - nakedret
-    - revive
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused

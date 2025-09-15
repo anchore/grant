@@ -126,18 +126,50 @@ func (r *RunResponse) AddTarget(source SourceInfo, evaluation TargetEvaluation) 
 	})
 }
 
+type licenseStatistics struct {
+	UnlicensedCount int
+	UniqueCount     int
+	AllowedCount    int
+	DeniedCount     int
+	NonSPDXCount    int
+}
+
 // ConvertEvaluationToTarget converts an EvaluationResult to TargetEvaluation
 func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) TargetEvaluation {
-	// Calculate unique licenses
+	licenseStats := calculateLicenseStatistics(evalResult)
+	findings := buildEvaluationFindings(evalResult)
+	status := determineComplianceStatus(evalResult)
+
+	return TargetEvaluation{
+		Status: status,
+		Summary: EvaluationSummaryJSON{
+			Packages: PackageSummary{
+				Total:      evalResult.Summary.TotalPackages,
+				Allowed:    evalResult.Summary.AllowedPackages,
+				Denied:     evalResult.Summary.DeniedPackages,
+				Ignored:    evalResult.Summary.IgnoredPackages,
+				Unlicensed: licenseStats.UnlicensedCount,
+			},
+			Licenses: LicenseSummary{
+				Unique:  licenseStats.UniqueCount,
+				Allowed: licenseStats.AllowedCount,
+				Denied:  licenseStats.DeniedCount,
+				NonSPDX: licenseStats.NonSPDXCount,
+			},
+		},
+		Findings: findings,
+	}
+}
+
+// calculateLicenseStatistics computes license-related statistics from evaluation results
+func calculateLicenseStatistics(evalResult *EvaluationResult) licenseStatistics {
 	uniqueLicenses := make(map[string]bool)
 	allowedLicenses := make(map[string]bool)
 	deniedLicenses := make(map[string]bool)
 	unrecognizedLicenses := make(map[string]bool)
-
-	// Count unlicensed packages
 	unlicensedCount := 0
 
-	// Process all packages to gather statistics
+	// Process allowed packages
 	for _, pkg := range evalResult.AllowedPackages {
 		for _, license := range pkg.Package.Licenses {
 			licenseStr := license.String()
@@ -149,6 +181,7 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 		}
 	}
 
+	// Process denied packages
 	for _, pkg := range evalResult.DeniedPackages {
 		if len(pkg.Package.Licenses) == 0 {
 			unlicensedCount++
@@ -158,7 +191,6 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 				uniqueLicenses[licenseStr] = true
 				deniedLicenses[licenseStr] = true
 
-				// Track non-SPDX licenses separately for license summary
 				if license.Name != "" && license.SPDXExpression == "" {
 					unrecognizedLicenses[licenseStr] = true
 				}
@@ -166,12 +198,21 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 		}
 	}
 
-	// Build findings with deduplication
+	return licenseStatistics{
+		UnlicensedCount: unlicensedCount,
+		UniqueCount:     len(uniqueLicenses),
+		AllowedCount:    len(allowedLicenses),
+		DeniedCount:     len(deniedLicenses),
+		NonSPDXCount:    len(unrecognizedLicenses),
+	}
+}
+
+// buildEvaluationFindings creates findings from evaluation results with deduplication
+func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	findings := EvaluationFindings{
 		Packages: []PackageFinding{},
 	}
 
-	// Use a map to deduplicate packages by their unique identifier (name@version)
 	packageMap := make(map[string]PackageFinding)
 
 	// Add allowed packages
@@ -183,7 +224,7 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 		}
 	}
 
-	// Add denied packages with only their denied licenses
+	// Add denied packages
 	for _, pkg := range evalResult.DeniedPackages {
 		finding := packageToFindingWithDeniedLicenses(pkg.Package, "deny", pkg.DeniedLicenses)
 		key := pkg.Package.Name + "@" + pkg.Package.Version
@@ -206,31 +247,15 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 		findings.Packages = append(findings.Packages, finding)
 	}
 
-	// Determine compliance status
-	status := "compliant"
-	if len(evalResult.DeniedPackages) > 0 {
-		status = "noncompliant"
-	}
+	return findings
+}
 
-	return TargetEvaluation{
-		Status: status,
-		Summary: EvaluationSummaryJSON{
-			Packages: PackageSummary{
-				Total:      evalResult.Summary.TotalPackages,
-				Allowed:    evalResult.Summary.AllowedPackages,
-				Denied:     evalResult.Summary.DeniedPackages,
-				Ignored:    evalResult.Summary.IgnoredPackages,
-				Unlicensed: unlicensedCount,
-			},
-			Licenses: LicenseSummary{
-				Unique:  len(uniqueLicenses),
-				Allowed: len(allowedLicenses),
-				Denied:  len(deniedLicenses),
-				NonSPDX: len(unrecognizedLicenses),
-			},
-		},
-		Findings: findings,
+// determineComplianceStatus determines the overall compliance status
+func determineComplianceStatus(evalResult *EvaluationResult) string {
+	if len(evalResult.DeniedPackages) > 0 {
+		return "noncompliant"
 	}
+	return "compliant"
 }
 
 // packageToFinding converts a Package to a PackageFinding

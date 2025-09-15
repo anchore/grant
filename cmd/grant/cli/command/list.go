@@ -86,7 +86,8 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Handle output
 	if globalConfig.Quiet {
-		return handleListQuietOutput(result)
+		handleListQuietOutput(result)
+		return nil
 	}
 
 	// Normal output
@@ -187,7 +188,7 @@ func showPackagesOnly(result *grant.RunResponse, quiet bool) error {
 }
 
 // handleListQuietOutput handles quiet mode output for list
-func handleListQuietOutput(result *grant.RunResponse) error {
+func handleListQuietOutput(result *grant.RunResponse) {
 	// In quiet mode for list, output total number of unique licenses found
 	licenseMap := make(map[string]bool)
 
@@ -206,5 +207,4 @@ func handleListQuietOutput(result *grant.RunResponse) error {
 	}
 
 	fmt.Printf("%d\n", len(licenseMap))
-	return nil
 }

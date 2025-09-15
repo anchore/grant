@@ -1,3 +1,4 @@
+// Package internal provides internal utilities for the Grant CLI.
 package internal
 
 import (
@@ -100,9 +101,8 @@ func loadPolicyConfig(configFile string) (*grant.Policy, error) {
 	if configFile != "" {
 		if _, err := os.Stat(configFile); err == nil {
 			return grant.LoadPolicyFromFile(configFile)
-		} else {
-			return nil, fmt.Errorf("specified config file not found: %s", configFile)
 		}
+		return nil, fmt.Errorf("specified config file not found: %s", configFile)
 	}
 
 	// Look for config files in default locations (following XDG spec hierarchy)
@@ -154,12 +154,12 @@ require-known-license: false # Deny non-SPDX / unparsable licenses
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
 	// Write config file
-	if err := os.WriteFile(path, []byte(defaultConfig), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(defaultConfig), 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

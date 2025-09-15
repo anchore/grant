@@ -96,7 +96,7 @@ func (ui *RealtimeUI) ShowScanningSteps(source string, sourceType string, packag
 	for _, step := range steps {
 		// Show running state
 		fmt.Printf(" %s %s", color.Cyan.Sprint("⠋"), step.title)
-		os.Stdout.Sync()
+		_ = os.Stdout.Sync()
 		time.Sleep(step.duration)
 
 		// Complete the step

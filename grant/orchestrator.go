@@ -111,77 +111,87 @@ func (o *Orchestrator) List(argv []string, targets ...string) (*RunResponse, err
 	response := NewRunResponse(argv, o.Policy)
 
 	for _, target := range targets {
-		// Determine source type
-		sourceType := DetermineSourceType(target)
 		source := SourceInfo{
-			Type: sourceType,
+			Type: DetermineSourceType(target),
 			Ref:  target,
 		}
 
-		// Create case for the target
-		c, err := o.CaseHandler.determineRequestCase(target)
-		if err != nil {
-			// Add error result for this target
-			response.AddTarget(source, TargetEvaluation{
-				Status: "error",
-				Summary: EvaluationSummaryJSON{
-					Packages: PackageSummary{},
-					Licenses: LicenseSummary{},
-				},
-				Findings: EvaluationFindings{
-					Packages: []PackageFinding{},
-				},
-			})
-			continue
-		}
-
-		// Get licenses without evaluation
-		licensePackages, licenses, packagesNoLicenses := c.GetLicenses()
-
-		// Build findings for list operation
-		findings := EvaluationFindings{
-			Packages: []PackageFinding{},
-		}
-
-		// Add packages with licenses
-		for _, packages := range licensePackages {
-			for _, pkg := range packages {
-				finding := packageToFinding(*pkg, "list")
-				findings.Packages = append(findings.Packages, finding)
-			}
-		}
-
-		// Add packages without licenses
-		for _, pkg := range packagesNoLicenses {
-			finding := packageToFinding(pkg, "list")
-			findings.Packages = append(findings.Packages, finding)
-		}
-
-		// Calculate summary
-		totalPackages := 0
-		for _, packages := range licensePackages {
-			totalPackages += len(packages)
-		}
-		totalPackages += len(packagesNoLicenses)
-
-		targetEval := TargetEvaluation{
-			Status: "list",
-			Summary: EvaluationSummaryJSON{
-				Packages: PackageSummary{
-					Total:      totalPackages,
-					Unlicensed: len(packagesNoLicenses),
-				},
-				Licenses: LicenseSummary{
-					Unique: len(licenses),
-				},
-			},
-			Findings: findings,
-		}
-
+		targetEval := o.processListTarget(target)
 		response.AddTarget(source, targetEval)
 	}
 
 	return response, nil
+}
+
+// processListTarget processes a single target for listing licenses
+func (o *Orchestrator) processListTarget(target string) TargetEvaluation {
+	c, err := o.CaseHandler.determineRequestCase(target)
+	if err != nil {
+		return createErrorTargetEvaluation()
+	}
+
+	licensePackages, licenses, packagesNoLicenses := c.GetLicenses()
+	findings := buildListFindings(licensePackages, packagesNoLicenses)
+	summary := buildListSummary(licensePackages, licenses, packagesNoLicenses)
+
+	return TargetEvaluation{
+		Status:   "list",
+		Summary:  summary,
+		Findings: findings,
+	}
+}
+
+// createErrorTargetEvaluation creates a standard error response
+func createErrorTargetEvaluation() TargetEvaluation {
+	return TargetEvaluation{
+		Status: "error",
+		Summary: EvaluationSummaryJSON{
+			Packages: PackageSummary{},
+			Licenses: LicenseSummary{},
+		},
+		Findings: EvaluationFindings{
+			Packages: []PackageFinding{},
+		},
+	}
+}
+
+// buildListFindings creates findings from license packages
+func buildListFindings(licensePackages map[string][]*Package, packagesNoLicenses []Package) EvaluationFindings {
+	findings := EvaluationFindings{
+		Packages: []PackageFinding{},
+	}
+
+	for _, packages := range licensePackages {
+		for _, pkg := range packages {
+			finding := packageToFinding(*pkg, "list")
+			findings.Packages = append(findings.Packages, finding)
+		}
+	}
+
+	for _, pkg := range packagesNoLicenses {
+		finding := packageToFinding(pkg, "list")
+		findings.Packages = append(findings.Packages, finding)
+	}
+
+	return findings
+}
+
+// buildListSummary creates summary statistics for list operation
+func buildListSummary(licensePackages map[string][]*Package, licenses map[string]License, packagesNoLicenses []Package) EvaluationSummaryJSON {
+	totalPackages := len(packagesNoLicenses)
+	for _, packages := range licensePackages {
+		totalPackages += len(packages)
+	}
+
+	return EvaluationSummaryJSON{
+		Packages: PackageSummary{
+			Total:      totalPackages,
+			Unlicensed: len(packagesNoLicenses),
+		},
+		Licenses: LicenseSummary{
+			Unique: len(licenses),
+		},
+	}
 }
 
 // CheckWithDefaults performs a check with default policy

@@ -10,6 +10,10 @@ import (
 	"github.com/anchore/grant/grant"
 )
 
+const (
+	formatJSON = "json"
+)
+
 // GlobalConfig holds configuration that applies to all commands
 type GlobalConfig struct {
 	ConfigFile   string
@@ -56,7 +60,7 @@ func OutputResult(result *grant.RunResponse, format string) error {
 	output := internal.NewOutput()
 
 	switch format {
-	case "json":
+	case formatJSON:
 		return output.OutputJSON(result)
 	case "table":
 		return output.OutputTable(result)

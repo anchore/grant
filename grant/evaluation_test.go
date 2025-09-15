@@ -319,12 +319,10 @@ func createCaseFromPackages(packages []Package) *Case {
 			if license.SPDXExpression != "" {
 				syftLicense = pkg.License{
 					SPDXExpression: license.SPDXExpression,
-					Type:           pkg.SPDXLicenseType,
 				}
 			} else {
 				syftLicense = pkg.License{
 					Value: license.Name,
-					Type:  pkg.DeclaredLicenseType,
 				}
 			}
 			syftPkg.Licenses.Add(syftLicense)

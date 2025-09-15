@@ -13,16 +13,28 @@ import (
 	"github.com/anchore/grant/grant"
 )
 
+type checkFlags struct {
+	DisableFileSearch bool
+	FailOnError       bool
+	SummaryOnly       bool
+	NoLicensesOnly    bool
+}
+
+const (
+	statusNonCompliant = "noncompliant"
+	statusError        = "error"
+)
+
 // Check creates the check command
 func Check() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check [TARGET...]",
 		Short: "Check license compliance for one or more targets",
 		Long: `Check evaluates license compliance for container images, SBOMs, filesystems, and files.
-		
+
 Targets can be:
 - Container images: alpine:latest, ubuntu:22.04
-- SBOM files: path/to/sbom.json, path/to/sbom.xml  
+- SBOM files: path/to/sbom.json, path/to/sbom.json
 - Directories: dir:./project, ./my-app
 - Archive files: project.tar.gz, source.zip
 - License files: LICENSE, COPYING
@@ -46,34 +58,61 @@ Exit codes:
 
 // runCheck executes the check command
 func runCheck(cmd *cobra.Command, args []string) error {
-	// Get global configuration
 	globalConfig := GetGlobalConfig(cmd)
+	flags := parseCheckFlags(cmd)
 
-	// Get command-specific flags
+	realtimeUI := setupRealtimeUI(globalConfig, args)
+	orchestrator, err := setupOrchestrator(globalConfig, flags.DisableFileSearch)
+	if err != nil {
+		return err
+	}
+	defer orchestrator.Close()
+
+	result, err := performCheck(orchestrator, globalConfig, args)
+	if err != nil {
+		return err
+	}
+
+	updateUIWithResults(realtimeUI, result)
+	return handleCheckOutput(result, globalConfig, flags)
+}
+
+// parseCheckFlags extracts and validates command-specific flags
+func parseCheckFlags(cmd *cobra.Command) *checkFlags {
 	disableFileSearch, _ := cmd.Flags().GetBool("disable-file-search")
 	failOnError, _ := cmd.Flags().GetBool("fail-on-error")
 	summaryOnly, _ := cmd.Flags().GetBool("summary-only")
 	noLicensesOnly, _ := cmd.Flags().GetBool("no-licenses-only")
 
-	// Setup real-time UI for progress display (unless quiet mode)
-	var realtimeUI *internal.RealtimeUI
-	if !globalConfig.Quiet && globalConfig.OutputFormat == "table" {
-		realtimeUI = internal.NewRealtimeUI(globalConfig.Quiet)
+	return &checkFlags{
+		DisableFileSearch: disableFileSearch,
+		FailOnError:       failOnError,
+		SummaryOnly:       summaryOnly,
+		NoLicensesOnly:    noLicensesOnly,
+	}
+}
 
-		// Show initial progress for the first target
-		if len(args) > 0 {
-			realtimeUI.ShowScanProgress(args[0], "image")
-		}
+// setupRealtimeUI initializes the real-time UI for progress display
+func setupRealtimeUI(globalConfig *GlobalConfig, args []string) *internal.RealtimeUI {
+	if globalConfig.Quiet || globalConfig.OutputFormat != "table" {
+		return nil
 	}
 
-	// Load policy
+	realtimeUI := internal.NewRealtimeUI(globalConfig.Quiet)
+	if len(args) > 0 {
+		realtimeUI.ShowScanProgress(args[0], "image")
+	}
+	return realtimeUI
+}
+
+// setupOrchestrator creates and configures the orchestrator
+func setupOrchestrator(globalConfig *GlobalConfig, disableFileSearch bool) (*grant.Orchestrator, error) {
 	policy, err := LoadPolicyFromConfig(globalConfig)
 	if err != nil {
 		HandleError(err, globalConfig.Quiet)
-		return err
+		return nil, err
 	}
 
-	// Create orchestrator with configuration
 	caseConfig := grant.CaseConfig{
 		DisableFileSearch: disableFileSearch,
 	}
@@ -81,69 +120,76 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	orchestrator, err := grant.NewOrchestratorWithConfig(policy, caseConfig)
 	if err != nil {
 		HandleError(fmt.Errorf("failed to create orchestrator: %w", err), globalConfig.Quiet)
-		return err
+		return nil, err
 	}
-	defer orchestrator.Close()
 
-	// Build argv for the response
+	return orchestrator, nil
+}
+
+// performCheck executes the license compliance check
+func performCheck(orchestrator *grant.Orchestrator, globalConfig *GlobalConfig, args []string) (*grant.RunResponse, error) {
 	argv := append([]string{"grant", "check"}, args...)
 	if globalConfig.ConfigFile != "" {
 		argv = append([]string{"grant", "check", "-c", globalConfig.ConfigFile}, args...)
 	}
 
-	// Perform check
 	result, err := orchestrator.Check(argv, args...)
 	if err != nil {
 		HandleError(fmt.Errorf("check failed: %w", err), globalConfig.Quiet)
-		return err
+		return nil, err
 	}
 
-	// Update real-time UI with actual results
-	if realtimeUI != nil && len(result.Run.Targets) > 0 {
-		target := result.Run.Targets[0]
-		realtimeUI.ShowCatalogedContents(
-			target.Evaluation.Summary.Packages.Total,
-			target.Evaluation.Summary.Licenses.Unique,
-			len(target.Evaluation.Findings.Packages),
-		)
+	return result, nil
+}
+
+// updateUIWithResults updates the real-time UI with check results
+func updateUIWithResults(realtimeUI *internal.RealtimeUI, result *grant.RunResponse) {
+	if realtimeUI == nil || len(result.Run.Targets) == 0 {
+		return
 	}
 
-	// No finalization needed for RealtimeUI
+	target := result.Run.Targets[0]
+	realtimeUI.ShowCatalogedContents(
+		target.Evaluation.Summary.Packages.Total,
+		target.Evaluation.Summary.Licenses.Unique,
+		len(target.Evaluation.Findings.Packages),
+	)
+}
 
-	// Handle output
+// handleCheckOutput processes and displays the check results
+func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, flags *checkFlags) error {
 	if globalConfig.Quiet {
-		// In quiet mode, just output non-compliant count and set exit code
-		return handleQuietOutput(result)
+		handleQuietOutput(result)
+		return nil
 	}
 
-	if summaryOnly {
+	if flags.SummaryOnly {
 		return handleSummaryOutput(result, globalConfig.OutputFormat)
 	}
 
-	if noLicensesOnly {
+	if flags.NoLicensesOnly {
 		return handleNoLicensesOnlyOutput(result, globalConfig.OutputFormat)
 	}
 
-	// Normal output (the real-time UI already showed progress)
 	if err := OutputResult(result, globalConfig.OutputFormat); err != nil {
 		HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
 		return err
 	}
 
-	// Set exit code based on compliance
-	return handleExitCode(result, failOnError)
+	handleExitCode(result, flags.FailOnError)
+	return nil
 }
 
 // handleQuietOutput handles quiet mode output
-func handleQuietOutput(result *grant.RunResponse) error {
+func handleQuietOutput(result *grant.RunResponse) {
 	nonCompliantCount := 0
 	errorCount := 0
 
 	for _, target := range result.Run.Targets {
 		switch target.Evaluation.Status {
-		case "noncompliant":
+		case statusNonCompliant:
 			nonCompliantCount++
-		case "error":
+		case statusError:
 			errorCount++
 		}
 	}
@@ -152,13 +198,11 @@ func handleQuietOutput(result *grant.RunResponse) error {
 		fmt.Printf("%d\n", nonCompliantCount+errorCount)
 		os.Exit(1)
 	}
-
-	return nil
 }
 
 // handleSummaryOutput handles summary-only output
 func handleSummaryOutput(result *grant.RunResponse, format string) error {
-	if format == "json" {
+	if format == formatJSON {
 		// For JSON, output full result but caller can filter
 		return OutputResult(result, format)
 	}
@@ -173,9 +217,9 @@ func handleSummaryOutput(result *grant.RunResponse, format string) error {
 		switch target.Evaluation.Status {
 		case "compliant":
 			totalCompliant++
-		case "noncompliant":
+		case statusNonCompliant:
 			totalNonCompliant++
-		case "error":
+		case statusError:
 			totalErrors++
 		}
 	}
@@ -206,7 +250,7 @@ func handleSummaryOutput(result *grant.RunResponse, format string) error {
 
 // handleNoLicensesOnlyOutput handles no-licenses-only output
 func handleNoLicensesOnlyOutput(result *grant.RunResponse, format string) error {
-	if format == "json" {
+	if format == formatJSON {
 		// For JSON, filter the result to only show packages without licenses
 		filteredResult := filterResultForNoLicenses(result)
 		return OutputResult(filteredResult, format)
@@ -374,15 +418,15 @@ func printPackageTableNoLicensesOnly(packages []grant.PackageFinding) error {
 }
 
 // handleExitCode determines the appropriate exit code
-func handleExitCode(result *grant.RunResponse, failOnError bool) error {
+func handleExitCode(result *grant.RunResponse, failOnError bool) {
 	hasNonCompliant := false
 	hasErrors := false
 
 	for _, target := range result.Run.Targets {
 		switch target.Evaluation.Status {
-		case "noncompliant":
+		case statusNonCompliant:
 			hasNonCompliant = true
-		case "error":
+		case statusError:
 			hasErrors = true
 		}
 	}
@@ -394,6 +438,4 @@ func handleExitCode(result *grant.RunResponse, failOnError bool) error {
 	if hasNonCompliant || hasErrors {
 		os.Exit(1)
 	}
-
-	return nil
 }

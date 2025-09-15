@@ -100,18 +100,20 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 		licenseStr := license.String()
 
 		// Check if RequireKnownLicense is enabled and license is not SPDX
-		if policy.RequireKnownLicense && !license.IsSPDX() {
+		switch {
+		case policy.RequireKnownLicense && !license.IsSPDX():
 			unknownLicenses = append(unknownLicenses, license)
 			deniedLicenses = append(deniedLicenses, license)
-		} else if policy.IsLicensePermitted(licenseStr) {
+		case policy.IsLicensePermitted(licenseStr):
 			allowedLicenses = append(allowedLicenses, license)
-		} else {
+		default:
 			deniedLicenses = append(deniedLicenses, license)
 		}
 	}
 
 	// Determine overall package result
-	if len(unknownLicenses) > 0 {
+	switch {
+	case len(unknownLicenses) > 0:
 		// If any license is unknown and RequireKnownLicense is true
 		return PackageResult{
 			Package:         *pkg,
@@ -119,7 +121,7 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 			DeniedLicenses:  deniedLicenses,
 			Reason:          fmt.Sprintf("package denied due to %d unknown licenses", len(unknownLicenses)),
 		}
-	} else if len(deniedLicenses) > 0 {
+	case len(deniedLicenses) > 0:
 		// If any license is denied, the whole package is denied
 		return PackageResult{
 			Package:         *pkg,
@@ -127,14 +129,14 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 			DeniedLicenses:  deniedLicenses,
 			Reason:          fmt.Sprintf("package denied due to %d denied licenses", len(deniedLicenses)),
 		}
-	} else if len(allowedLicenses) > 0 {
+	case len(allowedLicenses) > 0:
 		// All licenses are allowed
 		return PackageResult{
 			Package:         *pkg,
 			AllowedLicenses: allowedLicenses,
 			Reason:          "all licenses allowed",
 		}
-	} else {
+	default:
 		// No licenses found (shouldn't happen in this path, but just in case)
 		return PackageResult{
 			Package: *pkg,
@@ -170,11 +172,12 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 
 // categorizePackageResult adds the package result to the appropriate category
 func (c *Case) categorizePackageResult(packageResult *PackageResult, result *EvaluationResult) {
-	if packageResult.Reason == "package ignored per policy" {
+	switch {
+	case packageResult.Reason == "package ignored per policy":
 		result.IgnoredPackages = append(result.IgnoredPackages, *packageResult)
-	} else if len(packageResult.DeniedLicenses) > 0 || packageResult.Reason == "package denied - no licenses found" {
+	case len(packageResult.DeniedLicenses) > 0 || packageResult.Reason == "package denied - no licenses found":
 		result.DeniedPackages = append(result.DeniedPackages, *packageResult)
-	} else {
+	default:
 		result.AllowedPackages = append(result.AllowedPackages, *packageResult)
 	}
 }
