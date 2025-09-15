@@ -1,7 +1,0 @@
-allow:
-  - "*"  # Allow all licenses
-
-ignore-packages: []
-
-require-license: false
-require-known-license: false
