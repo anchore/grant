@@ -128,30 +128,49 @@ func OutputResult(result *grant.RunResponse, format string, outputFile string) e
 	}
 }
 
-// isGrantJSONInput checks if the target is "-" (stdin) and if stdin contains grant JSON output
+// isGrantJSONInput checks if the target is stdin or a file and if it contains grant JSON output
 func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
-	if !strings.EqualFold(target, "-") {
-		return nil, false
-	}
+	var data []byte
+	var err error
 
-	// Check if stdin is available
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) != 0 {
-		// stdin is not available (terminal mode)
-		return nil, false
-	}
+	if strings.EqualFold(target, "-") {
+		// Handle stdin input
+		// Check if stdin is available
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) != 0 {
+			// stdin is not available (terminal mode)
+			return nil, false
+		}
 
-	// Read from stdin
-	data, err := io.ReadAll(os.Stdin)
-	if err != nil {
+		// Read from stdin
+		data, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, false
+		}
+	} else if strings.HasSuffix(target, ".json") {
+		// Handle file input - check if it's a JSON file that might be grant output
+		// Check if the file exists
+		if _, err := os.Stat(target); os.IsNotExist(err) {
+			return nil, false
+		}
+
+		// Read from file
+		data, err = os.ReadFile(target)
+		if err != nil {
+			return nil, false
+		}
+	} else {
+		// Not stdin and not a JSON file
 		return nil, false
 	}
 
 	// Try to parse as grant RunResponse
 	var result grant.RunResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		// Not grant JSON - save for SBOM processing
-		stdinbuffer.Set(data)
+		// Not grant JSON - if from stdin, save for SBOM processing
+		if strings.EqualFold(target, "-") {
+			stdinbuffer.Set(data)
+		}
 		return nil, false
 	}
 
@@ -160,8 +179,10 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 		return &result, true
 	}
 
-	// Not grant JSON - save for SBOM processing
-	stdinbuffer.Set(data)
+	// Not grant JSON - if from stdin, save for SBOM processing
+	if strings.EqualFold(target, "-") {
+		stdinbuffer.Set(data)
+	}
 	return nil, false
 }
 
