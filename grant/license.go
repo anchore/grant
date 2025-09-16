@@ -97,7 +97,7 @@ func handleSPDXLicense(license syftPkg.License, licenses []License, licenseLocat
 			log.Errorf("unable to get license by ID: %s; no matching spdx id found", extractedLicense)
 			// if we can't find a matching SPDX license, just add the license as-is
 			// TODO: best matching against the spdx list index
-			addNonSPDXLicense(licenses, license, licenseLocations)
+			licenses = addNonSPDXLicense(licenses, license, licenseLocations)
 			continue
 		}
 

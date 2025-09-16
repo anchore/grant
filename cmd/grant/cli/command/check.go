@@ -17,6 +17,7 @@ type checkFlags struct {
 	DisableFileSearch bool
 	Summary           bool
 	Unlicensed        bool
+	DryRun            bool
 }
 
 const (
@@ -50,6 +51,7 @@ Exit codes:
 	cmd.Flags().Bool("disable-file-search", false, "disable filesystem license file search")
 	cmd.Flags().Bool("summary", false, "show only summary information")
 	cmd.Flags().Bool("unlicensed", false, "show only packages without licenses")
+	cmd.Flags().Bool("dry-run", false, "run check without returning non-zero exit code on violations")
 
 	return cmd
 }
@@ -89,11 +91,13 @@ func parseCheckFlags(cmd *cobra.Command) *checkFlags {
 	disableFileSearch, _ := cmd.Flags().GetBool("disable-file-search")
 	summary, _ := cmd.Flags().GetBool("summary")
 	unlicensed, _ := cmd.Flags().GetBool("unlicensed")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 	return &checkFlags{
 		DisableFileSearch: disableFileSearch,
 		Summary:           summary,
 		Unlicensed:        unlicensed,
+		DryRun:            dryRun,
 	}
 }
 
@@ -172,7 +176,7 @@ func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 				return err
 			}
 		}
-		handleQuietOutput(result)
+		handleQuietOutput(result, flags.DryRun)
 		return nil
 	}
 
@@ -195,7 +199,7 @@ func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 
 	// Skip terminal output if no-output flag is set and output file is specified
 	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
-		handleExitCode(result)
+		handleExitCode(result, flags.DryRun)
 		return nil
 	}
 
@@ -205,12 +209,12 @@ func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 		return err
 	}
 
-	handleExitCode(result)
+	handleExitCode(result, flags.DryRun)
 	return nil
 }
 
 // handleQuietOutput handles quiet mode output
-func handleQuietOutput(result *grant.RunResponse) {
+func handleQuietOutput(result *grant.RunResponse, dryRun bool) {
 	nonCompliantCount := 0
 	errorCount := 0
 
@@ -225,7 +229,9 @@ func handleQuietOutput(result *grant.RunResponse) {
 
 	if nonCompliantCount > 0 || errorCount > 0 {
 		fmt.Printf("%d\n", nonCompliantCount+errorCount)
-		os.Exit(1)
+		if !dryRun {
+			os.Exit(1)
+		}
 	}
 }
 
@@ -486,7 +492,12 @@ func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 }
 
 // handleExitCode determines the appropriate exit code
-func handleExitCode(result *grant.RunResponse) {
+func handleExitCode(result *grant.RunResponse, dryRun bool) {
+	if dryRun {
+		// In dry-run mode, don't exit with error code
+		return
+	}
+
 	hasNonCompliant := false
 	hasErrors := false
 

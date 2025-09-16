@@ -94,7 +94,7 @@ func generateConfig() (string, error) {
 			"BSD-3-Clause",
 		},
 		IgnorePackages:      []string{},
-		RequireLicense:      false,
+		RequireLicense:      true,
 		RequireKnownLicense: false,
 		DisableFileSearch:   false,
 		Summary:             false,

@@ -88,7 +88,8 @@ func TestCase_Evaluate(t *testing.T) {
 				{Name: "good-package", Licenses: []License{{SPDXExpression: "MIT"}}},
 			},
 			policy: &Policy{
-				Allow: []string{"MIT"},
+				Allow:          []string{"MIT"},
+				RequireLicense: true,
 			},
 			expectedResult: EvaluationResult{
 				AllowedPackages: []PackageResult{
