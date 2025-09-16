@@ -25,16 +25,17 @@
 
 View licenses for container images, SBOM documents, and filesystems! Apply filters and views that can help you build a picture of licenses in your SBOM. Grant provides powerful filtering and cli capabilities for tackling license investigation and management, including license risk categorization.
 
-## Key Features
-
-- **License Risk Categorization**: Categorizes known licenses by risk level (High/Medium/Low)
-- **Interactive License Links**: CMD Click on license names to view full SPDX documentation
-- **Detailed Package Views**: Deep dive into specific package license information with formatted output
-- **Flexible Output Formats**: Table, JSON, and filtered views
-- **Policy Enforcement**: Define allowed licenses annd ignored packages to prevent new licenses from entering your codebase
-- **Compliance Checking**: Identify denied packages and license violations
-
 ## Quick Start
+
+## Installation
+```bash
+curl -sSfL https://get.anchore.io/grant | sudo sh -s -- -b /usr/local/bin
+```
+... or, you can specify a release version and destination directory for the installation:
+
+```
+curl -sSfL https://get.anchore.io/grant | sudo sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
+```
 
 ### Supply an image to view the licenses found in the image
 ```bash
@@ -53,7 +54,7 @@ $ grant list dir:.
 
 ### Group licenses by risk category
 ```bash
-$ grant list alpine:latest --group-by risk
+$ grant list node:latest --group-by risk
  ✔ Loaded alpine:latest
  ✔ License listing
  ✔ Aggregated by risk
@@ -91,17 +92,6 @@ Licenses (1):
 # Save results to JSON file for continued processing (no rescan)
 $ grant list dir:. -f licenses.json
 $ cat licenses.json | grant list - "Apache-2.0"
-```
-
-## Installation
-```bash
-curl -sSfL https://get.anchore.io/grant | sudo sh -s -- -b /usr/local/bin
-```
-
-... or, you can specify a release version and destination directory for the installation:
-
-```
-curl -sSfL https://get.anchore.io/grant | sudo sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
 ```
 
 ## Usage
@@ -189,7 +179,7 @@ The `--disable-file-search` option allows you to skip the second type of detecti
 
 ## License Risk Categories
 
-Grant automatically categorizes licenses based on their legal risk and restrictions:
+Grant categorizes licenses based on their legal risk and restrictions:
 
 ### Risk Levels
 
@@ -237,7 +227,6 @@ Permissive             10         299
 ### Enhanced Output Features
 
 - **Clickable License Names**: License names in terminal output are hyperlinked to SPDX documentation
-- **Smart License Truncation**: Shows first 2 licenses, then "(+n more)" for packages with multiple licenses
 - **Risk Aggregation**: When packages have multiple licenses with different risks, shows highest risk with count of others
 - **Color-Coded Risk**: Risk levels are color-coded for quick visual scanning (Red/Yellow/Green)
 - **JSON Output Enhancement**: Risk categories are included in JSON output for programmatic processing
@@ -270,31 +259,9 @@ The JSON output contains complete machine-readable data regardless of the termin
 - Use `-o json` to show JSON in terminal AND write to file
 - Use `-q` (quiet mode) for minimal terminal output when writing to file (useful for scripts and CI/CD)
 
-### License Filtering
-
-Filter the list output to show only packages with specific licenses:
-
-```bash
-# Show only packages with MIT license
-grant list dir:. "MIT"
-
-# Show packages with MIT OR Apache-2.0 licenses
-grant list dir:. "MIT" "Apache-2.0"
-
-# Combine with output file
-grant list dir:. "ISC" -f isc-packages.json
-```
-
-### Package Detail View
-
-Get detailed information about a specific package, including complete license details and file locations:
-```bash
-# Show detailed info for a specific package (requires license filter)
-grant list dir:. "MIT" --pkg "github.com/BurntSushi/toml"
-```
 ### JSON Input Processing
 
-Grant can use its own JSON output as input, enabling powerful workflow automation:
+Grant can use its own JSON output as input so you don't have to regenerate a scan if nothing changed. SBOMS also work.
 
 ```bash
 # Save results and reprocess them
@@ -321,10 +288,11 @@ This enables:
 Grant supports multiple output modes and combinations:
 
 ```bash
-# Unlicensed packages (check only)
+# Unlicensed packages
 grant check --unlicensed dir:.         # Shows packages without licenses
+grant list --unlicensed dir:.         # Shows packages without licenses during list
 
-# JSON format to build on the data
+# JSON format for users to build their own views
 grant list -o json dir:.               # JSON to stdout
 grant check -o json dir:.              # JSON to stdout
 

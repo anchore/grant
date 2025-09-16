@@ -157,16 +157,25 @@ func filterGrantJSONByLicenses(result *grant.RunResponse, licenseFilters []strin
 		// Filter packages that have any of the specified licenses
 		for _, pkg := range target.Evaluation.Findings.Packages {
 			hasMatchingLicense := false
-			for _, license := range pkg.Licenses {
-				licenseKey := license.ID
-				if licenseKey == "" {
-					licenseKey = license.Name
-				}
-				if filterMap[licenseKey] {
-					hasMatchingLicense = true
-					matchedLicenses[licenseKey] = true
+
+			// Special case: check if filtering for packages without licenses
+			if filterMap["(no licenses found)"] && len(pkg.Licenses) == 0 {
+				hasMatchingLicense = true
+				matchedLicenses["(no licenses found)"] = true
+			} else {
+				// Check if package has any of the specified licenses
+				for _, license := range pkg.Licenses {
+					licenseKey := license.ID
+					if licenseKey == "" {
+						licenseKey = license.Name
+					}
+					if filterMap[licenseKey] {
+						hasMatchingLicense = true
+						matchedLicenses[licenseKey] = true
+					}
 				}
 			}
+
 			if hasMatchingLicense {
 				// Use package name + version as deduplication key
 				packageKey := pkg.Name + "@" + pkg.Version
