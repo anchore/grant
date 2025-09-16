@@ -305,3 +305,4 @@ grant list dir:. -f out.json -q        # JSON to file with minimal terminal outp
 | `--summary` | | Show summary only (check command) |
 | `--unlicensed` | | Show unlicensed packages only (check command) |
 | `--disable-file-search` | | Skip grant independent filesystem license file detection |
+| `--dry-run` | | Allow json output from check without a status code 1 |
