@@ -2,8 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"os"
-	"time"
 
 	"github.com/gookit/color"
 )
@@ -18,29 +16,28 @@ func NewRealtimeUI(quiet bool) *RealtimeUI {
 	return &RealtimeUI{quiet: quiet}
 }
 
-// ShowScanProgress shows scanning progress with real-time updates
-func (ui *RealtimeUI) ShowScanProgress(source string, sourceType string) {
+// ShowLoadingProgress shows initial loading message
+func (ui *RealtimeUI) ShowLoadingProgress(source string) {
 	if ui.quiet {
 		return
 	}
 
-	// Step 1: Loading
-	fmt.Printf(" %s Loading %s", color.Cyan.Sprint("⠋"), source)
-	time.Sleep(200 * time.Millisecond)
+	// Show initial loading message without delay
+	fmt.Printf(" %s Loading %s\n", color.Cyan.Sprint("⠋"), source)
+}
+
+// ShowScanComplete shows completed scan status
+func (ui *RealtimeUI) ShowScanComplete(source string, sourceType string) {
+	if ui.quiet {
+		return
+	}
+
+	// Clear the loading line and show completion
+	fmt.Printf("\033[1A") // Move cursor up one line
 	fmt.Printf("\r %s Loaded %s                                                                              %s\n",
 		color.Green.Sprint("✔"), source, color.Gray.Sprint(sourceType))
-
-	// Step 2: License compliance check (running)
-	fmt.Printf(" %s License compliance check", color.Cyan.Sprint("⠋"))
-	time.Sleep(100 * time.Millisecond)
-
-	// Step 3: Start cataloging
-	fmt.Printf("\r %s License compliance check\n", color.Green.Sprint("✔"))
-	fmt.Printf(" %s Cataloging packages", color.Cyan.Sprint("⠋"))
-	time.Sleep(300 * time.Millisecond)
-
-	// Step 4: Complete cataloging and show tree
-	fmt.Printf("\r %s Cataloged contents\n", color.Green.Sprint("✔"))
+	fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
+	fmt.Printf(" %s Cataloged contents\n", color.Green.Sprint("✔"))
 }
 
 // ShowCatalogedContents shows the cataloged contents in tree format
@@ -76,38 +73,20 @@ func (ui *RealtimeUI) ShowComplianceResult(status string) {
 		color.Green.Sprint("✔"), status)
 }
 
-// ShowScanningSteps shows all the scanning steps in sequence with realistic timing
+// ShowScanningSteps shows all the scanning steps (deprecated - kept for compatibility)
 func (ui *RealtimeUI) ShowScanningSteps(source string, sourceType string, packages int, licenses int, files int) {
 	if ui.quiet {
 		return
 	}
 
-	steps := []struct {
-		title    string
-		duration time.Duration
-	}{
-		{"Pulled image", 100 * time.Millisecond},
-		{"Loaded image", 150 * time.Millisecond},
-		{"Parsed image", 200 * time.Millisecond},
-		{"Cataloged contents", 300 * time.Millisecond},
-	}
+	// This function is deprecated in favor of ShowLoadingProgress/ShowScanComplete
+	// but kept for compatibility
+	fmt.Printf(" %s Pulled image\n", color.Green.Sprint("✔"))
+	fmt.Printf(" %s Loaded image\n", color.Green.Sprint("✔"))
+	fmt.Printf(" %s Parsed image\n", color.Green.Sprint("✔"))
+	fmt.Printf(" %s Cataloged contents                                                     %s\n",
+		color.Green.Sprint("✔"), color.Gray.Sprintf("sha256:%s", source[0:12]))
 
-	// Show steps with progress
-	for _, step := range steps {
-		// Show running state
-		fmt.Printf(" %s %s", color.Cyan.Sprint("⠋"), step.title)
-		_ = os.Stdout.Sync()
-		time.Sleep(step.duration)
-
-		// Complete the step
-		if step.title == "Cataloged contents" {
-			fmt.Printf("\r %s %s                                                     %s\n",
-				color.Green.Sprint("✔"), step.title, color.Gray.Sprintf("sha256:%s", source[0:12]))
-
-			// Show sub-tree for cataloged contents
-			ui.ShowCatalogedContents(packages, licenses, files)
-		} else {
-			fmt.Printf("\r %s %s\n", color.Green.Sprint("✔"), step.title)
-		}
-	}
+	// Show sub-tree for cataloged contents
+	ui.ShowCatalogedContents(packages, licenses, files)
 }

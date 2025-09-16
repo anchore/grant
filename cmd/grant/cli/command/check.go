@@ -82,7 +82,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	updateUIWithResults(realtimeUI, result)
+	updateUIWithResults(realtimeUI, result, args)
 	return handleCheckOutput(result, globalConfig, flags)
 }
 
@@ -109,7 +109,7 @@ func setupRealtimeUI(globalConfig *GlobalConfig, args []string) *internal.Realti
 
 	realtimeUI := internal.NewRealtimeUI(globalConfig.Quiet)
 	if len(args) > 0 {
-		realtimeUI.ShowScanProgress(args[0], "image")
+		realtimeUI.ShowLoadingProgress(args[0])
 	}
 	return realtimeUI
 }
@@ -152,12 +152,20 @@ func performCheck(orchestrator *grant.Orchestrator, globalConfig *GlobalConfig, 
 }
 
 // updateUIWithResults updates the real-time UI with check results
-func updateUIWithResults(realtimeUI *internal.RealtimeUI, result *grant.RunResponse) {
+func updateUIWithResults(realtimeUI *internal.RealtimeUI, result *grant.RunResponse, args []string) {
 	if realtimeUI == nil || len(result.Run.Targets) == 0 {
 		return
 	}
 
 	target := result.Run.Targets[0]
+	// Show scan complete status
+	sourceRef := target.Source.Ref
+	if len(args) > 0 {
+		sourceRef = args[0]
+	}
+	realtimeUI.ShowScanComplete(sourceRef, target.Source.Type)
+
+	// Show cataloged contents tree
 	realtimeUI.ShowCatalogedContents(
 		target.Evaluation.Summary.Packages.Total,
 		target.Evaluation.Summary.Licenses.Unique,
