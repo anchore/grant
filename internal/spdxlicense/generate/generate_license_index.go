@@ -44,9 +44,10 @@ var index = map[string]SPDXLicense{
 		SeeAlso: []string{
 			{{- range .SeeAlso }}
 			{{ printf "%q" . }},
-			{{- end }}	
-		},	
+			{{- end }}
+		},
 		IsOsiApproved: {{ .IsOsiApproved }},
+		RiskCategory: RiskCategory({{ printf "%q" .RiskCategory }}),
 	},
 {{- end }}
 }
@@ -65,6 +66,9 @@ func generate() error {
 	if err != nil {
 		return err
 	}
+
+	// Categorize licenses based on GNU classifications
+	categorizedLicenses := categorizeLicenses(spdxLicenseResposne.Licenses)
 
 	if err := os.Remove(generates); err != nil && !os.IsNotExist(err) {
 		fmt.Println("Error deleting existing file:", err)
@@ -88,7 +92,7 @@ func generate() error {
 		URL:         "https://spdx.org/licenses/licenses.json",
 		Version:     spdxLicenseResposne.LicenseListVersion,
 		ReleaseDate: spdxLicenseResposne.ReleaseDate,
-		Licenses:    spdxLicenseResposne.Licenses,
+		Licenses:    categorizedLicenses,
 	})
 }
 
@@ -103,4 +107,171 @@ func fetchLicenses() (r *spdxlicense.Response, err error) {
 		return r, err
 	}
 	return &spdxLicenseResponse, nil
+}
+
+// categorizeLicenses categorizes licenses based on GNU license classifications and common industry practices
+//
+// Data sources:
+//   - Primary reference: https://www.gnu.org/licenses/license-list.en.html
+//     The GNU license list categorizes licenses as:
+//   - "free software license, and a copyleft license" = Strong Copyleft
+//   - "free software license, but not a strong copyleft license" = Weak Copyleft
+//   - "permissive non-copyleft" = Permissive
+//
+// - Additional categorizations based on:
+//   - OSI (Open Source Initiative) license classifications
+//   - Common industry risk assessments for open source licenses
+//   - SPDX license list metadata and relationships
+//
+// Note: This categorization is a best-effort mapping. Some licenses may have nuanced
+// interpretations depending on specific use cases. When the GNU list doesn't explicitly
+// categorize a license, we use commonly accepted industry classifications.
+//
+// Excluded licenses:
+// - Creative Commons licenses (CC-*): Content/documentation licenses, not software licenses
+// - BSD-*-No-Nuclear-*: Field-of-use restrictions make them non-OSI approved
+// - Artistic-1.0 variants: Legacy licenses with unclear/murky terms
+// - Licenses with advertising clauses or name restrictions are noted but may need special handling
+func categorizeLicenses(licenses []spdxlicense.SPDXLicense) []spdxlicense.SPDXLicense {
+	type licenseCategory struct {
+		category spdxlicense.RiskCategory
+		licenses map[string]struct{}
+	}
+
+	// Strong Copyleft licenses (High Risk)
+	// These require derivative works to be licensed under the same terms
+	strongCopyleft := licenseCategory{
+		category: spdxlicense.RiskCategoryHigh,
+		licenses: map[string]struct{}{
+			"GPL-1.0":           {},
+			"GPL-1.0-only":      {},
+			"GPL-1.0-or-later":  {},
+			"GPL-2.0":           {},
+			"GPL-2.0-only":      {},
+			"GPL-2.0-or-later":  {},
+			"GPL-3.0":           {},
+			"GPL-3.0-only":      {},
+			"GPL-3.0-or-later":  {},
+			"AGPL-1.0":          {},
+			"AGPL-1.0-only":     {},
+			"AGPL-1.0-or-later": {},
+			"AGPL-3.0":          {},
+			"AGPL-3.0-only":     {},
+			"AGPL-3.0-or-later": {},
+			"OSL-1.0":           {},
+			"OSL-2.0":           {},
+			"OSL-2.1":           {},
+			"OSL-3.0":           {},
+			"EUPL-1.0":          {},
+			"EUPL-1.1":          {},
+			"EUPL-1.2":          {},
+			"RPL-1.1":           {},
+			"RPL-1.5":           {},
+			"Sleepycat":         {},
+		},
+	}
+
+	// Weak Copyleft licenses (Medium Risk)
+	// These have limited copyleft requirements (e.g., file-level, library-level)
+	weakCopyleft := licenseCategory{
+		category: spdxlicense.RiskCategoryMedium,
+		licenses: map[string]struct{}{
+			"LGPL-2.0":                      {},
+			"LGPL-2.0-only":                 {},
+			"LGPL-2.0-or-later":             {},
+			"LGPL-2.1":                      {},
+			"LGPL-2.1-only":                 {},
+			"LGPL-2.1-or-later":             {},
+			"LGPL-3.0":                      {},
+			"LGPL-3.0-only":                 {},
+			"LGPL-3.0-or-later":             {},
+			"MPL-1.0":                       {},
+			"MPL-1.1":                       {},
+			"MPL-2.0":                       {},
+			"MPL-2.0-no-copyleft-exception": {},
+			"EPL-1.0":                       {},
+			"EPL-2.0":                       {},
+			"CDDL-1.0":                      {},
+			"CDDL-1.1":                      {},
+			"CPL-1.0":                       {},
+			"IPL-1.0":                       {},
+			"SISSL":                         {}, // Sun Industry Standards Source License - weak reciprocal
+			// Removed: Artistic-2.0 (generally permissive, GPL-compatible)
+			// Removed: Nokia (permissive with naming/attribution quirks)
+		},
+	}
+
+	// Permissive licenses (Low Risk)
+	// These allow proprietary use with minimal restrictions
+	permissive := licenseCategory{
+		category: spdxlicense.RiskCategoryLow,
+		licenses: map[string]struct{}{
+			"MIT":                      {},
+			"MIT-0":                    {},
+			"MIT-CMU":                  {},
+			"MIT-enna":                 {},
+			"MIT-feh":                  {},
+			"Apache-1.0":               {},
+			"Apache-1.1":               {},
+			"Apache-2.0":               {},
+			"BSD-1-Clause":             {},
+			"BSD-2-Clause":             {},
+			"BSD-2-Clause-Patent":      {},
+			"BSD-2-Clause-Views":       {},
+			"BSD-3-Clause":             {},
+			"BSD-3-Clause-Clear":       {},
+			"BSD-3-Clause-Attribution": {},
+			"BSD-3-Clause-LBNL":        {},
+			"BSD-3-Clause-Open-MPI":    {},
+			"BSD-4-Clause":             {}, // Has advertising clause but still permissive
+			"BSD-4-Clause-UC":          {},
+			"ISC":                      {},
+			"Zlib":                     {},
+			"Unlicense":                {},
+			"0BSD":                     {},
+			"WTFPL":                    {},
+			"X11":                      {},
+			"BSL-1.0":                  {},
+			"PostgreSQL":               {},
+			"Python-2.0":               {},
+			"PSF-2.0":                  {},
+			"Ruby":                     {},
+			"Libpng":                   {},
+			"libpng-2.0":               {},
+			"IJG":                      {},
+			"libtiff":                  {},
+			"FTL":                      {},
+			"UPL-1.0":                  {},
+			"Artistic-2.0":             {}, // GPL-compatible, generally permissive
+			// "Nokia":                    {}, // Nokia Open Source License - permissive with naming quirks TBD
+			// Removed: BSD-*-No-Nuclear-* (field-of-use restrictions, not truly open source)
+			// Removed: CC0-1.0, CC-BY-* (content licenses)
+			// Removed: PHP-3.0/3.01 (name/advertising restrictions, GPL-incompatible)
+			// Removed: MIT-advertising (advertising clause)
+			// Removed: Artistic-1.0 variants (murky/unclear terms)
+		},
+	}
+
+	// Create a unified map for efficient lookup
+	categoryMap := make(map[string]spdxlicense.RiskCategory)
+
+	for licenseID := range strongCopyleft.licenses {
+		categoryMap[licenseID] = strongCopyleft.category
+	}
+	for licenseID := range weakCopyleft.licenses {
+		categoryMap[licenseID] = weakCopyleft.category
+	}
+	for licenseID := range permissive.licenses {
+		categoryMap[licenseID] = permissive.category
+	}
+
+	// Categorize each license
+	for i := range licenses {
+		if category, exists := categoryMap[licenses[i].LicenseID]; exists {
+			licenses[i].RiskCategory = category
+		}
+		// If not categorized, RiskCategory will remain empty
+	}
+
+	return licenses
 }
