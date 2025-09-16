@@ -23,7 +23,7 @@
 
 # Grant
 
-View licenses for container images, SBOM documents, filesystems, and apply rules that help you build a license compliance report. Grant provides powerful filtering, detailed package analysis, and workflow automation capabilities for comprehensive license management.
+View licenses for container images, SBOM documents, filesystems, and apply filters that can help you build a license compliance report. Grant provides powerful filtering, detailed package analysis, and cli capabilities for tackling license investigation and management.
 
 ### Supply an image to view the licenses found in the image
 ```bash
@@ -48,7 +48,7 @@ $ grant list dir:. "MIT"
 # Get detailed info about a specific package
 $ grant list dir:. "MIT" --pkg "github.com/BurntSushi/toml"
 
-# Save results to JSON file for further processing
+# Save results to JSON file for continued processing (no rescan)
 $ grant list dir:. -f results.json
 $ cat results.json | grant list - "Apache-2.0"
 ```
@@ -192,9 +192,6 @@ Get detailed information about a specific package, including complete license de
 ```bash
 # Show detailed info for a specific package (requires license filter)
 grant list dir:. "MIT" --pkg "github.com/BurntSushi/toml"
-
-# Works with multiple license filters
-grant list dir:. "MIT" "ISC" --pkg "github.com/emirpasic/gods"
 
 # Combine with JSON output
 grant list dir:. "MIT" --pkg "github.com/BurntSushi/toml" -f package-details.json

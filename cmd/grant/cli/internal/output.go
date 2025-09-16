@@ -11,11 +11,22 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal/spdxlicense"
 )
 
 const (
 	statusCompliant = "compliant"
 )
+
+// formatClickableLicense formats a license name as a clickable blue link if SPDX reference is available
+func formatClickableLicense(licenseName string) string {
+	if spdxLicense, err := spdxlicense.GetLicenseByID(licenseName); err == nil && spdxLicense.Reference != "" {
+		// Make it blue and clickable (no underline for table display)
+		return fmt.Sprintf("\033]8;;%s\033\\\033[34m%s\033[0m\033]8;;\033\\", spdxLicense.Reference, licenseName)
+	}
+	// Return the license name as-is if no SPDX reference available
+	return licenseName
+}
 
 // Output handles different output formats for grant results
 type Output struct{}
@@ -274,13 +285,25 @@ func (o *Output) OutputQuiet(result *grant.RunResponse) error {
 
 // printAggregatedLicenseTable prints licenses grouped by license name with package counts
 func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) error {
-	// Create license count map
-	licenseMap := make(map[string]int)
-
+	// First, deduplicate packages by name@version
+	uniquePackages := make(map[string]grant.PackageFinding)
 	for _, pkg := range packages {
+		packageKey := pkg.Name + "@" + pkg.Version
+		uniquePackages[packageKey] = pkg
+	}
+
+	// Create license to unique packages map
+	licensePackages := make(map[string]map[string]bool)
+
+	for _, pkg := range uniquePackages {
+		packageKey := pkg.Name + "@" + pkg.Version
+
 		if len(pkg.Licenses) == 0 {
 			// Package with no licenses
-			licenseMap["(no licenses found)"]++
+			if licensePackages["(no licenses found)"] == nil {
+				licensePackages["(no licenses found)"] = make(map[string]bool)
+			}
+			licensePackages["(no licenses found)"][packageKey] = true
 		} else {
 			for _, license := range pkg.Licenses {
 				licenseKey := license.ID
@@ -290,9 +313,18 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 				if licenseKey == "" {
 					licenseKey = "(unknown)"
 				}
-				licenseMap[licenseKey]++
+				if licensePackages[licenseKey] == nil {
+					licensePackages[licenseKey] = make(map[string]bool)
+				}
+				licensePackages[licenseKey][packageKey] = true
 			}
 		}
+	}
+
+	// Convert to count map
+	licenseMap := make(map[string]int)
+	for license, pkgSet := range licensePackages {
+		licenseMap[license] = len(pkgSet)
 	}
 
 	// Convert to slice for sorting
@@ -318,10 +350,10 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
-	// Configure table style to match the desired output
+	// Configure table style to match grype/syft style (consistent with other tables)
 	t.Style().Options.SeparateHeader = false
 	t.Style().Options.DrawBorder = false
-	t.Style().Options.SeparateColumns = true
+	t.Style().Options.SeparateColumns = false
 	t.Style().Options.SeparateFooter = false
 	t.Style().Options.SeparateRows = false
 
@@ -330,7 +362,7 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 
 	// Add rows
 	for _, lc := range licenseCounts {
-		t.AppendRow(table.Row{lc.license, lc.count})
+		t.AppendRow(table.Row{formatClickableLicense(lc.license), lc.count})
 	}
 
 	t.Render()

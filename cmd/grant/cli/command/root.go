@@ -150,6 +150,7 @@ func filterGrantJSONByLicenses(result *grant.RunResponse, licenseFilters []strin
 	for _, target := range result.Run.Targets {
 		filteredPackages := []grant.PackageFinding{}
 		matchedLicenses := make(map[string]bool)
+		packageMap := make(map[string]grant.PackageFinding) // For deduplication
 
 		// Filter packages that have any of the specified licenses
 		for _, pkg := range target.Evaluation.Findings.Packages {
@@ -165,8 +166,15 @@ func filterGrantJSONByLicenses(result *grant.RunResponse, licenseFilters []strin
 				}
 			}
 			if hasMatchingLicense {
-				filteredPackages = append(filteredPackages, pkg)
+				// Use package name + version as deduplication key
+				packageKey := pkg.Name + "@" + pkg.Version
+				packageMap[packageKey] = pkg
 			}
+		}
+
+		// Convert map back to slice for deduplicated packages
+		for _, pkg := range packageMap {
+			filteredPackages = append(filteredPackages, pkg)
 		}
 
 		// Create filtered target with updated summary
