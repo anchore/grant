@@ -37,6 +37,17 @@ $ grant list redis:latest
 $ grant list alpine.spdx.json
 ```
 
+### Supply an SBOM document by piping syft | grant to preserve your syft config
+```bash
+$ syft -o json alpine:latest | grant list -
+```
+
+### Supply an SBOM document via cat. Filters work on stdin
+```bash
+$ cat cyclonedx.json | grant list - "GPL-3.0-only"
+```
+
+
 ### Check a local directory for licenses
 ```bash
 $ grant list dir:.

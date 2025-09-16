@@ -11,6 +11,7 @@ import (
 
 	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal/stdinbuffer"
 )
 
 const (
@@ -19,6 +20,7 @@ const (
 	unknownLicense = "(unknown)"
 	noVersion      = "(no version)"
 )
+
 
 // GlobalConfig holds configuration that applies to all commands
 type GlobalConfig struct {
@@ -99,6 +101,13 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 		return nil, false
 	}
 
+	// Check if stdin is available
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
+		// stdin is not available (terminal mode)
+		return nil, false
+	}
+
 	// Read from stdin
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
@@ -108,6 +117,8 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 	// Try to parse as grant RunResponse
 	var result grant.RunResponse
 	if err := json.Unmarshal(data, &result); err != nil {
+		// Not grant JSON - save for SBOM processing
+		stdinbuffer.Set(data)
 		return nil, false
 	}
 
@@ -116,6 +127,8 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 		return &result, true
 	}
 
+	// Not grant JSON - save for SBOM processing
+	stdinbuffer.Set(data)
 	return nil, false
 }
 

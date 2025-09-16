@@ -19,6 +19,7 @@ import (
 	"github.com/anchore/grant/internal/licensepatterns"
 	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/grant/internal/spdxlicense"
+	"github.com/anchore/grant/internal/stdinbuffer"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
@@ -168,16 +169,30 @@ func (ch *CaseHandler) determineRequestCase(userRequest string) (c Case, err err
 }
 
 func handleStdin() (c Case, err error) {
-	stdReader, err := decodeStdin(os.Stdin)
-	if err != nil {
-		return c, err
+	var stdReader io.ReadSeeker
+
+	// First check if there's data in the shared buffer (from grant JSON check)
+	if stdinbuffer.HasData() {
+		stdReader = stdinbuffer.Get()
+		if stdReader == nil {
+			return c, fmt.Errorf("failed to retrieve buffered stdin data")
+		}
+	} else {
+		// No buffered data, try to read stdin directly
+		stdReader, err = decodeStdin(os.Stdin)
+		if err != nil {
+			return c, err
+		}
 	}
 
-	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(stdReader)
+	// Use format.Decode directly to handle all SBOM formats including syft JSON
+	sb, formatID, _, err := format.Decode(stdReader)
 	if err != nil {
+		log.Debugf("error decoding stdin: %+v", err)
 		return c, fmt.Errorf("unable to determine SBOM or licenses for stdin: %w", err)
 	}
 	if sb != nil {
+		log.Debugf("decoded SBOM from stdin with format: %s, packages: %d", formatID, len(sb.Artifacts.Packages.Sorted()))
 		return Case{
 			SBOMS:    []sbom.SBOM{*sb},
 			Licenses: make([]License, 0),
@@ -225,7 +240,8 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 		return c, err
 	}
 
-	sb, _, _, err := format.NewDecoderCollection(format.Decoders()...).Decode(sbomBytes)
+	// Use format.Decode directly to handle all SBOM formats including syft JSON
+	sb, _, _, err := format.Decode(sbomBytes)
 	if err != nil {
 		log.Debugf("unable to determine SBOM or licenses for %s: %+v", path, err)
 		// we want to log the debug output, but we don't want to return yet
