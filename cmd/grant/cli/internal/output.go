@@ -28,6 +28,69 @@ func formatClickableLicense(licenseName string) string {
 	return licenseName
 }
 
+// getHighestRisk returns the highest risk category from a list of licenses
+func getHighestRisk(licenses []grant.LicenseDetail) spdxlicense.RiskCategory {
+	highestRisk := spdxlicense.RiskCategoryUncategorized
+
+	for _, license := range licenses {
+		if license.RiskCategory.IsHigh() {
+			return license.RiskCategory // Return immediately if we find high risk
+		}
+		if license.RiskCategory.IsMedium() && !highestRisk.IsHigh() {
+			highestRisk = license.RiskCategory
+		}
+		if license.RiskCategory.IsLow() && highestRisk.IsUncategorized() {
+			highestRisk = license.RiskCategory
+		}
+	}
+
+	return highestRisk
+}
+
+// formatRisk formats the risk category for display, showing count if multiple
+func formatRisk(licenses []grant.LicenseDetail) string {
+	if len(licenses) == 0 {
+		return ""
+	}
+
+	highestRisk := getHighestRisk(licenses)
+
+	// Count how many licenses have different risk levels
+	riskCounts := make(map[spdxlicense.RiskCategory]int)
+	for _, license := range licenses {
+		if license.RiskCategory != "" {
+			riskCounts[license.RiskCategory]++
+		}
+	}
+
+	// Format the risk display
+	riskStr := ""
+	switch {
+	case highestRisk.IsHigh():
+		riskStr = color.Red.Sprint("High")
+	case highestRisk.IsMedium():
+		riskStr = color.Yellow.Sprint("Medium")
+	case highestRisk.IsLow():
+		riskStr = color.Green.Sprint("Low")
+	default:
+		riskStr = color.Gray.Sprint("Unknown")
+	}
+
+	// Add count if there are multiple licenses with different risks
+	totalOtherRisks := 0
+	for risk, count := range riskCounts {
+		if risk != highestRisk {
+			totalOtherRisks += count
+		}
+	}
+
+	if totalOtherRisks > 0 {
+		riskStr += fmt.Sprintf(" (+%d more)", totalOtherRisks)
+	}
+
+	return riskStr
+}
+
 // Output handles different output formats for grant results
 type Output struct{}
 
@@ -183,12 +246,13 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 	t.Style().Options.SeparateRows = false
 
 	// Set headers with uppercase to match grype style
-	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE"})
+	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE", "RISK"})
 
 	// Add rows for denied packages only
 	for _, pkg := range deniedPackages {
 		// Only show the licenses that caused the denial
 		problematicLicenses := o.formatProblematicLicenses(pkg.Licenses)
+		risk := formatRisk(pkg.Licenses)
 		version := pkg.Version
 		if version == "" {
 			version = "(no version)"
@@ -198,6 +262,7 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 			pkg.Name,
 			version,
 			problematicLicenses,
+			risk,
 		})
 	}
 
@@ -224,11 +289,17 @@ func (o *Output) formatProblematicLicenses(licenses []grant.LicenseDetail) strin
 			licenseStr = "sha256:" + licenseStr[7:15] + "..."
 		}
 
-		// Format problematic licenses in red
+		// Format problematic licenses in red with hyperlinks
 		if licenseStr == "" || licenseStr == "(none)" {
 			problematic = append(problematic, color.Red.Sprint("(unknown)"))
 		} else {
-			problematic = append(problematic, color.Red.Sprint(licenseStr))
+			// Check if we have an SPDX reference for the license
+			if spdxLicense, err := spdxlicense.GetLicenseByID(licenseStr); err == nil && spdxLicense.Reference != "" {
+				// Make it red and clickable
+				problematic = append(problematic, fmt.Sprintf("\033]8;;%s\033\\\033[31m%s\033[0m\033]8;;\033\\", spdxLicense.Reference, licenseStr))
+			} else {
+				problematic = append(problematic, color.Red.Sprint(licenseStr))
+			}
 		}
 	}
 
@@ -236,9 +307,9 @@ func (o *Output) formatProblematicLicenses(licenses []grant.LicenseDetail) strin
 		return color.Red.Sprint("(no licenses found)")
 	}
 
-	// If there are many licenses, show count
-	if len(problematic) > 5 {
-		return strings.Join(problematic[:5], ", ") + color.Gray.Sprintf(" (+%d more)", len(problematic)-5)
+	// Show max 2 licenses before showing (+n more)
+	if len(problematic) > 2 {
+		return strings.Join(problematic[:2], ", ") + color.Gray.Sprintf(" (+%d more)", len(problematic)-2)
 	}
 
 	return strings.Join(problematic, ", ")
@@ -363,11 +434,23 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 	t.Style().Options.SeparateRows = false
 
 	// Set headers
-	t.AppendHeader(table.Row{"LICENSE", "PACKAGES"})
+	t.AppendHeader(table.Row{"LICENSE", "PACKAGES", "RISK"})
 
 	// Add rows
 	for _, lc := range licenseCounts {
-		t.AppendRow(table.Row{formatClickableLicense(lc.license), lc.count})
+		// Get risk category for this license
+		riskStr := color.Gray.Sprint("Unknown")
+		if spdxLicense, err := spdxlicense.GetLicenseByID(lc.license); err == nil {
+			switch {
+			case spdxLicense.RiskCategory.IsHigh():
+				riskStr = color.Red.Sprint("High")
+			case spdxLicense.RiskCategory.IsMedium():
+				riskStr = color.Yellow.Sprint("Medium")
+			case spdxLicense.RiskCategory.IsLow():
+				riskStr = color.Green.Sprint("Low")
+			}
+		}
+		t.AppendRow(table.Row{formatClickableLicense(lc.license), lc.count, riskStr})
 	}
 
 	t.Render()
