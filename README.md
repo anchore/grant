@@ -1,3 +1,31 @@
+<p align="center">
+ <img src=".github/images/grant-logo.png" width="271" alt="Grant logo - cute green spotted creature" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/anchore/grant/actions/workflows/validations.yaml">
+    <img alt="Validations" src="https://github.com/anchore/grant/actions/workflows/validations.yaml/badge.svg" />
+  </a>
+  <a href="https://goreportcard.com/report/github.com/anchore/grant">
+    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/anchore/grant" />
+  </a>
+  <a href="https://github.com/anchore/grant/releases/latest">
+    <img alt="GitHub release" src="https://img.shields.io/github/release/anchore/grant.svg" />
+  </a>
+  <a href="https://github.com/anchore/grant/blob/main/go.mod">
+    <img alt="GitHub go.mod Go version" src="https://img.shields.io/github/go-mod/go-version/anchore/grant.svg" />
+  </a>
+  <a href="https://github.com/anchore/grant/blob/main/LICENSE">
+    <img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" />
+  </a>
+  <a href="https://anchore.com/discourse/">
+    <img alt="Join our Discourse" src="https://img.shields.io/discourse/status?server=https%3A%2F%2Fanchore.com%2Fdiscourse%2F" />
+  </a>
+  <a href="https://fosstodon.org/@anchore">
+    <img alt="Follow on Mastodon" src="https://img.shields.io/mastodon/follow/109302313439429249?domain=https%3A%2F%2Ffosstodon.org" />
+  </a>
+</p>
+
 # Grant
 
 View licenses for container images, SBOM documents, filesystems, and apply rules that help you build a license
