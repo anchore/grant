@@ -2,9 +2,11 @@ package command
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -133,7 +135,8 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 	var data []byte
 	var err error
 
-	if strings.EqualFold(target, "-") {
+	switch {
+	case strings.EqualFold(target, "-"):
 		// Handle stdin input
 		// Check if stdin is available
 		stat, _ := os.Stdin.Stat()
@@ -147,7 +150,7 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 		if err != nil {
 			return nil, false
 		}
-	} else if strings.HasSuffix(target, ".json") {
+	case strings.HasSuffix(target, ".json"):
 		// Handle file input - check if it's a JSON file that might be grant output
 		// Check if the file exists
 		if _, err := os.Stat(target); os.IsNotExist(err) {
@@ -155,11 +158,11 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 		}
 
 		// Read from file
-		data, err = os.ReadFile(target)
+		data, err = readInputFile(target)
 		if err != nil {
 			return nil, false
 		}
-	} else {
+	default:
 		// Not stdin and not a JSON file
 		return nil, false
 	}
@@ -285,4 +288,61 @@ func filterGrantJSONByLicenses(result *grant.RunResponse, licenseFilters []strin
 	}
 
 	return filteredResult
+}
+
+var maxUserFileBytes int64 = 100 << 20 // 100 MiB cap
+
+// readInputFile reads a user-specified JSON or XML file with safety checks.
+// It intentionally accepts arbitrary file paths but guards against symlinks, large files,
+// and unsupported formats.
+func readInputFile(target string) ([]byte, error) {
+	// Support "-" as stdin (for piping JSON/XML)
+	if target == "-" {
+		return io.ReadAll(io.LimitReader(os.Stdin, maxUserFileBytes+1))
+	}
+
+	clean := filepath.Clean(target)
+
+	// Check extension (case-insensitive)
+	ext := strings.ToLower(filepath.Ext(clean))
+	if ext != ".json" && ext != ".xml" {
+		return nil, fmt.Errorf("unsupported file type %q (must be .json or .xml)", ext)
+	}
+
+	fi, err := os.Lstat(clean)
+	if err != nil {
+		return nil, fmt.Errorf("stat %q: %w", clean, err)
+	}
+
+	if fi.Mode()&os.ModeSymlink != 0 {
+		return nil, fmt.Errorf("refusing to read symlink: %s", clean)
+	}
+	if !fi.Mode().IsRegular() {
+		return nil, fmt.Errorf("refusing to read non-regular file: %s", clean)
+	}
+	if fi.Size() > maxUserFileBytes {
+		return nil, fmt.Errorf("file too large (%d bytes > %d)", fi.Size(), maxUserFileBytes)
+	}
+
+	// #nosec G304 -- design: CLI intentionally accepts arbitrary JSON/XML file paths
+	f, err := os.Open(clean)
+	if err != nil {
+		return nil, fmt.Errorf("open %q: %w", clean, err)
+	}
+
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	data, err := io.ReadAll(io.LimitReader(f, maxUserFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read %q: %w", clean, err)
+	}
+	if int64(len(data)) > maxUserFileBytes {
+		return nil, errors.New("file exceeds maximum allowed size")
+	}
+
+	return data, err
 }
