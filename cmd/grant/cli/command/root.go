@@ -27,6 +27,7 @@ type GlobalConfig struct {
 	OutputFile   string
 	Quiet        bool
 	Verbose      bool
+	NoOutput     bool
 }
 
 // GetGlobalConfig extracts global configuration from cobra command
@@ -36,6 +37,7 @@ func GetGlobalConfig(cmd *cobra.Command) *GlobalConfig {
 	outputFile, _ := cmd.Flags().GetString("output-file")
 	quiet, _ := cmd.Flags().GetBool("quiet")
 	verbose, _ := cmd.Flags().GetBool("verbose")
+	noOutput, _ := cmd.Flags().GetBool("no-output")
 
 	// Note: If output-file is specified, we keep the original outputFormat for terminal
 	// but will write JSON to the file separately
@@ -46,6 +48,7 @@ func GetGlobalConfig(cmd *cobra.Command) *GlobalConfig {
 		OutputFile:   outputFile,
 		Quiet:        quiet,
 		Verbose:      verbose,
+		NoOutput:     noOutput,
 	}
 }
 
@@ -81,12 +84,8 @@ func OutputResult(result *grant.RunResponse, format string, outputFile string) e
 	// Handle terminal output based on format
 	switch format {
 	case formatJSON:
-		// If no output file specified, write JSON to stdout
-		if outputFile == "" {
-			return output.OutputJSON(result, "")
-		}
-		// If output file is specified, we already wrote to file, so no stdout output
-		return nil
+		// Always output to terminal (caller should check no-output flag)
+		return output.OutputJSON(result, "")
 	case formatTable:
 		return output.OutputTable(result)
 	default:

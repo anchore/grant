@@ -92,6 +92,11 @@ func handleJSONInput(cmd *cobra.Command, target string, licenseFilters []string)
 			}
 		}
 
+		// Skip terminal output if no-output flag is set and output file is specified
+		if globalConfig.NoOutput && globalConfig.OutputFile != "" {
+			return result, true, nil
+		}
+
 		if globalConfig.OutputFormat == "table" {
 			return result, true, outputListTableWithFilters(result, licenseFilters)
 		} else {
@@ -180,7 +185,7 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Handle filtered output
 	if licensesOnly || packagesOnly {
-		return handleFilteredOutput(result, globalConfig.OutputFormat, licensesOnly, packagesOnly, globalConfig.Quiet, globalConfig.OutputFile)
+		return handleFilteredOutput(result, globalConfig.OutputFormat, licensesOnly, packagesOnly, globalConfig.Quiet, globalConfig.OutputFile, globalConfig.NoOutput)
 	}
 
 	// Handle output
@@ -206,6 +211,11 @@ func runList(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Skip terminal output if no-output flag is set and output file is specified
+	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
+		return nil
+	}
+
 	// Normal output - use list-specific formatting for table output
 	if globalConfig.OutputFormat == "table" {
 		if err := outputListTableWithFilters(result, licenseFilters); err != nil {
@@ -223,7 +233,7 @@ func runList(cmd *cobra.Command, args []string) error {
 }
 
 // handleFilteredOutput handles licenses-only or packages-only output
-func handleFilteredOutput(result *grant.RunResponse, format string, licensesOnly, packagesOnly bool, quiet bool, outputFile string) error {
+func handleFilteredOutput(result *grant.RunResponse, format string, licensesOnly, packagesOnly bool, quiet bool, outputFile string, noOutput bool) error {
 	// If output file is specified, always write JSON to file
 	if outputFile != "" {
 		output := internal.NewOutput()
@@ -238,6 +248,11 @@ func handleFilteredOutput(result *grant.RunResponse, format string, licensesOnly
 			return OutputResult(result, format, "")
 		}
 		// If output file is specified, we already wrote to file, so no stdout output
+		return nil
+	}
+
+	// Skip terminal output if no-output flag is set and output file is specified
+	if noOutput && outputFile != "" {
 		return nil
 	}
 
@@ -670,6 +685,11 @@ func handlePackageDetailOutput(result *grant.RunResponse, packageName string, gl
 			totalPackages += len(target.Evaluation.Findings.Packages)
 		}
 		fmt.Printf("%d\n", totalPackages)
+		return nil
+	}
+
+	// Skip terminal output if no-output flag is set and output file is specified
+	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
 		return nil
 	}
 

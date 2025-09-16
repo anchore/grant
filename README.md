@@ -23,7 +23,7 @@
 
 # Grant
 
-View licenses for container images, SBOM documents, filesystems, and apply filters that can help you build a license compliance report. Grant provides powerful filtering, detailed package analysis, and cli capabilities for tackling license investigation and management.
+View licenses for container images, SBOM documents, and filesystems! Apply filters and views that can help you build a picture of licenses in your SBOM. Grant provides powerful filtering and cli capabilities for tackling license investigation and management.
 
 ### Supply an image to view the licenses found in the image
 ```bash
@@ -45,11 +45,14 @@ $ grant list dir:.
 # Show only packages with MIT license
 $ grant list dir:. "MIT"
 
+# Show only packages with MIT or SMAIL-GPL
+$ grant list redis:latest 'SMAIL-GPL' 'MIT'
+
 # Get detailed info about a specific package
 $ grant list dir:. "MIT" --pkg "github.com/BurntSushi/toml"
 
 # Save results to JSON file for continued processing (no rescan)
-$ grant list dir:. -f results.json
+$ grant list dir:. -f licenses.json
 $ cat results.json | grant list - "Apache-2.0"
 ```
 
@@ -161,9 +164,21 @@ grant check dir:. --output-file results.json
 
 # Use shorthand flag
 grant list dir:. -f output.json
+
+# Output JSON to both terminal and file
+grant list dir:. -o json -f output.json
+
+# Suppress terminal output when writing to file
+grant list dir:. -f output.json --no-output
+grant check dir:. -o json -f results.json --no-output
 ```
 
 The JSON output contains complete machine-readable data regardless of the terminal display format.
+
+**Output Control Options:**
+- By default, grant shows table output in terminal and writes JSON to file
+- Use `-o json` to show JSON in terminal AND write to file
+- Use `--no-output` to suppress terminal output when writing to file (useful for scripts and CI/CD)
 
 ### License Filtering
 
@@ -249,6 +264,11 @@ grant check --unlicensed dir:.         # Shows packages without licenses
 # JSON format
 grant list -o json dir:.               # JSON to stdout
 grant check -o json dir:.              # JSON to stdout
+
+# File output combinations
+grant list dir:. -f output.json        # Table to terminal, JSON to file
+grant list dir:. -o json -f out.json   # JSON to both terminal and file
+grant list dir:. -f out.json --no-output  # JSON to file only, no terminal output
 ```
 
 ### Advanced Workflow Examples
@@ -311,6 +331,7 @@ cat mit-packages.json | grant list - "MIT" --pkg "github.com/some/package" -f pa
 |------|-------|-------------|
 | `--output-file` | `-f` | Write JSON output to file |
 | `--output` | `-o` | Output format (table, json) |
+| `--no-output` | | Suppress terminal output when writing to file |
 | `--quiet` | `-q` | Minimal output |
 | `--config` | `-c` | Configuration file path |
 | `--pkg` | | Show detailed package info (requires license filter) |
