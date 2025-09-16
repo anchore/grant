@@ -34,10 +34,13 @@ func (ui *RealtimeUI) ShowScanComplete(source string, sourceType string) {
 
 	// Clear the loading line and show completion
 	fmt.Printf("\033[1A") // Move cursor up one line
-	fmt.Printf("\r %s Loaded %s                                                                              %s\n",
-		color.Green.Sprint("✔"), source, color.Gray.Sprint(sourceType))
-	fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
-	fmt.Printf(" %s Cataloged contents\n", color.Green.Sprint("✔"))
+	fmt.Printf("\033[2K") // Clear the entire line
+	fmt.Printf("\r %s Loaded %s",
+		color.Green.Sprint("✔"), source)
+	if sourceType != "" {
+		fmt.Printf("                                                                              %s", color.Gray.Sprint(sourceType))
+	}
+	fmt.Printf("\n")
 }
 
 // ShowCatalogedContents shows the cataloged contents in tree format

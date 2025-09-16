@@ -190,8 +190,9 @@ func runList(cmd *cobra.Command, args []string) error {
 	groupBy, _ := cmd.Flags().GetString("group-by")
 
 	// Show loading progress before cataloging
+	var ui *internal.RealtimeUI
 	if internal.IsTerminalOutput() && !globalConfig.Quiet {
-		ui := internal.NewRealtimeUI(globalConfig.Quiet)
+		ui = internal.NewRealtimeUI(globalConfig.Quiet)
 		ui.ShowLoadingProgress(target)
 	}
 
@@ -199,6 +200,15 @@ func runList(cmd *cobra.Command, args []string) error {
 	result, err := performListOperation(target, licenseFilters, disableFileSearch, globalConfig)
 	if err != nil {
 		return err
+	}
+
+	// Show scan complete after successful operation
+	if ui != nil {
+		sourceType := ""
+		if result != nil && len(result.Run.Targets) > 0 {
+			sourceType = result.Run.Targets[0].Source.Type
+		}
+		ui.ShowScanComplete(target, sourceType)
 	}
 
 	// Apply license filtering if specified

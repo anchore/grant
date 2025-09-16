@@ -1,5 +1,5 @@
 Output ".github/images/demo.gif"
-Set Shell "fish"
+Set Shell "zsh"
 
 Require grant
 Set Theme {
@@ -29,7 +29,7 @@ Set Theme {
 }
 #Set FontFamily "Iosevka Term"
 Set FontSize 22
-Set Width 1920
+Set Width 1080
 Set Height 1080
 Set Padding 2
 Set WindowBar Rings
@@ -42,7 +42,7 @@ Set BorderRadius 8
 Set Framerate 60
 Set PlaybackSpeed 1.0
 Set TypingSpeed 0.02
-Env PS1 "[0;38;5;231;48;5;31;1m anchore [0;38;5;31;48;5;240;22m [0;38;5;252;48;5;240;1m~ [0;38;5;240;49;22m [0m"
+Env PS1 "[0;38;5;231;48;5;31;1m anchore [0;38;5;31;48;5;240;22m [0;38;5;252;48;5;240;1m~ [0;38;5;240;49;22m [0m"
 Sleep 150ms
 
 Type `grant list alpine:latest`
