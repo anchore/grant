@@ -21,6 +21,7 @@ import (
 	"github.com/anchore/grant/internal/spdxlicense"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
 	"github.com/anchore/syft/syft/format"
 	"github.com/anchore/syft/syft/pkg/cataloger/golang"
@@ -503,14 +504,30 @@ func (ch *CaseHandler) getSBOMWithSharedBackend(src source.Source) sbom.SBOM {
 
 func getSBOM(src source.Source) sbom.SBOM {
 	createSBOMConfig := syft.DefaultCreateSBOMConfig()
-	createSBOMConfig.WithPackagesConfig(
-		pkgcataloging.DefaultConfig().
-			WithJavaArchiveConfig(java.DefaultArchiveCatalogerConfig().WithUseNetwork(true)).
-			WithJavascriptConfig(javascript.DefaultCatalogerConfig().WithSearchRemoteLicenses(true)).
-			WithGolangConfig(golang.DefaultCatalogerConfig().
-				WithSearchLocalModCacheLicenses(true).
-				WithSearchRemoteLicenses(true)))
-	s, err := syft.CreateSBOM(context.Background(), src, nil)
+
+	// Configure cataloger selection to disable go-module-binary-cataloger
+	// This cataloger does not play nice with license analysis for golang
+	catalogerSelection := cataloging.NewSelectionRequest().
+		WithDefaults().
+		WithRemovals("go-module-binary-cataloger")
+
+	// Configure license scanning with proper settings
+	licenseConfig := cataloging.DefaultLicenseConfig()
+	licenseConfig.Coverage = 0.75 // Set a reasonable coverage threshold for license matching
+
+	createSBOMConfig.
+		WithCatalogerSelection(catalogerSelection).
+		WithLicenseConfig(licenseConfig).
+		WithPackagesConfig(
+			pkgcataloging.DefaultConfig().
+				WithJavaArchiveConfig(java.DefaultArchiveCatalogerConfig().WithUseNetwork(true)).
+				WithJavascriptConfig(javascript.DefaultCatalogerConfig().WithSearchRemoteLicenses(true)).
+				WithGolangConfig(golang.DefaultCatalogerConfig().
+					WithSearchLocalModCacheLicenses(true).
+					WithSearchRemoteLicenses(true).
+					WithLocalModCacheDir(""))) // Empty string uses default location
+
+	s, err := syft.CreateSBOM(context.Background(), src, createSBOMConfig)
 	if err != nil {
 		panic(err)
 	}
