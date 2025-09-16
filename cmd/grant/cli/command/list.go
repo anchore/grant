@@ -12,6 +12,7 @@ import (
 
 	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal/input"
 	"github.com/anchore/grant/internal/spdxlicense"
 )
 
@@ -91,7 +92,7 @@ func formatRisk(licenses []grant.LicenseDetail) string {
 // List creates the list command
 func List() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "list TARGET [LICENSE...]",
+		Use:   "list [TARGET] [LICENSE...]",
 		Short: "List licenses found in one or more targets",
 		Long: `List shows all licenses found in container images, SBOMs, filesystems, and files
 without applying policy evaluation.
@@ -104,13 +105,18 @@ Targets can be:
 - License files: LICENSE, COPYING
 - Stdin: - (reads SBOM from stdin)
 
+When no target is specified and stdin is available (piped input), grant will
+automatically read from stdin. This allows usage like:
+  syft -o json dir:. | grant list Apache-2.0
+
 License filtering:
 If license names are provided as additional arguments, only packages with those
 specific licenses will be shown. For example:
   grant list dir:. "MIT" "Apache-2.0"
+  syft -o json dir:. | grant list "MIT" "Apache-2.0"
 
 This command always returns exit code 0 unless there are processing errors.`,
-		Args: cobra.MinimumNArgs(1),
+		Args: cobra.ArbitraryArgs,
 		RunE: runList,
 	}
 
@@ -162,7 +168,10 @@ func handleJSONInput(cmd *cobra.Command, target string, licenseFilters []string)
 // runList executes the list command
 func runList(cmd *cobra.Command, args []string) error {
 	// Parse arguments and prepare filters
-	target, licenseFilters := parseListArguments(cmd, args)
+	target, licenseFilters, err := parseListArgumentsWithStdin(cmd, args)
+	if err != nil {
+		return err
+	}
 
 	// Check if input is grant JSON from stdin
 	if _, handled, err := handleJSONInput(cmd, target, licenseFilters); handled {
@@ -256,22 +265,86 @@ func performListOperation(target string, licenseFilters []string, disableFileSea
 	return result, nil
 }
 
-// parseListArguments extracts target and license filters from command arguments
-func parseListArguments(cmd *cobra.Command, args []string) (string, []string) {
-	target := args[0]
+// parseListArgumentsWithStdin extracts target and license filters, defaulting to stdin when appropriate
+func parseListArgumentsWithStdin(cmd *cobra.Command, args []string) (string, []string, error) {
+	var target string
 	var licenseFilters []string
-	if len(args) > 1 {
-		licenseFilters = args[1:]
+
+	// Check if stdin is available
+	hasStdin, err := input.IsStdinPipeOrRedirect()
+	if err != nil {
+		return "", nil, err
+	}
+
+	if len(args) == 0 {
+		// No arguments provided
+		if hasStdin {
+			// Use stdin as target
+			target = "-"
+		} else {
+			// No stdin and no arguments - error
+			return "", nil, fmt.Errorf("no target specified and no input available on stdin")
+		}
+	} else {
+		// At least one argument provided
+		// Check if the first argument looks like a target or a license filter
+		firstArg := args[0]
+
+		// If stdin is available and first arg doesn't look like a target path/reference,
+		// treat all args as license filters
+		if hasStdin && !looksLikeTarget(firstArg) {
+			target = "-"
+			licenseFilters = args
+		} else {
+			// Traditional parsing: first arg is target, rest are filters
+			target = firstArg
+			if len(args) > 1 {
+				licenseFilters = args[1:]
+			}
+		}
 	}
 
 	// Check if --unlicensed flag is set
 	unlicensed, _ := cmd.Flags().GetBool("unlicensed")
 	if unlicensed {
-		// Add "(no licenses found)" to the filter list
 		licenseFilters = append(licenseFilters, "(no licenses found)")
 	}
 
-	return target, licenseFilters
+	return target, licenseFilters, nil
+}
+
+// looksLikeTarget checks if a string looks like a target (file path, directory, image reference, etc.)
+// rather than a license name
+func looksLikeTarget(s string) bool {
+	// Check for explicit target prefixes
+	if strings.HasPrefix(s, "dir:") || strings.HasPrefix(s, "file:") || strings.HasPrefix(s, "image:") {
+		return true
+	}
+
+	// Check if it looks like a file path
+	if strings.Contains(s, "/") || strings.Contains(s, "\\") || strings.HasSuffix(s, ".json") ||
+		strings.HasSuffix(s, ".xml") || strings.HasSuffix(s, ".tar") || strings.HasSuffix(s, ".gz") ||
+		strings.HasSuffix(s, ".zip") {
+		return true
+	}
+
+	// Check if it looks like a Docker image reference
+	if strings.Contains(s, ":") || strings.Contains(s, "@") {
+		return true
+	}
+
+	// Check for single dash (stdin indicator)
+	if s == "-" {
+		return true
+	}
+
+	// Check if it's a file that exists
+	if _, err := os.Stat(s); err == nil {
+		return true
+	}
+
+	// Otherwise, assume it's a license filter
+	return false
 }
 
 // handleListOutput manages all output modes for the list command
@@ -348,78 +421,83 @@ func outputListTableWithFilters(result *grant.RunResponse, licenseFilters []stri
 		if err := outputListTargetTableWithFilters(target, licenseFilters); err != nil {
 			return err
 		}
-		fmt.Println() // Add spacing between targets
+		if internal.IsTerminalOutput() {
+			fmt.Println() // Add spacing between targets
+		}
 	}
 	return nil
 }
 
 // outputListTargetTableWithFilters outputs a single target in list format with filter information
 func outputListTargetTableWithFilters(target grant.TargetResult, licenseFilters []string) error {
-	// Display progress steps
-	fmt.Printf(" %s Loaded %s                                                                              %s\n",
-		color.Green.Sprint("✔"),
-		target.Source.Ref,
-		target.Source.Type)
+	// Only show progress TUI if outputting to a terminal
+	if internal.IsTerminalOutput() {
+		// Display progress steps
+		fmt.Printf(" %s Loaded %s                                                                              %s\n",
+			color.Green.Sprint("✔"),
+			target.Source.Ref,
+			target.Source.Type)
 
-	fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
+		fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
 
-	// Show filter applied if license filters are specified
-	if len(licenseFilters) > 0 {
-		var filterDisplay string
-		if len(licenseFilters) == 1 {
-			filterDisplay = fmt.Sprintf("[license=\"%s\"]", licenseFilters[0])
+		// Show filter applied if license filters are specified
+		if len(licenseFilters) > 0 {
+			var filterDisplay string
+			if len(licenseFilters) == 1 {
+				filterDisplay = fmt.Sprintf("[license=\"%s\"]", licenseFilters[0])
+			} else {
+				filterDisplay = fmt.Sprintf("[licenses=\"%s\"]", strings.Join(licenseFilters, "\", \""))
+			}
+			fmt.Printf(" %s Filter applied                     %s\n",
+				color.Green.Sprint("✔"),
+				filterDisplay)
+		}
+
+		fmt.Printf(" %s Cataloged contents\n", color.Green.Sprint("✔"))
+
+		// Display tree structure with counts
+		fmt.Printf("   %s %s %-30s %s\n",
+			"├──",
+			color.Green.Sprint("✔"),
+			"Packages",
+			fmt.Sprintf("[%d packages]", target.Evaluation.Summary.Packages.Total))
+
+		fmt.Printf("   %s %s %-30s %s\n",
+			"├──",
+			color.Green.Sprint("✔"),
+			"Licenses",
+			fmt.Sprintf("[%d unique]", target.Evaluation.Summary.Licenses.Unique))
+
+		// Count total file locations across all packages
+		totalLocations := 0
+		for _, pkg := range target.Evaluation.Findings.Packages {
+			totalLocations += len(pkg.Locations)
+		}
+
+		fmt.Printf("   %s %s %-30s %s\n",
+			"└──",
+			color.Green.Sprint("✔"),
+			"File metadata",
+			fmt.Sprintf("[%d locations]", totalLocations))
+
+		// Show matched packages count if filtering is applied
+		if len(licenseFilters) > 0 {
+			matchedCount := len(target.Evaluation.Findings.Packages)
+			fmt.Printf(" %s Matched packages                   [%d package",
+				color.Green.Sprint("✔"),
+				matchedCount)
+			if matchedCount != 1 {
+				fmt.Print("s")
+			}
+			fmt.Println("]")
 		} else {
-			filterDisplay = fmt.Sprintf("[licenses=\"%s\"]", strings.Join(licenseFilters, "\", \""))
+			// Display aggregated licenses section (only when not filtering)
+			fmt.Printf(" %s Aggregated licenses                [grouped by license, desc by count]\n",
+				color.Green.Sprint("✔"))
 		}
-		fmt.Printf(" %s Filter applied                     %s\n",
-			color.Green.Sprint("✔"),
-			filterDisplay)
+
+		fmt.Println()
 	}
-
-	fmt.Printf(" %s Cataloged contents\n", color.Green.Sprint("✔"))
-
-	// Display tree structure with counts
-	fmt.Printf("   %s %s %-30s %s\n",
-		"├──",
-		color.Green.Sprint("✔"),
-		"Packages",
-		fmt.Sprintf("[%d packages]", target.Evaluation.Summary.Packages.Total))
-
-	fmt.Printf("   %s %s %-30s %s\n",
-		"├──",
-		color.Green.Sprint("✔"),
-		"Licenses",
-		fmt.Sprintf("[%d unique]", target.Evaluation.Summary.Licenses.Unique))
-
-	// Count total file locations across all packages
-	totalLocations := 0
-	for _, pkg := range target.Evaluation.Findings.Packages {
-		totalLocations += len(pkg.Locations)
-	}
-
-	fmt.Printf("   %s %s %-30s %s\n",
-		"└──",
-		color.Green.Sprint("✔"),
-		"File metadata",
-		fmt.Sprintf("[%d locations]", totalLocations))
-
-	// Show matched packages count if filtering is applied
-	if len(licenseFilters) > 0 {
-		matchedCount := len(target.Evaluation.Findings.Packages)
-		fmt.Printf(" %s Matched packages                   [%d package",
-			color.Green.Sprint("✔"),
-			matchedCount)
-		if matchedCount != 1 {
-			fmt.Print("s")
-		}
-		fmt.Println("]")
-	} else {
-		// Display aggregated licenses section (only when not filtering)
-		fmt.Printf(" %s Aggregated licenses                [grouped by license, desc by count]\n",
-			color.Green.Sprint("✔"))
-	}
-
-	fmt.Println()
 
 	// Display package table or aggregated license table
 	if len(licenseFilters) > 0 {
@@ -742,7 +820,9 @@ func handleGroupByRiskOutput(result *grant.RunResponse, globalConfig *GlobalConf
 		if err := outputRiskGroupedTable(target); err != nil {
 			return err
 		}
-		fmt.Println() // Add spacing between targets
+		if internal.IsTerminalOutput() {
+			fmt.Println() // Add spacing between targets
+		}
 	}
 
 	return nil
@@ -750,14 +830,16 @@ func handleGroupByRiskOutput(result *grant.RunResponse, globalConfig *GlobalConf
 
 // outputRiskGroupedTable outputs licenses grouped by risk category
 func outputRiskGroupedTable(target grant.TargetResult) error {
-	// Display progress-style header
-	fmt.Printf(" %s Loaded %s\n",
-		color.Green.Sprint("✔"),
-		target.Source.Ref)
+	// Display progress-style header only if outputting to a terminal
+	if internal.IsTerminalOutput() {
+		fmt.Printf(" %s Loaded %s\n",
+			color.Green.Sprint("✔"),
+			target.Source.Ref)
 
-	fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
-	fmt.Printf(" %s Aggregated by risk\n", color.Green.Sprint("✔"))
-	fmt.Println()
+		fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
+		fmt.Printf(" %s Aggregated by risk\n", color.Green.Sprint("✔"))
+		fmt.Println()
+	}
 
 	// Create risk category aggregations
 	type riskStats struct {
@@ -858,26 +940,28 @@ func displayPackageDetails(result *grant.RunResponse, packageName string) error 
 		return nil
 	}
 
-	// Display progress-style header
-	fmt.Printf(" %s Loaded %s                                                                              %s\n",
-		color.Green.Sprint("✔"),
-		target.Source.Ref,
-		target.Source.Type)
+	// Display progress-style header only if outputting to a terminal
+	if internal.IsTerminalOutput() {
+		fmt.Printf(" %s Loaded %s                                                                              %s\n",
+			color.Green.Sprint("✔"),
+			target.Source.Ref,
+			target.Source.Type)
 
-	fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
-	fmt.Printf(" %s Package details                    [package=\"%s\"]\n",
-		color.Green.Sprint("✔"),
-		packageName)
+		fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
+		fmt.Printf(" %s Package details                    [package=\"%s\"]\n",
+			color.Green.Sprint("✔"),
+			packageName)
 
-	fmt.Printf(" %s Found package instances           [%d instance",
-		color.Green.Sprint("✔"),
-		len(packages))
-	if len(packages) != 1 {
-		fmt.Print("s")
+		fmt.Printf(" %s Found package instances           [%d instance",
+			color.Green.Sprint("✔"),
+			len(packages))
+		if len(packages) != 1 {
+			fmt.Print("s")
+		}
+		fmt.Println("]")
+
+		fmt.Println()
 	}
-	fmt.Println("]")
-
-	fmt.Println()
 
 	// Display detailed information for each package instance
 	for i, pkg := range packages {
