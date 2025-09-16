@@ -165,12 +165,19 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 		}
 	}
 
-	// By default, deny packages without licenses (unless RequireLicense is explicitly set to false)
-	// Since RequireLicense is a bool that defaults to false, we need to check if it's explicitly set
-	// For now, we'll change the default behavior to deny packages without licenses
+	// Check if RequireLicense is enabled
+	if policy.RequireLicense {
+		// Deny packages without licenses when RequireLicense is true
+		return PackageResult{
+			Package: *pkg,
+			Reason:  "package denied - no licenses found",
+		}
+	}
+
+	// Allow packages without licenses when RequireLicense is false
 	return PackageResult{
 		Package: *pkg,
-		Reason:  "package denied - no licenses found",
+		Reason:  "package allowed - no license requirement",
 	}
 }
 
@@ -181,6 +188,8 @@ func (c *Case) categorizePackageResult(packageResult *PackageResult, result *Eva
 		result.IgnoredPackages = append(result.IgnoredPackages, *packageResult)
 	case len(packageResult.DeniedLicenses) > 0 || packageResult.Reason == "package denied - no licenses found":
 		result.DeniedPackages = append(result.DeniedPackages, *packageResult)
+	case packageResult.Reason == "package allowed - no license requirement":
+		result.AllowedPackages = append(result.AllowedPackages, *packageResult)
 	default:
 		result.AllowedPackages = append(result.AllowedPackages, *packageResult)
 	}

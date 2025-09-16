@@ -93,14 +93,15 @@ type PackageFinding struct {
 
 // LicenseDetail contains detailed license information
 type LicenseDetail struct {
-	ID                    string   `json:"id"`
-	Name                  string   `json:"name,omitempty"`
-	IsDeprecatedLicenseID bool     `json:"isDeprecatedLicenseId"`
-	IsOsiApproved         bool     `json:"isOsiApproved"`
-	DetailsURL            string   `json:"detailsUrl"`
-	Reference             string   `json:"reference,omitempty"`
-	SeeAlso               []string `json:"seeAlso,omitempty"`
-	Evidence              []string `json:"evidence,omitempty"`
+	ID                    string                     `json:"id"`
+	Name                  string                     `json:"name,omitempty"`
+	IsDeprecatedLicenseID bool                       `json:"isDeprecatedLicenseId"`
+	IsOsiApproved         bool                       `json:"isOsiApproved"`
+	DetailsURL            string                     `json:"detailsUrl"`
+	Reference             string                     `json:"reference,omitempty"`
+	SeeAlso               []string                   `json:"seeAlso,omitempty"`
+	Evidence              []string                   `json:"evidence,omitempty"`
+	RiskCategory          spdxlicense.RiskCategory   `json:"riskCategory,omitempty"`
 }
 
 // NewRunResponse creates a new RunResponse with default values
@@ -268,6 +269,7 @@ func populateSPDXLicenseData(detail *LicenseDetail) {
 	if spdxLicense, err := spdxlicense.GetLicenseByID(detail.ID); err == nil {
 		detail.Reference = spdxLicense.Reference
 		detail.SeeAlso = spdxLicense.SeeAlso
+		detail.RiskCategory = spdxLicense.RiskCategory
 	}
 }
 

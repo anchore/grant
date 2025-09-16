@@ -12,7 +12,7 @@ func Application() *cobra.Command {
 	app := &cobra.Command{
 		Use:     "grant",
 		Short:   "A license compliance tool for container images, SBOMs, filesystems, and more",
-		Long:    `Grant helps you view licenses for container images, SBOM documents, filesystems, and apply rules to build license compliance reports.`,
+		Long:    `Grant helps you view licenses for container images, SBOM documents, and filesystems. Apply filters and views that can help you build a picture of licenses in your SBOM.`,
 		Version: internal.ApplicationVersion,
 	}
 

@@ -520,11 +520,11 @@ func getSBOM(src source.Source) sbom.SBOM {
 		WithLicenseConfig(licenseConfig).
 		WithPackagesConfig(
 			pkgcataloging.DefaultConfig().
-				WithJavaArchiveConfig(java.DefaultArchiveCatalogerConfig().WithUseNetwork(true)).
-				WithJavascriptConfig(javascript.DefaultCatalogerConfig().WithSearchRemoteLicenses(true)).
+				WithJavaArchiveConfig(java.DefaultArchiveCatalogerConfig().WithUseNetwork(false)).
+				WithJavascriptConfig(javascript.DefaultCatalogerConfig().WithSearchRemoteLicenses(false)).
 				WithGolangConfig(golang.DefaultCatalogerConfig().
-					WithSearchLocalModCacheLicenses(true).
-					WithSearchRemoteLicenses(true).
+					WithSearchLocalModCacheLicenses(false).
+					WithSearchRemoteLicenses(false).
 					WithLocalModCacheDir(""))) // Empty string uses default location
 
 	s, err := syft.CreateSBOM(context.Background(), src, createSBOMConfig)
