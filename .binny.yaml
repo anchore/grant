@@ -97,3 +97,10 @@ tools:
     method: github-release
     with:
       repo: anchore/syft
+
+  - name: vhs
+    version:
+      want: v0.10.0
+    method: github-release
+    with:
+      repo: charmbracelet/vhs
