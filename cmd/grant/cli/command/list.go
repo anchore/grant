@@ -138,7 +138,6 @@ func handleJSONInput(cmd *cobra.Command, target string, licenseFilters []string)
 			return result, true, displayPackageDetails(result, packageDetail)
 		}
 
-
 		if globalConfig.OutputFile != "" {
 			output := internal.NewOutput()
 			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
@@ -162,19 +161,8 @@ func handleJSONInput(cmd *cobra.Command, target string, licenseFilters []string)
 
 // runList executes the list command
 func runList(cmd *cobra.Command, args []string) error {
-	// Parse arguments: first is target, rest are license filters
-	target := args[0]
-	var licenseFilters []string
-	if len(args) > 1 {
-		licenseFilters = args[1:]
-	}
-
-	// Check if --unlicensed flag is set
-	unlicensed, _ := cmd.Flags().GetBool("unlicensed")
-	if unlicensed {
-		// Add "(no licenses found)" to the filter list
-		licenseFilters = append(licenseFilters, "(no licenses found)")
-	}
+	// Parse arguments and prepare filters
+	target, licenseFilters := parseListArguments(cmd, args)
 
 	// Check if input is grant JSON from stdin
 	if _, handled, err := handleJSONInput(cmd, target, licenseFilters); handled {
@@ -192,40 +180,9 @@ func runList(cmd *cobra.Command, args []string) error {
 	packageDetail, _ := cmd.Flags().GetString("pkg")
 	groupBy, _ := cmd.Flags().GetString("group-by")
 
-	// Load policy (needed for orchestrator, but not used for evaluation)
-	policy, err := LoadPolicyFromConfig(globalConfig)
+	// Create orchestrator and perform list operation
+	result, err := performListOperation(target, licenseFilters, disableFileSearch, globalConfig)
 	if err != nil {
-		HandleError(err, globalConfig.Quiet)
-		return err
-	}
-
-	// Create orchestrator with configuration
-	caseConfig := grant.CaseConfig{
-		DisableFileSearch: disableFileSearch,
-	}
-
-	orchestrator, err := grant.NewOrchestratorWithConfig(policy, caseConfig)
-	if err != nil {
-		HandleError(fmt.Errorf("failed to create orchestrator: %w", err), globalConfig.Quiet)
-		return err
-	}
-	defer orchestrator.Close()
-
-	// Build argv for the response
-	argv := []string{"grant", "list"}
-	if globalConfig.ConfigFile != "" {
-		argv = append(argv, "-c", globalConfig.ConfigFile)
-	}
-	argv = append(argv, target)
-	// Include license filters in argv
-	if len(licenseFilters) > 0 {
-		argv = append(argv, licenseFilters...)
-	}
-
-	// Perform list
-	result, err := orchestrator.List(argv, target)
-	if err != nil {
-		HandleError(fmt.Errorf("list failed: %w", err), globalConfig.Quiet)
 		return err
 	}
 
@@ -253,7 +210,72 @@ func runList(cmd *cobra.Command, args []string) error {
 		return handleGroupByRiskOutput(result, globalConfig)
 	}
 
+	// Handle output based on configuration
+	return handleListOutput(result, licenseFilters, globalConfig)
+}
 
+// performListOperation creates orchestrator and executes the list command
+func performListOperation(target string, licenseFilters []string, disableFileSearch bool, globalConfig *GlobalConfig) (*grant.RunResponse, error) {
+	// Load policy (needed for orchestrator, but not used for evaluation)
+	policy, err := LoadPolicyFromConfig(globalConfig)
+	if err != nil {
+		HandleError(err, globalConfig.Quiet)
+		return nil, err
+	}
+
+	// Create orchestrator with configuration
+	caseConfig := grant.CaseConfig{
+		DisableFileSearch: disableFileSearch,
+	}
+
+	orchestrator, err := grant.NewOrchestratorWithConfig(policy, caseConfig)
+	if err != nil {
+		HandleError(fmt.Errorf("failed to create orchestrator: %w", err), globalConfig.Quiet)
+		return nil, err
+	}
+	defer orchestrator.Close()
+
+	// Build argv for the response
+	argv := []string{"grant", "list"}
+	if globalConfig.ConfigFile != "" {
+		argv = append(argv, "-c", globalConfig.ConfigFile)
+	}
+	argv = append(argv, target)
+	// Include license filters in argv
+	if len(licenseFilters) > 0 {
+		argv = append(argv, licenseFilters...)
+	}
+
+	// Perform list
+	result, err := orchestrator.List(argv, target)
+	if err != nil {
+		HandleError(fmt.Errorf("list failed: %w", err), globalConfig.Quiet)
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// parseListArguments extracts target and license filters from command arguments
+func parseListArguments(cmd *cobra.Command, args []string) (string, []string) {
+	target := args[0]
+	var licenseFilters []string
+	if len(args) > 1 {
+		licenseFilters = args[1:]
+	}
+
+	// Check if --unlicensed flag is set
+	unlicensed, _ := cmd.Flags().GetBool("unlicensed")
+	if unlicensed {
+		// Add "(no licenses found)" to the filter list
+		licenseFilters = append(licenseFilters, "(no licenses found)")
+	}
+
+	return target, licenseFilters
+}
+
+// handleListOutput manages all output modes for the list command
+func handleListOutput(result *grant.RunResponse, licenseFilters []string, globalConfig *GlobalConfig) error {
 	// Handle output
 	if globalConfig.Quiet {
 		// Handle output file if specified in quiet mode
@@ -297,8 +319,6 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
-
-
 
 // handleListQuietOutput handles quiet mode output for list
 func handleListQuietOutput(result *grant.RunResponse) {
@@ -775,13 +795,14 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 
 			// Get the risk category
 			var categoryName string
-			if license.RiskCategory.IsHigh() {
+			switch {
+			case license.RiskCategory.IsHigh():
 				categoryName = "Strong Copyleft"
-			} else if license.RiskCategory.IsMedium() {
+			case license.RiskCategory.IsMedium():
 				categoryName = "Weak Copyleft"
-			} else if license.RiskCategory.IsLow() {
+			case license.RiskCategory.IsLow():
 				categoryName = "Permissive"
-			} else {
+			default:
 				continue // Skip uncategorized
 			}
 
