@@ -19,8 +19,10 @@ func Application() *cobra.Command {
 	// Add global flags
 	app.PersistentFlags().StringP("config", "c", "", "path to configuration file")
 	app.PersistentFlags().StringP("output", "o", "table", "output format (table, json)")
+	app.PersistentFlags().StringP("output-file", "f", "", "write JSON output to file (sets output format to json)")
 	app.PersistentFlags().BoolP("quiet", "q", false, "suppress all non-essential output")
 	app.PersistentFlags().BoolP("verbose", "v", false, "enable verbose output")
+	app.PersistentFlags().Bool("no-output", false, "suppress terminal output when writing to file")
 
 	// Add subcommands
 	app.AddCommand(

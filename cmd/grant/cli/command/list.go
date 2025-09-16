@@ -2,27 +2,49 @@ package command
 
 import (
 	"fmt"
+	"os"
+	"sort"
+	"strings"
 
+	"github.com/gookit/color"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 
+	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal/spdxlicense"
 )
+
+// formatClickableLicense formats a license name as a clickable blue link if SPDX reference is available
+func formatClickableLicense(licenseName string) string {
+	if spdxLicense, err := spdxlicense.GetLicenseByID(licenseName); err == nil && spdxLicense.Reference != "" {
+		// Make it blue and clickable (no underline for table display)
+		return fmt.Sprintf("\033]8;;%s\033\\\033[34m%s\033[0m\033]8;;\033\\", spdxLicense.Reference, licenseName)
+	}
+	// Return the license name as-is if no SPDX reference available
+	return licenseName
+}
 
 // List creates the list command
 func List() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "list [TARGET...]",
+		Use:   "list TARGET [LICENSE...]",
 		Short: "List licenses found in one or more targets",
 		Long: `List shows all licenses found in container images, SBOMs, filesystems, and files
 without applying policy evaluation.
 
 Targets can be:
 - Container images: alpine:latest, ubuntu:22.04
-- SBOM files: path/to/sbom.json, path/to/sbom.xml  
+- SBOM files: path/to/sbom.json, path/to/sbom.xml
 - Directories: dir:./project, ./my-app
 - Archive files: project.tar.gz, source.zip
 - License files: LICENSE, COPYING
 - Stdin: - (reads SBOM from stdin)
+
+License filtering:
+If license names are provided as additional arguments, only packages with those
+specific licenses will be shown. For example:
+  grant list dir:. "MIT" "Apache-2.0"
 
 This command always returns exit code 0 unless there are processing errors.`,
 		Args: cobra.MinimumNArgs(1),
@@ -33,12 +55,74 @@ This command always returns exit code 0 unless there are processing errors.`,
 	cmd.Flags().Bool("disable-file-search", false, "disable filesystem license file search")
 	cmd.Flags().Bool("licenses-only", false, "show only license information, not packages")
 	cmd.Flags().Bool("packages-only", false, "show only package information, not licenses")
+	cmd.Flags().String("pkg", "", "show detailed information for a specific package (requires license filter)")
 
 	return cmd
 }
 
+// handleJSONInput processes grant JSON input from stdin
+func handleJSONInput(cmd *cobra.Command, target string, licenseFilters []string) (*grant.RunResponse, bool, error) {
+	if grantResult, isGrantJSON := isGrantJSONInput(target); isGrantJSON {
+		result := handleGrantJSONInput(grantResult, licenseFilters)
+		globalConfig := GetGlobalConfig(cmd)
+
+		packageDetail, _ := cmd.Flags().GetString("pkg")
+		if packageDetail != "" {
+			if len(licenseFilters) == 0 {
+				return nil, true, fmt.Errorf("--pkg flag requires license filter arguments")
+			}
+			result = filterResultByPackage(result, packageDetail)
+			return result, true, displayPackageDetails(result, packageDetail)
+		}
+
+		licensesOnly, _ := cmd.Flags().GetBool("licenses-only")
+		packagesOnly, _ := cmd.Flags().GetBool("packages-only")
+
+		if licensesOnly {
+			return result, true, showLicensesOnly(result, globalConfig.Quiet)
+		}
+		if packagesOnly {
+			return result, true, showPackagesOnly(result, globalConfig.Quiet)
+		}
+
+		if globalConfig.OutputFile != "" {
+			output := internal.NewOutput()
+			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+				return nil, true, fmt.Errorf("failed to write output file: %w", err)
+			}
+		}
+
+		// Skip terminal output if no-output flag is set and output file is specified
+		if globalConfig.NoOutput && globalConfig.OutputFile != "" {
+			return result, true, nil
+		}
+
+		if globalConfig.OutputFormat == "table" {
+			return result, true, outputListTableWithFilters(result, licenseFilters)
+		} else {
+			return result, true, OutputResult(result, globalConfig.OutputFormat, "")
+		}
+	}
+	return nil, false, nil
+}
+
 // runList executes the list command
 func runList(cmd *cobra.Command, args []string) error {
+	// Parse arguments: first is target, rest are license filters
+	target := args[0]
+	var licenseFilters []string
+	if len(args) > 1 {
+		licenseFilters = args[1:]
+	}
+
+	// Check if input is grant JSON from stdin
+	if _, handled, err := handleJSONInput(cmd, target, licenseFilters); handled {
+		if err != nil {
+			HandleError(err, GetGlobalConfig(cmd).Quiet)
+		}
+		return err
+	}
+
 	// Get global configuration
 	globalConfig := GetGlobalConfig(cmd)
 
@@ -46,6 +130,7 @@ func runList(cmd *cobra.Command, args []string) error {
 	disableFileSearch, _ := cmd.Flags().GetBool("disable-file-search")
 	licensesOnly, _ := cmd.Flags().GetBool("licenses-only")
 	packagesOnly, _ := cmd.Flags().GetBool("packages-only")
+	packageDetail, _ := cmd.Flags().GetString("pkg")
 
 	// Load policy (needed for orchestrator, but not used for evaluation)
 	policy, err := LoadPolicyFromConfig(globalConfig)
@@ -67,44 +152,108 @@ func runList(cmd *cobra.Command, args []string) error {
 	defer orchestrator.Close()
 
 	// Build argv for the response
-	argv := append([]string{"grant", "list"}, args...)
+	argv := append([]string{"grant", "list"}, target)
 	if globalConfig.ConfigFile != "" {
-		argv = append([]string{"grant", "list", "-c", globalConfig.ConfigFile}, args...)
+		argv = append([]string{"grant", "list", "-c", globalConfig.ConfigFile}, target)
 	}
 
 	// Perform list
-	result, err := orchestrator.List(argv, args...)
+	result, err := orchestrator.List(argv, target)
 	if err != nil {
 		HandleError(fmt.Errorf("list failed: %w", err), globalConfig.Quiet)
 		return err
 	}
 
+	// Apply license filtering if specified
+	if len(licenseFilters) > 0 {
+		result = filterGrantJSONByLicenses(result, licenseFilters)
+	}
+
+	// Handle package detail view if specified
+	if packageDetail != "" {
+		// Validate that license filters are provided
+		if len(licenseFilters) == 0 {
+			return fmt.Errorf("--pkg flag requires license filter arguments")
+		}
+
+		// Filter to show only the specified package
+		result = filterResultByPackage(result, packageDetail)
+
+		// Show detailed package information instead of normal output
+		return handlePackageDetailOutput(result, packageDetail, globalConfig)
+	}
+
 	// Handle filtered output
 	if licensesOnly || packagesOnly {
-		return handleFilteredOutput(result, globalConfig.OutputFormat, licensesOnly, packagesOnly, globalConfig.Quiet)
+		return handleFilteredOutput(result, globalConfig.OutputFormat, licensesOnly, packagesOnly, globalConfig.Quiet, globalConfig.OutputFile, globalConfig.NoOutput)
 	}
 
 	// Handle output
 	if globalConfig.Quiet {
+		// Handle output file if specified in quiet mode
+		if globalConfig.OutputFile != "" {
+			output := internal.NewOutput()
+			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+				HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
+				return err
+			}
+		}
 		handleListQuietOutput(result)
 		return nil
 	}
 
-	// Normal output
-	if err := OutputResult(result, globalConfig.OutputFormat); err != nil {
-		HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
-		return err
+	// Handle output file if specified
+	if globalConfig.OutputFile != "" {
+		output := internal.NewOutput()
+		if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+			HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
+			return err
+		}
+	}
+
+	// Skip terminal output if no-output flag is set and output file is specified
+	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
+		return nil
+	}
+
+	// Normal output - use list-specific formatting for table output
+	if globalConfig.OutputFormat == "table" {
+		if err := outputListTableWithFilters(result, licenseFilters); err != nil {
+			HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
+			return err
+		}
+	} else {
+		if err := OutputResult(result, globalConfig.OutputFormat, globalConfig.OutputFile); err != nil {
+			HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
+			return err
+		}
 	}
 
 	return nil
 }
 
 // handleFilteredOutput handles licenses-only or packages-only output
-func handleFilteredOutput(result *grant.RunResponse, format string, licensesOnly, packagesOnly bool, quiet bool) error {
+func handleFilteredOutput(result *grant.RunResponse, format string, licensesOnly, packagesOnly bool, quiet bool, outputFile string, noOutput bool) error {
+	// If output file is specified, always write JSON to file
+	if outputFile != "" {
+		output := internal.NewOutput()
+		if err := output.OutputJSON(result, outputFile); err != nil {
+			return fmt.Errorf("failed to write output file: %w", err)
+		}
+	}
+
 	if format == "json" {
-		// For JSON, we would need to filter the result structure
-		// For now, output the full result and let users filter with jq
-		return OutputResult(result, format)
+		// If no output file specified, write JSON to stdout
+		if outputFile == "" {
+			return OutputResult(result, format, "")
+		}
+		// If output file is specified, we already wrote to file, so no stdout output
+		return nil
+	}
+
+	// Skip terminal output if no-output flag is set and output file is specified
+	if noOutput && outputFile != "" {
+		return nil
 	}
 
 	// For table format, show filtered information
@@ -131,7 +280,7 @@ func showLicensesOnly(result *grant.RunResponse, quiet bool) error {
 					licenseKey = license.Name
 				}
 				if licenseKey == "" {
-					licenseKey = "(unknown)"
+					licenseKey = unknownLicense
 				}
 				licenseMap[licenseKey]++
 			}
@@ -207,4 +356,437 @@ func handleListQuietOutput(result *grant.RunResponse) {
 	}
 
 	fmt.Printf("%d\n", len(licenseMap))
+}
+
+// outputListTableWithFilters outputs the list table with filter information
+func outputListTableWithFilters(result *grant.RunResponse, licenseFilters []string) error {
+	for _, target := range result.Run.Targets {
+		if err := outputListTargetTableWithFilters(target, licenseFilters); err != nil {
+			return err
+		}
+		fmt.Println() // Add spacing between targets
+	}
+	return nil
+}
+
+// outputListTargetTableWithFilters outputs a single target in list format with filter information
+func outputListTargetTableWithFilters(target grant.TargetResult, licenseFilters []string) error {
+	// Display progress steps
+	fmt.Printf(" %s Loaded %s                                                                              %s\n",
+		color.Green.Sprint("✔"),
+		target.Source.Ref,
+		target.Source.Type)
+
+	fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
+
+	// Show filter applied if license filters are specified
+	if len(licenseFilters) > 0 {
+		var filterDisplay string
+		if len(licenseFilters) == 1 {
+			filterDisplay = fmt.Sprintf("[license=\"%s\"]", licenseFilters[0])
+		} else {
+			filterDisplay = fmt.Sprintf("[licenses=\"%s\"]", strings.Join(licenseFilters, "\", \""))
+		}
+		fmt.Printf(" %s Filter applied                     %s\n",
+			color.Green.Sprint("✔"),
+			filterDisplay)
+	}
+
+	fmt.Printf(" %s Cataloged contents\n", color.Green.Sprint("✔"))
+
+	// Display tree structure with counts
+	fmt.Printf("   %s %s %-30s %s\n",
+		"├──",
+		color.Green.Sprint("✔"),
+		"Packages",
+		fmt.Sprintf("[%d packages]", target.Evaluation.Summary.Packages.Total))
+
+	fmt.Printf("   %s %s %-30s %s\n",
+		"├──",
+		color.Green.Sprint("✔"),
+		"Licenses",
+		fmt.Sprintf("[%d unique]", target.Evaluation.Summary.Licenses.Unique))
+
+	// Count total file locations across all packages
+	totalLocations := 0
+	for _, pkg := range target.Evaluation.Findings.Packages {
+		totalLocations += len(pkg.Locations)
+	}
+
+	fmt.Printf("   %s %s %-30s %s\n",
+		"└──",
+		color.Green.Sprint("✔"),
+		"File metadata",
+		fmt.Sprintf("[%d locations]", totalLocations))
+
+	// Show matched packages count if filtering is applied
+	if len(licenseFilters) > 0 {
+		matchedCount := len(target.Evaluation.Findings.Packages)
+		fmt.Printf(" %s Matched packages                   [%d package",
+			color.Green.Sprint("✔"),
+			matchedCount)
+		if matchedCount != 1 {
+			fmt.Print("s")
+		}
+		fmt.Println("]")
+	} else {
+		// Display aggregated licenses section (only when not filtering)
+		fmt.Printf(" %s Aggregated licenses                [grouped by license, desc by count]\n",
+			color.Green.Sprint("✔"))
+	}
+
+	fmt.Println()
+
+	// Display package table or aggregated license table
+	if len(licenseFilters) > 0 {
+		// Show packages with their licenses when filtering
+		return printFilteredPackageTable(target.Evaluation.Findings.Packages)
+	} else {
+		// Create aggregated license table
+		return printAggregatedLicenseTable(target.Evaluation.Findings.Packages)
+	}
+}
+
+// printFilteredPackageTable prints packages that match license filters in a table format
+func printFilteredPackageTable(packages []grant.PackageFinding) error {
+	if len(packages) == 0 {
+		fmt.Println("No packages found with the specified licenses.")
+		return nil
+	}
+
+	// Sort packages alphabetically by name
+	sort.Slice(packages, func(i, j int) bool {
+		return packages[i].Name < packages[j].Name
+	})
+
+	// Create table with no borders (grype/syft style)
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	// Configure table style to match grype/syft
+	t.Style().Options.SeparateHeader = false
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = false
+	t.Style().Options.SeparateFooter = false
+	t.Style().Options.SeparateRows = false
+
+	// Set headers with uppercase to match grype style
+	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE"})
+
+	// Add rows for matching packages
+	for _, pkg := range packages {
+		// Format the licenses for this package
+		licenses := formatLicenses(pkg.Licenses)
+		version := pkg.Version
+		if version == "" {
+			version = noVersion
+		}
+
+		t.AppendRow(table.Row{
+			pkg.Name,
+			version,
+			licenses,
+		})
+	}
+
+	t.Render()
+	return nil
+}
+
+// formatLicenses formats licenses for display
+func formatLicenses(licenses []grant.LicenseDetail) string {
+	if len(licenses) == 0 {
+		return "(no licenses found)"
+	}
+
+	var licenseStrs []string
+	for _, license := range licenses {
+		licenseStr := license.ID
+		if license.Name != "" && license.ID == "" {
+			licenseStr = license.Name
+		}
+		if licenseStr == "" {
+			licenseStr = unknownLicense
+		}
+
+		// Shorten long license strings (like sha256 hashes)
+		if strings.HasPrefix(licenseStr, "sha256:") && len(licenseStr) > 20 {
+			licenseStr = "sha256:" + licenseStr[7:15] + "..."
+		}
+
+		licenseStrs = append(licenseStrs, formatClickableLicense(licenseStr))
+	}
+
+	// If there are many licenses, show count
+	if len(licenseStrs) > 5 {
+		return strings.Join(licenseStrs[:5], ", ") + fmt.Sprintf(" (+%d more)", len(licenseStrs)-5)
+	}
+
+	return strings.Join(licenseStrs, ", ")
+}
+
+// printAggregatedLicenseTable prints licenses grouped by license name with package counts
+func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
+	// First, deduplicate packages by name@version
+	uniquePackages := make(map[string]grant.PackageFinding)
+	for _, pkg := range packages {
+		packageKey := pkg.Name + "@" + pkg.Version
+		uniquePackages[packageKey] = pkg
+	}
+
+	// Create license to unique packages map
+	licensePackages := make(map[string]map[string]bool)
+
+	for _, pkg := range uniquePackages {
+		packageKey := pkg.Name + "@" + pkg.Version
+
+		if len(pkg.Licenses) == 0 {
+			// Package with no licenses
+			if licensePackages["(no licenses found)"] == nil {
+				licensePackages["(no licenses found)"] = make(map[string]bool)
+			}
+			licensePackages["(no licenses found)"][packageKey] = true
+		} else {
+			for _, license := range pkg.Licenses {
+				licenseKey := license.ID
+				if licenseKey == "" {
+					licenseKey = license.Name
+				}
+				if licenseKey == "" {
+					licenseKey = unknownLicense
+				}
+				if licensePackages[licenseKey] == nil {
+					licensePackages[licenseKey] = make(map[string]bool)
+				}
+				licensePackages[licenseKey][packageKey] = true
+			}
+		}
+	}
+
+	// Convert to count map
+	licenseMap := make(map[string]int)
+	for license, pkgSet := range licensePackages {
+		licenseMap[license] = len(pkgSet)
+	}
+
+	// Convert to slice for sorting
+	type licenseCount struct {
+		license string
+		count   int
+	}
+
+	var licenseCounts []licenseCount
+	for license, count := range licenseMap {
+		licenseCounts = append(licenseCounts, licenseCount{license, count})
+	}
+
+	// Sort by count descending, then by name ascending
+	sort.Slice(licenseCounts, func(i, j int) bool {
+		if licenseCounts[i].count == licenseCounts[j].count {
+			return licenseCounts[i].license < licenseCounts[j].license
+		}
+		return licenseCounts[i].count > licenseCounts[j].count
+	})
+
+	// Create table
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	// Configure table style to match grype/syft style (consistent with other tables)
+	t.Style().Options.SeparateHeader = false
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = false
+	t.Style().Options.SeparateFooter = false
+	t.Style().Options.SeparateRows = false
+
+	// Set headers
+	t.AppendHeader(table.Row{"LICENSE", "PACKAGES"})
+
+	// Add rows
+	for _, lc := range licenseCounts {
+		t.AppendRow(table.Row{formatClickableLicense(lc.license), lc.count})
+	}
+
+	t.Render()
+	return nil
+}
+
+// filterResultByPackage filters the result to only include a specific package by name
+func filterResultByPackage(result *grant.RunResponse, packageName string) *grant.RunResponse {
+	// Create a new result with only the specified package
+	filteredResult := &grant.RunResponse{
+		Tool:    result.Tool,
+		Version: result.Version,
+		Run: grant.RunDetails{
+			Argv:    result.Run.Argv,
+			Policy:  result.Run.Policy,
+			Targets: []grant.TargetResult{},
+		},
+	}
+
+	for _, target := range result.Run.Targets {
+		matchedPackages := []grant.PackageFinding{}
+
+		// Filter packages by name
+		for _, pkg := range target.Evaluation.Findings.Packages {
+			if pkg.Name == packageName {
+				matchedPackages = append(matchedPackages, pkg)
+			}
+		}
+
+		// Create filtered target
+		filteredTarget := grant.TargetResult{
+			Source: target.Source,
+			Evaluation: grant.TargetEvaluation{
+				Status: target.Evaluation.Status,
+				Summary: grant.EvaluationSummaryJSON{
+					Packages: grant.PackageSummary{
+						Total:      len(matchedPackages),
+						Unlicensed: 0,
+						Allowed:    len(matchedPackages),
+						Denied:     0,
+						Ignored:    0,
+					},
+					Licenses: grant.LicenseSummary{
+						Unique:  0, // Will be calculated in display
+						Allowed: 0,
+						Denied:  0,
+						NonSPDX: 0,
+					},
+				},
+				Findings: grant.EvaluationFindings{
+					Packages: matchedPackages,
+				},
+			},
+		}
+
+		filteredResult.Run.Targets = append(filteredResult.Run.Targets, filteredTarget)
+	}
+
+	return filteredResult
+}
+
+// handlePackageDetailOutput displays detailed information for a specific package
+func handlePackageDetailOutput(result *grant.RunResponse, packageName string, globalConfig *GlobalConfig) error {
+	// Handle output file if specified
+	if globalConfig.OutputFile != "" {
+		output := internal.NewOutput()
+		if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+			HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
+			return err
+		}
+	}
+
+	// Handle quiet mode
+	if globalConfig.Quiet {
+		// In quiet mode, just output the number of matching packages
+		totalPackages := 0
+		for _, target := range result.Run.Targets {
+			totalPackages += len(target.Evaluation.Findings.Packages)
+		}
+		fmt.Printf("%d\n", totalPackages)
+		return nil
+	}
+
+	// Skip terminal output if no-output flag is set and output file is specified
+	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
+		return nil
+	}
+
+	// Handle JSON format
+	if globalConfig.OutputFormat == formatJSON {
+		if globalConfig.OutputFile == "" {
+			output := internal.NewOutput()
+			return output.OutputJSON(result, "")
+		}
+		// Already written to file above
+		return nil
+	}
+
+	// Display detailed package information in table format
+	return displayPackageDetails(result, packageName)
+}
+
+// displayPackageDetails displays detailed information about the package
+func displayPackageDetails(result *grant.RunResponse, packageName string) error {
+	if len(result.Run.Targets) == 0 {
+		fmt.Printf("No targets found.\n")
+		return nil
+	}
+
+	target := result.Run.Targets[0]
+	packages := target.Evaluation.Findings.Packages
+
+	if len(packages) == 0 {
+		fmt.Printf("Package '%s' not found.\n", packageName)
+		return nil
+	}
+
+	// Display progress-style header
+	fmt.Printf(" %s Loaded %s                                                                              %s\n",
+		color.Green.Sprint("✔"),
+		target.Source.Ref,
+		target.Source.Type)
+
+	fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
+	fmt.Printf(" %s Package details                    [package=\"%s\"]\n",
+		color.Green.Sprint("✔"),
+		packageName)
+
+	fmt.Printf(" %s Found package instances           [%d instance",
+		color.Green.Sprint("✔"),
+		len(packages))
+	if len(packages) != 1 {
+		fmt.Print("s")
+	}
+	fmt.Println("]")
+
+	fmt.Println()
+
+	// Display detailed information for each package instance
+	for i, pkg := range packages {
+		if i > 0 {
+			fmt.Println()
+			fmt.Println(strings.Repeat("─", 80))
+			fmt.Println()
+		}
+
+		fmt.Printf("Name:     %s\n", pkg.Name)
+		fmt.Printf("Version:  %s\n", pkg.Version)
+		fmt.Printf("Type:     %s\n", pkg.Type)
+		fmt.Printf("ID:       %s\n", pkg.ID)
+
+		// Display licenses with new formatting
+		if len(pkg.Licenses) == 0 {
+			fmt.Printf("Licenses: (no licenses found)\n")
+		} else {
+			fmt.Printf("Licenses (%d):\n\n", len(pkg.Licenses))
+
+			for _, license := range pkg.Licenses {
+				// Use license ID or name as display name
+				licenseName := license.ID
+				if licenseName == "" {
+					licenseName = license.Name
+				}
+				if licenseName == "" {
+					licenseName = "(unknown)"
+				}
+
+				// Format with bullet point and make license name clickable if we have a reference
+				if license.Reference != "" {
+					// Make it blue and underlined to indicate it's clickable
+					fmt.Printf("• \x1b]8;;%s\x1b\\\x1b[34;4m%s\x1b[0m\x1b]8;;\x1b\\\n", license.Reference, licenseName)
+				} else {
+					fmt.Printf("• %s\n", licenseName)
+				}
+				fmt.Printf("    OSI Approved: %t | Deprecated: %t\n", license.IsOsiApproved, license.IsDeprecatedLicenseID)
+				if len(license.Evidence) > 0 {
+					fmt.Printf("    Evidence: %v\n", license.Evidence)
+				}
+				fmt.Println()
+			}
+		}
+	}
+
+	return nil
 }

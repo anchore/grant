@@ -59,6 +59,15 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	globalConfig := GetGlobalConfig(cmd)
 	flags := parseCheckFlags(cmd)
 
+	// Check if input is grant JSON from stdin
+	if len(args) > 0 {
+		if grantResult, isGrantJSON := isGrantJSONInput(args[0]); isGrantJSON {
+			// Handle grant JSON input directly
+			result := handleGrantJSONInput(grantResult, []string{}) // No license filters for check
+			return handleCheckOutput(result, globalConfig, flags)
+		}
+	}
+
 	realtimeUI := setupRealtimeUI(globalConfig, args)
 	orchestrator, err := setupOrchestrator(globalConfig, flags.DisableFileSearch)
 	if err != nil {
@@ -90,7 +99,7 @@ func parseCheckFlags(cmd *cobra.Command) *checkFlags {
 
 // setupRealtimeUI initializes the real-time UI for progress display
 func setupRealtimeUI(globalConfig *GlobalConfig, args []string) *internal.RealtimeUI {
-	if globalConfig.Quiet || globalConfig.OutputFormat != "table" {
+	if globalConfig.Quiet || globalConfig.OutputFormat != formatTable {
 		return nil
 	}
 
@@ -155,19 +164,43 @@ func updateUIWithResults(realtimeUI *internal.RealtimeUI, result *grant.RunRespo
 // handleCheckOutput processes and displays the check results
 func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, flags *checkFlags) error {
 	if globalConfig.Quiet {
+		// Handle output file if specified in quiet mode
+		if globalConfig.OutputFile != "" {
+			output := internal.NewOutput()
+			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+				HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
+				return err
+			}
+		}
 		handleQuietOutput(result)
 		return nil
 	}
 
 	if flags.Summary {
-		return handleSummaryOutput(result, globalConfig.OutputFormat)
+		return handleSummaryOutput(result, globalConfig.OutputFormat, globalConfig.OutputFile, globalConfig.NoOutput)
 	}
 
 	if flags.Unlicensed {
-		return handleUnlicensedOutput(result, globalConfig.OutputFormat)
+		return handleUnlicensedOutput(result, globalConfig.OutputFormat, globalConfig.OutputFile, globalConfig.NoOutput)
 	}
 
-	if err := OutputResult(result, globalConfig.OutputFormat); err != nil {
+	// Write to file if specified
+	if globalConfig.OutputFile != "" {
+		output := internal.NewOutput()
+		if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+			HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
+			return err
+		}
+	}
+
+	// Skip terminal output if no-output flag is set and output file is specified
+	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
+		handleExitCode(result)
+		return nil
+	}
+
+	// Output to terminal based on format
+	if err := OutputResult(result, globalConfig.OutputFormat, ""); err != nil {
 		HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
 		return err
 	}
@@ -197,10 +230,27 @@ func handleQuietOutput(result *grant.RunResponse) {
 }
 
 // handleSummaryOutput handles summary-only output
-func handleSummaryOutput(result *grant.RunResponse, format string) error {
+func handleSummaryOutput(result *grant.RunResponse, format string, outputFile string, noOutput bool) error {
+	// Write to file if specified
+	if outputFile != "" {
+		output := internal.NewOutput()
+		if err := output.OutputJSON(result, outputFile); err != nil {
+			return fmt.Errorf("failed to write output file: %w", err)
+		}
+	}
+
+	// Skip terminal output if no-output flag is set and output file is specified
+	if noOutput && outputFile != "" {
+		return nil
+	}
+
 	if format == formatJSON {
-		// For JSON, output full result but caller can filter
-		return OutputResult(result, format)
+		// For JSON, output full result if no file was specified
+		if outputFile == "" {
+			output := internal.NewOutput()
+			return output.OutputJSON(result, "")
+		}
+		return nil
 	}
 
 	// For table format, show summary only
@@ -245,11 +295,33 @@ func handleSummaryOutput(result *grant.RunResponse, format string) error {
 }
 
 // handleUnlicensedOutput handles unlicensed output
-func handleUnlicensedOutput(result *grant.RunResponse, format string) error {
+func handleUnlicensedOutput(result *grant.RunResponse, format string, outputFile string, noOutput bool) error {
+	// For JSON, filter the result to only show packages without licenses
+	filteredResult := result
 	if format == formatJSON {
-		// For JSON, filter the result to only show packages without licenses
-		filteredResult := filterResultForNoLicenses(result)
-		return OutputResult(filteredResult, format)
+		filteredResult = filterResultForNoLicenses(result)
+	}
+
+	// Write to file if specified
+	if outputFile != "" {
+		output := internal.NewOutput()
+		if err := output.OutputJSON(filteredResult, outputFile); err != nil {
+			return fmt.Errorf("failed to write output file: %w", err)
+		}
+	}
+
+	// Skip terminal output if no-output flag is set and output file is specified
+	if noOutput && outputFile != "" {
+		return nil
+	}
+
+	if format == formatJSON {
+		// For JSON, output filtered result if no file was specified
+		if outputFile == "" {
+			output := internal.NewOutput()
+			return output.OutputJSON(filteredResult, "")
+		}
+		return nil
 	}
 
 	// For table format, use the same structure as default output
@@ -392,7 +464,7 @@ func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 	for _, pkg := range packages {
 		version := pkg.Version
 		if version == "" {
-			version = "(no version)"
+			version = noVersion
 		}
 
 		// For packages without licenses, show "(no licenses found)" in red

@@ -1,6 +1,9 @@
 package grant
 
-import "github.com/anchore/grant/internal"
+import (
+	"github.com/anchore/grant/internal"
+	"github.com/anchore/grant/internal/spdxlicense"
+)
 
 // RunResponse represents the complete JSON response structure for grant operations
 type RunResponse struct {
@@ -95,6 +98,8 @@ type LicenseDetail struct {
 	IsDeprecatedLicenseID bool     `json:"isDeprecatedLicenseId"`
 	IsOsiApproved         bool     `json:"isOsiApproved"`
 	DetailsURL            string   `json:"detailsUrl"`
+	Reference             string   `json:"reference,omitempty"`
+	SeeAlso               []string `json:"seeAlso,omitempty"`
 	Evidence              []string `json:"evidence,omitempty"`
 }
 
@@ -258,6 +263,14 @@ func determineComplianceStatus(evalResult *EvaluationResult) string {
 	return "compliant"
 }
 
+// populateSPDXLicenseData enriches a LicenseDetail with SPDX license data
+func populateSPDXLicenseData(detail *LicenseDetail) {
+	if spdxLicense, err := spdxlicense.GetLicenseByID(detail.ID); err == nil {
+		detail.Reference = spdxLicense.Reference
+		detail.SeeAlso = spdxLicense.SeeAlso
+	}
+}
+
 // packageToFinding converts a Package to a PackageFinding
 func packageToFinding(pkg Package, decision string) PackageFinding {
 	licenseDetails := []LicenseDetail{}
@@ -274,6 +287,8 @@ func packageToFinding(pkg Package, decision string) PackageFinding {
 			detail.ID = license.SPDXExpression
 			detail.Name = ""
 		}
+		// Populate SPDX license data
+		populateSPDXLicenseData(&detail)
 		licenseDetails = append(licenseDetails, detail)
 	}
 
@@ -319,6 +334,8 @@ func packageToFindingWithDeniedLicenses(pkg Package, decision string, deniedLice
 						detail.ID = license.SPDXExpression
 						detail.Name = ""
 					}
+					// Populate SPDX license data
+					populateSPDXLicenseData(&detail)
 					licenseDetails = append(licenseDetails, detail)
 					break
 				}
