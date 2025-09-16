@@ -17,8 +17,8 @@ func Test_CheckCmd(t *testing.T) {
 			args: []string{"-c", emptyConfigPath, "check", "dir:../../."},
 			expectedInOutput: []string{
 				"check failed",
-				"license matches for rule: default-deny-all; matched with pattern *",
-				"Apache-2.0",
+				"✗",      // Non-compliant indicator
+				"DENIED", // Shows denied packages
 			},
 		},
 	}

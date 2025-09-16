@@ -1,86 +1,210 @@
 package command
 
 import (
-	"slices"
-	"strings"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
-	"github.com/anchore/clio"
-	"github.com/anchore/grant/cmd/grant/cli/internal"
-	"github.com/anchore/grant/cmd/grant/cli/internal/list"
-	"github.com/anchore/grant/cmd/grant/cli/option"
-	"github.com/anchore/grant/event"
-	"github.com/anchore/grant/internal/bus"
-	"github.com/anchore/grant/internal/input"
+	"github.com/anchore/grant/grant"
 )
 
-type ListConfig struct {
-	Config      string `json:"config" yaml:"config" mapstructure:"config"`
-	option.List `json:"" yaml:",inline" mapstructure:",squash"`
+// List creates the list command
+func List() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list [TARGET...]",
+		Short: "List licenses found in one or more targets",
+		Long: `List shows all licenses found in container images, SBOMs, filesystems, and files
+without applying policy evaluation.
+
+Targets can be:
+- Container images: alpine:latest, ubuntu:22.04
+- SBOM files: path/to/sbom.json, path/to/sbom.xml  
+- Directories: dir:./project, ./my-app
+- Archive files: project.tar.gz, source.zip
+- License files: LICENSE, COPYING
+- Stdin: - (reads SBOM from stdin)
+
+This command always returns exit code 0 unless there are processing errors.`,
+		Args: cobra.MinimumNArgs(1),
+		RunE: runList,
+	}
+
+	// Add command-specific flags
+	cmd.Flags().Bool("disable-file-search", false, "disable filesystem license file search")
+	cmd.Flags().Bool("licenses-only", false, "show only license information, not packages")
+	cmd.Flags().Bool("packages-only", false, "show only package information, not licenses")
+
+	return cmd
 }
 
-func List(app clio.Application) *cobra.Command {
-	cfg := &ListConfig{
-		List: option.DefaultList(),
-	}
+// runList executes the list command
+func runList(cmd *cobra.Command, args []string) error {
+	// Get global configuration
+	globalConfig := GetGlobalConfig(cmd)
 
-	// userInputs are the oci images, sboms, or directories/files to check
-	var userInputs []string
-	return app.SetupCommand(&cobra.Command{
-		Use:   "list",
-		Short: "List the licenses detected in the given OCI image, sbom, or directory/file",
-		Args:  cobra.ArbitraryArgs,
-		PreRunE: func(_ *cobra.Command, args []string) error {
-			userInputs = args
-			return nil
-		},
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runList(cfg, userInputs)
-		},
-	}, cfg)
-}
+	// Get command-specific flags
+	disableFileSearch, _ := cmd.Flags().GetBool("disable-file-search")
+	licensesOnly, _ := cmd.Flags().GetBool("licenses-only")
+	packagesOnly, _ := cmd.Flags().GetBool("packages-only")
 
-func runList(cfg *ListConfig, userInput []string) (errs error) {
-	// check if user provided source by stdin
-	// note: cat sbom.json | grant check spdx.json - is supported
-	// it will generate results for both stdin and spdx.json
-	isStdin, _ := input.IsStdinPipeOrRedirect()
-	if isStdin && !slices.Contains(userInput, "-") {
-		userInput = append(userInput, "-")
-	}
-
-	monitor := bus.PublishTask(
-		event.Title{
-			Default:      "List licenses",
-			WhileRunning: "Looking up licenses",
-			OnSuccess:    "Found licenses",
-		},
-		"",
-		len(userInput),
-	)
-
-	defer func() {
-		if errs != nil {
-			monitor.SetError(errs)
-		} else {
-			monitor.AtomicStage.Set(strings.Join(userInput, ", "))
-			monitor.SetCompleted()
-		}
-	}()
-
-	reportConfig := list.ReportConfig{
-		Options: internal.ReportOptions{
-			Format:            internal.Format(cfg.Output),
-			ShowPackages:      cfg.ShowPackages,
-			CheckNonSPDX:      cfg.NonSPDX,
-			DisableFileSearch: cfg.DisableFileSearch,
-		},
-		Monitor: monitor,
-	}
-	rep, err := list.NewReport(reportConfig, userInput...)
+	// Load policy (needed for orchestrator, but not used for evaluation)
+	policy, err := LoadPolicyFromConfig(globalConfig)
 	if err != nil {
+		HandleError(err, globalConfig.Quiet)
 		return err
 	}
-	return rep.Render()
+
+	// Create orchestrator with configuration
+	caseConfig := grant.CaseConfig{
+		DisableFileSearch: disableFileSearch,
+	}
+
+	orchestrator, err := grant.NewOrchestratorWithConfig(policy, caseConfig)
+	if err != nil {
+		HandleError(fmt.Errorf("failed to create orchestrator: %w", err), globalConfig.Quiet)
+		return err
+	}
+	defer orchestrator.Close()
+
+	// Build argv for the response
+	argv := append([]string{"grant", "list"}, args...)
+	if globalConfig.ConfigFile != "" {
+		argv = append([]string{"grant", "list", "-c", globalConfig.ConfigFile}, args...)
+	}
+
+	// Perform list
+	result, err := orchestrator.List(argv, args...)
+	if err != nil {
+		HandleError(fmt.Errorf("list failed: %w", err), globalConfig.Quiet)
+		return err
+	}
+
+	// Handle filtered output
+	if licensesOnly || packagesOnly {
+		return handleFilteredOutput(result, globalConfig.OutputFormat, licensesOnly, packagesOnly, globalConfig.Quiet)
+	}
+
+	// Handle output
+	if globalConfig.Quiet {
+		handleListQuietOutput(result)
+		return nil
+	}
+
+	// Normal output
+	if err := OutputResult(result, globalConfig.OutputFormat); err != nil {
+		HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
+		return err
+	}
+
+	return nil
+}
+
+// handleFilteredOutput handles licenses-only or packages-only output
+func handleFilteredOutput(result *grant.RunResponse, format string, licensesOnly, packagesOnly bool, quiet bool) error {
+	if format == "json" {
+		// For JSON, we would need to filter the result structure
+		// For now, output the full result and let users filter with jq
+		return OutputResult(result, format)
+	}
+
+	// For table format, show filtered information
+	if licensesOnly {
+		return showLicensesOnly(result, quiet)
+	}
+
+	if packagesOnly {
+		return showPackagesOnly(result, quiet)
+	}
+
+	return nil
+}
+
+// showLicensesOnly shows only license information
+func showLicensesOnly(result *grant.RunResponse, quiet bool) error {
+	licenseMap := make(map[string]int) // license -> count
+
+	for _, target := range result.Run.Targets {
+		for _, pkg := range target.Evaluation.Findings.Packages {
+			for _, license := range pkg.Licenses {
+				licenseKey := license.ID
+				if licenseKey == "" {
+					licenseKey = license.Name
+				}
+				if licenseKey == "" {
+					licenseKey = "(unknown)"
+				}
+				licenseMap[licenseKey]++
+			}
+		}
+	}
+
+	if quiet {
+		// In quiet mode, just output license count
+		fmt.Printf("%d\n", len(licenseMap))
+		return nil
+	}
+
+	fmt.Printf("Licenses found (%d unique):\n", len(licenseMap))
+	for license, count := range licenseMap {
+		if count == 1 {
+			fmt.Printf("  %s\n", license)
+		} else {
+			fmt.Printf("  %s (%d packages)\n", license, count)
+		}
+	}
+
+	return nil
+}
+
+// showPackagesOnly shows only package information
+func showPackagesOnly(result *grant.RunResponse, quiet bool) error {
+	totalPackages := 0
+	for _, target := range result.Run.Targets {
+		totalPackages += len(target.Evaluation.Findings.Packages)
+	}
+
+	if quiet {
+		// In quiet mode, just output package count
+		fmt.Printf("%d\n", totalPackages)
+		return nil
+	}
+
+	fmt.Printf("Packages found (%d total):\n", totalPackages)
+	for _, target := range result.Run.Targets {
+		if len(result.Run.Targets) > 1 {
+			fmt.Printf("  Target: %s\n", target.Source.Ref)
+		}
+
+		for _, pkg := range target.Evaluation.Findings.Packages {
+			version := pkg.Version
+			if version == "" {
+				version = "(no version)"
+			}
+			fmt.Printf("    %s@%s (%s)\n", pkg.Name, version, pkg.Type)
+		}
+	}
+
+	return nil
+}
+
+// handleListQuietOutput handles quiet mode output for list
+func handleListQuietOutput(result *grant.RunResponse) {
+	// In quiet mode for list, output total number of unique licenses found
+	licenseMap := make(map[string]bool)
+
+	for _, target := range result.Run.Targets {
+		for _, pkg := range target.Evaluation.Findings.Packages {
+			for _, license := range pkg.Licenses {
+				licenseKey := license.ID
+				if licenseKey == "" {
+					licenseKey = license.Name
+				}
+				if licenseKey != "" {
+					licenseMap[licenseKey] = true
+				}
+			}
+		}
+	}
+
+	fmt.Printf("%d\n", len(licenseMap))
 }

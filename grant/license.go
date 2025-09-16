@@ -14,12 +14,11 @@ type LicenseID string
 
 // License is a grant license. Either SPDXExpression or Name will be set.
 // If SPDXExpression is set, Name will be empty.
-// Value is the contents of the license and is optional - can be fetched from the SPDX license list
 // Locations are the relative paths for a license that show evidence of its detection.
 type License struct {
+	ID LicenseID `json:"id"`
 	// SPDXExpression is the SPDX expression for the license
-	ID             LicenseID `json:"id"`
-	SPDXExpression string    `json:"spdxExpression"`
+	SPDXExpression string `json:"spdxExpression"`
 	// Name is the name of the individual license if SPDXExpression is unset
 	Name string `json:"name"`
 	// Contents are the text of the license
@@ -51,10 +50,10 @@ func (l License) IsSPDX() bool {
 
 // ConvertSyftLicenses converts a syft LicenseSet to a grant License slice
 // note: syft licenses can sometimes have complex SPDX expressions.
-// Grant licenses break down these expressions into individual licenses.
+// Grant these expressions into individual licenses.
 // Because license expressions could potentially contain multiple licenses
 // that are already represented in the syft license set we need to de-duplicate
-// syft licenses have a "Value" field which is the name of the license
+// Syft licenses have a "Value" field which is the name of the license
 // given to an invalid SPDX expression; grant licenses store this field as "Name"
 func ConvertSyftLicenses(set syftPkg.LicenseSet) (licenses []License) {
 	licenses = make([]License, 0)
@@ -119,6 +118,11 @@ func handleSPDXLicense(license syftPkg.License, licenses []License, licenseLocat
 }
 
 func addNonSPDXLicense(licenses []License, license syftPkg.License, locations []string) []License {
+	// Filter out sha256: licenses - these are content hashes from Syft when license detection fails
+	if strings.HasPrefix(license.Value, "sha256:") {
+		return licenses
+	}
+
 	return append(licenses, License{
 		Name:      license.Value,
 		Locations: locations,

@@ -75,7 +75,7 @@ func generate() error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	return codeTemplate.Execute(f, struct {
 		Timestamp   string
@@ -97,7 +97,7 @@ func fetchLicenses() (r *spdxlicense.Response, err error) {
 	if err != nil {
 		return r, err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	var spdxLicenseResponse spdxlicense.Response
 	if err := json.NewDecoder(response.Body).Decode(&spdxLicenseResponse); err != nil {
 		return r, err

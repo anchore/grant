@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
@@ -34,7 +35,7 @@ func GetReader(src string) (io.ReadSeeker, error) {
 			return nil, errors.Wrap(err, fmt.Sprintf("could not check licenses; could not expand path: %s ", src))
 		}
 
-		reader, err := os.Open(fileLocation)
+		reader, err := os.Open(filepath.Clean(fileLocation))
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("could not check licenses; could not open file: %s ", fileLocation))
 		}

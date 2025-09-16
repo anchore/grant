@@ -21,6 +21,7 @@ import (
 	"github.com/anchore/grant/internal/spdxlicense"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
 	"github.com/anchore/syft/syft/format"
 	"github.com/anchore/syft/syft/pkg/cataloger/golang"
@@ -31,18 +32,19 @@ import (
 	"github.com/anchore/syft/syft/source/sourceproviders"
 )
 
-// Case is a collection of SBOMs and Licenses that are evaluated for a given UserInput
+// Case is a collection of SBOMs and Licenses up for evaluation
 type Case struct {
 	// SBOMS is a list of SBOMs that were generated for the user input
 	SBOMS []sbom.SBOM
 
 	// Licenses is a list of licenses that were generated for the user input
+	// Note: since SBOMs are package centric this contains licenses that appeared
+	// during grants file system scan that could not be associated to a package.
+	// these can be disabled with the --disable-file-search flag
 	Licenses []License
-
-	// UserInput is the string that was supplied by the user to build the case
-	UserInput string
 }
 
+// TODO: we need to review this empty config being passed; default is better than empty
 func NewCases(userInputs ...string) []Case {
 	return NewCasesWithConfig(CaseConfig{}, userInputs...)
 }
@@ -62,7 +64,6 @@ func NewCasesWithConfig(config CaseConfig, userInputs ...string) []Case {
 			log.Errorf("unable to determine case for %s: %+v", userInput, err)
 			continue
 		}
-		c.UserInput = userInput
 		cases = append(cases, c)
 	}
 	return cases
@@ -116,6 +117,7 @@ func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string
 	}
 }
 
+// TODO: we definitely only want ONE backend for all of Grant
 type CaseHandler struct {
 	Backend      *backend.ClassifierBackend
 	Config       CaseConfig
@@ -147,12 +149,11 @@ func (ch *CaseHandler) Close() {
 }
 
 // A valid userRequest can be:
-// - a path to an SBOM file
-// - a path to a license
-// - a path to a directory
-// - a path to an archive
-// - a path to a directory (with any of the above)
-// - a container image (ubuntu:latest)
+// - a container image -> (ubuntu:latest)
+// - a path to an SBOM file -> startup.cdx.json
+// - a path to a license -> file:MIT
+// - a path to an archive -> licenses.zip
+// - a path to a directory (which contains any of the above) -> dir:./licenses
 func (ch *CaseHandler) determineRequestCase(userRequest string) (c Case, err error) {
 	switch {
 	case isStdin(userRequest):
@@ -162,7 +163,7 @@ func (ch *CaseHandler) determineRequestCase(userRequest string) (c Case, err err
 	case isDirectory(userRequest):
 		return ch.handleDir(userRequest)
 	default:
-		return handleContainer(userRequest)
+		return ch.handleContainer(userRequest)
 	}
 }
 
@@ -178,9 +179,8 @@ func handleStdin() (c Case, err error) {
 	}
 	if sb != nil {
 		return Case{
-			SBOMS:     []sbom.SBOM{*sb},
-			Licenses:  make([]License, 0),
-			UserInput: sb.Source.Name,
+			SBOMS:    []sbom.SBOM{*sb},
+			Licenses: make([]License, 0),
 		}, nil
 	}
 	return c, fmt.Errorf("unable to determine SBOM or licenses for stdin")
@@ -204,7 +204,7 @@ func decodeStdin(r io.Reader) (io.ReadSeeker, error) {
 func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 	// let's see if it's an archive (isArchive)
 	if isArchive(path) {
-		sb, err := generateSyftSBOM(path)
+		sb, err := ch.generateSyftSBOMWithBackend(path)
 		if err != nil {
 			// We bail here since we can't generate an SBOM for the archive
 			return c, err
@@ -213,9 +213,8 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 		// if there are licenses in the archive, syft should be enhanced to include them in the SBOM
 		// this overlap is a little weird, but grant should be able to take license files as input
 		return Case{
-			SBOMS:     []sbom.SBOM{sb},
-			Licenses:  make([]License, 0),
-			UserInput: path,
+			SBOMS:    []sbom.SBOM{sb},
+			Licenses: make([]License, 0),
 		}, nil
 	}
 
@@ -245,9 +244,8 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 	}
 
 	return Case{
-		SBOMS:     make([]sbom.SBOM, 0),
-		Licenses:  licenses,
-		UserInput: path,
+		SBOMS:    make([]sbom.SBOM, 0),
+		Licenses: licenses,
 	}, nil
 }
 
@@ -296,11 +294,11 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 	var licenseErr error
 	var foundLicenses []License
 
-	// Concurrently generate SBOM
+	// Concurrently generate SBOM with shared license classifier backend
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		sb, err := generateSyftSBOM(root)
+		sb, err := ch.generateSyftSBOMWithBackend(root)
 		if err != nil {
 			log.Debugf("unable to generate SBOM for source %s: %+v", root, err)
 			sbomErr = err
@@ -373,8 +371,6 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 	visited := make(map[string]bool)
 	var foundLicenses []License
 
-	log.Debugf("Starting recursive license search in %s with %d patterns", root, len(patterns))
-
 	// check all directories in scan target for potential licenses
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -384,7 +380,6 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 		if d.IsDir() {
 			dirName := d.Name()
 			if skipDirectories[dirName] {
-				log.Debugf("Skipping directory: %s", path)
 				return filepath.SkipDir
 			}
 			return nil
@@ -403,16 +398,13 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 				continue
 			}
 			if matched {
-				log.Debugf("Found potential license file: %s (pattern: %s)", path, pattern)
 				visited[path] = true
 
 				licenses, err := ch.handleLicenseFile(path)
 				if err != nil {
-					log.Debugf("unable to classify license file %s: %+v", path, err)
 					continue
 				}
 
-				log.Debugf("Successfully classified %d licenses from %s", len(licenses), path)
 				if len(licenses) > 0 {
 					foundLicenses = append(foundLicenses, licenses...)
 				}
@@ -424,15 +416,13 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 	})
 
 	if err != nil {
-		log.Debugf("error walking directory %s: %+v", root, err)
 		return foundLicenses, err
 	}
-	log.Debugf("Completed recursive license search in %s, found %d licenses", root, len(foundLicenses))
 	return foundLicenses, nil
 }
 
-func handleContainer(image string) (c Case, err error) {
-	sb, err := generateSyftSBOM(image)
+func (ch *CaseHandler) handleContainer(image string) (c Case, err error) {
+	sb, err := ch.generateSyftSBOMWithBackend(image)
 	if err != nil {
 		// We bail here since we can't generate an SBOM for the image
 		return c, err
@@ -445,7 +435,7 @@ func handleContainer(image string) (c Case, err error) {
 }
 
 func getReadSeeker(path string) (io.ReadSeeker, error) {
-	file, err := os.Open(path)
+	file, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return nil, fmt.Errorf("unable to open file: %w", err)
 	}
@@ -457,7 +447,6 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 	for _, license := range r {
 		// TODO: sometimes the license classifier gives us more information than just the name.
 		// How do we want to handle this or include it in the grant.License?
-
 		if license.MatchType == "License" {
 			spdxLicense, err := spdxlicense.GetLicenseByID(license.Name)
 			if err != nil {
@@ -482,14 +471,13 @@ func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
 	return licenses
 }
 
-// TODO: is the default syft config good enough here?
-// do we need at least all the non default license magic turned on
-func generateSyftSBOM(userInput string) (sb sbom.SBOM, err error) {
+// generateSyftSBOMWithBackend generates a syft SBOM using the CaseHandler's shared license classifier backend
+func (ch *CaseHandler) generateSyftSBOMWithBackend(userInput string) (sb sbom.SBOM, err error) {
 	src, err := getSource(userInput)
 	if err != nil {
 		return sb, err
 	}
-	sb = getSBOM(src)
+	sb = ch.getSBOMWithSharedBackend(src)
 	return sb, nil
 }
 
@@ -506,16 +494,40 @@ func getSource(userInput string) (source.Source, error) {
 	return syft.GetSource(context.Background(), userInput, syft.DefaultGetSourceConfig().WithSources(sources...))
 }
 
+// getSBOMWithSharedBackend creates an SBOM with the same configuration as getSBOM
+// The goal is consistency, not necessarily backend sharing at this point
+func (ch *CaseHandler) getSBOMWithSharedBackend(src source.Source) sbom.SBOM {
+	// For now, use the same configuration as getSBOM to ensure consistency
+	// TODO: Investigate syft's license configuration API to enable comprehensive license detection
+	return getSBOM(src)
+}
+
 func getSBOM(src source.Source) sbom.SBOM {
 	createSBOMConfig := syft.DefaultCreateSBOMConfig()
-	createSBOMConfig.WithPackagesConfig(
-		pkgcataloging.DefaultConfig().
-			WithJavaArchiveConfig(java.DefaultArchiveCatalogerConfig().WithUseNetwork(true)).
-			WithJavascriptConfig(javascript.DefaultCatalogerConfig().WithSearchRemoteLicenses(true)).
-			WithGolangConfig(golang.DefaultCatalogerConfig().
-				WithSearchLocalModCacheLicenses(true).
-				WithSearchRemoteLicenses(true)))
-	s, err := syft.CreateSBOM(context.Background(), src, nil)
+
+	// Configure cataloger selection to disable go-module-binary-cataloger
+	// This cataloger does not play nice with license analysis for golang
+	catalogerSelection := cataloging.NewSelectionRequest().
+		WithDefaults().
+		WithRemovals("go-module-binary-cataloger")
+
+	// Configure license scanning with proper settings
+	licenseConfig := cataloging.DefaultLicenseConfig()
+	licenseConfig.Coverage = 0.75 // Set a reasonable coverage threshold for license matching
+
+	createSBOMConfig.
+		WithCatalogerSelection(catalogerSelection).
+		WithLicenseConfig(licenseConfig).
+		WithPackagesConfig(
+			pkgcataloging.DefaultConfig().
+				WithJavaArchiveConfig(java.DefaultArchiveCatalogerConfig().WithUseNetwork(true)).
+				WithJavascriptConfig(javascript.DefaultCatalogerConfig().WithSearchRemoteLicenses(true)).
+				WithGolangConfig(golang.DefaultCatalogerConfig().
+					WithSearchLocalModCacheLicenses(true).
+					WithSearchRemoteLicenses(true).
+					WithLocalModCacheDir(""))) // Empty string uses default location
+
+	s, err := syft.CreateSBOM(context.Background(), src, createSBOMConfig)
 	if err != nil {
 		panic(err)
 	}
