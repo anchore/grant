@@ -3,21 +3,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/anchore/grant/actions/workflows/validations.yaml">
-    <img alt="Validations" src="https://github.com/anchore/grant/actions/workflows/validations.yaml/badge.svg" />
-  </a>
-  <a href="https://goreportcard.com/report/github.com/anchore/grant">
-    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/anchore/grant" />
-  </a>
-  <a href="https://github.com/anchore/grant/releases/latest">
-    <img alt="GitHub release" src="https://img.shields.io/github/release/anchore/grant.svg" />
-  </a>
-  <a href="https://github.com/anchore/grant/blob/main/go.mod">
-    <img alt="GitHub go.mod Go version" src="https://img.shields.io/github/go-mod/go-version/anchore/grant.svg" />
-  </a>
-  <a href="https://github.com/anchore/grant/blob/main/LICENSE">
-    <img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" />
-  </a>
+  <a href="https://github.com/anchore/grant/actions/workflows/validations.yaml"><img alt="Validations" src="https://github.com/anchore/grant/actions/workflows/validations.yaml/badge.svg" /></a>
+  <a href="https://goreportcard.com/report/github.com/anchore/grant"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/anchore/grant" /></a>
+  <a href="https://github.com/anchore/grant/releases/latest"><img alt="GitHub release" src="https://img.shields.io/github/release/anchore/grant.svg" /></a>
+  <a href="https://github.com/anchore/grant/blob/main/go.mod">    <img alt="GitHub go.mod Go version" src="https://img.shields.io/github/go-mod/go-version/anchore/grant.svg" /></a>
+  <a href="https://github.com/anchore/grant/blob/main/LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" /></a>
  &nbsp;<a href="https://anchore.com/discourse" target="_blank"><img alt="Join our Discourse" src="https://img.shields.io/badge/Discourse-Join-blue?logo=discourse"/></a>&nbsp;
 </p>
 
