@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/anchore/go-logger"
-	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/anchore/go-logger"
+	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/grant"
 	"github.com/anchore/grant/internal/log"
