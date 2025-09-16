@@ -15,9 +15,8 @@ import (
 
 type checkFlags struct {
 	DisableFileSearch bool
-	FailOnError       bool
-	SummaryOnly       bool
-	NoLicensesOnly    bool
+	Summary           bool
+	Unlicensed        bool
 }
 
 const (
@@ -49,9 +48,8 @@ Exit codes:
 
 	// Add command-specific flags
 	cmd.Flags().Bool("disable-file-search", false, "disable filesystem license file search")
-	cmd.Flags().Bool("fail-on-error", false, "fail immediately on first error")
-	cmd.Flags().Bool("summary-only", false, "show only summary information")
-	cmd.Flags().Bool("no-licenses-only", false, "show only packages without licenses")
+	cmd.Flags().Bool("summary", false, "show only summary information")
+	cmd.Flags().Bool("unlicensed", false, "show only packages without licenses")
 
 	return cmd
 }
@@ -80,15 +78,13 @@ func runCheck(cmd *cobra.Command, args []string) error {
 // parseCheckFlags extracts and validates command-specific flags
 func parseCheckFlags(cmd *cobra.Command) *checkFlags {
 	disableFileSearch, _ := cmd.Flags().GetBool("disable-file-search")
-	failOnError, _ := cmd.Flags().GetBool("fail-on-error")
-	summaryOnly, _ := cmd.Flags().GetBool("summary-only")
-	noLicensesOnly, _ := cmd.Flags().GetBool("no-licenses-only")
+	summary, _ := cmd.Flags().GetBool("summary")
+	unlicensed, _ := cmd.Flags().GetBool("unlicensed")
 
 	return &checkFlags{
 		DisableFileSearch: disableFileSearch,
-		FailOnError:       failOnError,
-		SummaryOnly:       summaryOnly,
-		NoLicensesOnly:    noLicensesOnly,
+		Summary:           summary,
+		Unlicensed:        unlicensed,
 	}
 }
 
@@ -163,12 +159,12 @@ func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 		return nil
 	}
 
-	if flags.SummaryOnly {
+	if flags.Summary {
 		return handleSummaryOutput(result, globalConfig.OutputFormat)
 	}
 
-	if flags.NoLicensesOnly {
-		return handleNoLicensesOnlyOutput(result, globalConfig.OutputFormat)
+	if flags.Unlicensed {
+		return handleUnlicensedOutput(result, globalConfig.OutputFormat)
 	}
 
 	if err := OutputResult(result, globalConfig.OutputFormat); err != nil {
@@ -176,7 +172,7 @@ func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 		return err
 	}
 
-	handleExitCode(result, flags.FailOnError)
+	handleExitCode(result)
 	return nil
 }
 
@@ -224,7 +220,7 @@ func handleSummaryOutput(result *grant.RunResponse, format string) error {
 		}
 	}
 
-	fmt.Printf("Check Summary:\n")
+	fmt.Printf("\nCheck Summary:\n")
 	fmt.Printf("  Total targets: %d\n", totalTargets)
 	if totalCompliant > 0 {
 		fmt.Printf("  Compliant: %d\n", totalCompliant)
@@ -248,8 +244,8 @@ func handleSummaryOutput(result *grant.RunResponse, format string) error {
 	return nil
 }
 
-// handleNoLicensesOnlyOutput handles no-licenses-only output
-func handleNoLicensesOnlyOutput(result *grant.RunResponse, format string) error {
+// handleUnlicensedOutput handles unlicensed output
+func handleUnlicensedOutput(result *grant.RunResponse, format string) error {
 	if format == formatJSON {
 		// For JSON, filter the result to only show packages without licenses
 		filteredResult := filterResultForNoLicenses(result)
@@ -258,7 +254,7 @@ func handleNoLicensesOnlyOutput(result *grant.RunResponse, format string) error 
 
 	// For table format, use the same structure as default output
 	for _, target := range result.Run.Targets {
-		if err := outputTargetTableNoLicensesOnly(target); err != nil {
+		if err := outputTargetTableUnlicensed(target); err != nil {
 			return err
 		}
 		fmt.Println() // Add spacing between targets
@@ -267,8 +263,8 @@ func handleNoLicensesOnlyOutput(result *grant.RunResponse, format string) error 
 	return nil
 }
 
-// outputTargetTableNoLicensesOnly outputs a single target as a table, showing only packages without licenses
-func outputTargetTableNoLicensesOnly(target grant.TargetResult) error {
+// outputTargetTableUnlicensed outputs a single target as a table, showing only packages without licenses
+func outputTargetTableUnlicensed(target grant.TargetResult) error {
 	// Print progress-style header
 	fmt.Printf(" ✔ Checking %s                                                                             %s\n", target.Source.Ref, target.Source.Type)
 	fmt.Printf(" ✔ License compliance check                                %s\n", formatStatus(target.Evaluation.Status))
@@ -288,7 +284,7 @@ func outputTargetTableNoLicensesOnly(target grant.TargetResult) error {
 
 	// Print detailed table if there are packages without licenses
 	if len(packagesWithoutLicenses) > 0 {
-		return printPackageTableNoLicensesOnly(packagesWithoutLicenses)
+		return printPackageTableUnlicensed(packagesWithoutLicenses)
 	} else {
 		fmt.Println("No packages without licenses found.")
 	}
@@ -367,8 +363,8 @@ func formatStatus(status string) string {
 	}
 }
 
-// printPackageTableNoLicensesOnly prints packages without licenses in the same table format as default output
-func printPackageTableNoLicensesOnly(packages []grant.PackageFinding) error {
+// printPackageTableUnlicensed prints packages without licenses in the same table format as default output
+func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 	if len(packages) == 0 {
 		return nil
 	}
@@ -418,7 +414,7 @@ func printPackageTableNoLicensesOnly(packages []grant.PackageFinding) error {
 }
 
 // handleExitCode determines the appropriate exit code
-func handleExitCode(result *grant.RunResponse, failOnError bool) {
+func handleExitCode(result *grant.RunResponse) {
 	hasNonCompliant := false
 	hasErrors := false
 
@@ -429,10 +425,6 @@ func handleExitCode(result *grant.RunResponse, failOnError bool) {
 		case statusError:
 			hasErrors = true
 		}
-	}
-
-	if hasErrors && failOnError {
-		os.Exit(1)
 	}
 
 	if hasNonCompliant || hasErrors {
