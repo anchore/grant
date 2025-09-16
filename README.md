@@ -147,10 +147,10 @@ comma-separated (without spaces) patterns
 #.grant.yaml
 # Default behavior: DENY all licenses except those explicitly permitted
 # Default behavior: DENY packages without licenses
-require-license: false        # Deny packages with no detected licenses
+require-license: true        # Deny packages with no detected licenses
 require-known-license: false # Deny non-SPDX / unparsable licenses
 
-# Allowed licenses (glob patterns supported)
+# Allowed licenses (glob patterns supported; default none allowed)
 allow:
   - BSD*
   - CC0*
@@ -184,7 +184,7 @@ The `--disable-file-search` option allows you to skip the second type of detecti
 
 ## License Risk Categories
 
-Grant categorizes licenses based on their legal risk and restrictions:
+Grant categorizes licenses based on their risk and restrictions:
 
 ### Risk Levels
 
@@ -220,7 +220,7 @@ Apache-2.0          117    Low
 GPL-3.0-only          3    High
 ```
 
-3. **Group by Risk View**: Aggregates all licenses by risk category
+3. **Group by Risk View**: Aggregates all licenses by risk category for a scan target
 ```bash
 $ grant list dir:. --group-by risk
 RISK CATEGORY    LICENSES    PACKAGES
@@ -240,7 +240,7 @@ Permissive             10         299
 
 ### JSON Output to File
 
-Grant can write JSON output to a file while still displaying table output in the terminal. This is useful for automation and further processing:
+Grant can write its JSON output to a file while still displaying table output in the terminal. This is useful for saving cycles without rescanning:
 
 ```bash
 # Save JSON output to file while showing table in terminal
@@ -266,7 +266,7 @@ The JSON output contains complete machine-readable data regardless of the termin
 
 ### JSON Input Processing
 
-Grant can use its own JSON output as input so you don't have to regenerate a scan if nothing changed. SBOMS also work.
+Grant can then use its own JSON output or an SBOM as input so you don't have to regenerate a scan if nothing has changed.
 
 ```bash
 # Save results and reprocess them
@@ -296,10 +296,11 @@ Grant supports multiple output modes and combinations:
 # Unlicensed packages
 grant check --unlicensed dir:.         # Shows packages without licenses
 grant list --unlicensed dir:.         # Shows packages without licenses during list
+grant list dir:. (no licenses found)  # equivlant license filter without the flag
 
-# JSON format for users to build their own views
+# output JSON format for users to build their own views
 grant list -o json dir:.               # JSON to stdout
-grant check -o json dir:.              # JSON to stdout
+grant check --dry-run -o json dir:.    # JSON to stdout no error code
 
 # File output combinations
 grant list dir:. -f output.json        # Table to terminal, JSON to file
