@@ -9,8 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/anchore/go-logger"
+	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/grant/internal/stdinbuffer"
 )
 
@@ -53,12 +56,43 @@ func GetGlobalConfig(cmd *cobra.Command) *GlobalConfig {
 	}
 }
 
+// SetupLogging configures logging based on verbose flag
+func SetupLogging(verbose bool) {
+	var logLevel logger.Level
+	if verbose {
+		logLevel = logger.DebugLevel
+	} else {
+		logLevel = logger.WarnLevel
+	}
+
+	cfg := logrus.Config{
+		EnableConsole: true,
+		Level:         logLevel,
+	}
+
+	l, _ := logrus.New(cfg)
+	log.Set(l)
+}
+
 // LoadPolicyFromConfig loads policy based on global config
 func LoadPolicyFromConfig(config *GlobalConfig) (*grant.Policy, error) {
 	// Use the centralized config loading logic from internal package
 	internalConfig, err := internal.LoadConfig(config.ConfigFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Log config path when verbose is enabled
+	if config.Verbose {
+		configPath := config.ConfigFile
+		if configPath == "" {
+			configPath = internal.GetResolvedConfigPath()
+		}
+		if configPath != "" {
+			log.Debugf("config file: %s", configPath)
+		} else {
+			log.Debug("No configuration file found, using defaults")
+		}
 	}
 
 	return internalConfig.Policy, nil

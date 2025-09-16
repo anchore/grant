@@ -14,6 +14,11 @@ func Application() *cobra.Command {
 		Short:   "A license compliance tool for container images, SBOMs, filesystems, and more",
 		Long:    `Grant helps you view licenses for container images, SBOM documents, and filesystems. Apply filters and views that can help you build a picture of licenses in your SBOM.`,
 		Version: internal.ApplicationVersion,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// Set up logging based on verbose flag
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			command.SetupLogging(verbose)
+		},
 	}
 
 	// Add global flags
@@ -29,6 +34,7 @@ func Application() *cobra.Command {
 		command.Check(),
 		command.List(),
 		command.Config(),
+		command.Version(),
 	)
 
 	return app

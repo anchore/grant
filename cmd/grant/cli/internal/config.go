@@ -11,6 +11,9 @@ import (
 	"github.com/anchore/grant/grant"
 )
 
+// resolvedConfigPath stores the path of the config file that was actually loaded
+var resolvedConfigPath string
+
 // Config represents the CLI configuration
 type Config struct {
 	ConfigFile   string
@@ -95,12 +98,24 @@ func LoadConfig(configFile string) (*Config, error) {
 	return config, nil
 }
 
+// GetResolvedConfigPath returns the path of the config file that was actually loaded
+func GetResolvedConfigPath() string {
+	return resolvedConfigPath
+}
+
 // loadPolicyConfig loads policy from config file or defaults
 func loadPolicyConfig(configFile string) (*grant.Policy, error) {
+	// Reset the resolved config path
+	resolvedConfigPath = ""
+
 	// If config file is explicitly provided, it must exist and be valid
 	if configFile != "" {
 		if _, err := os.Stat(configFile); err == nil {
-			return grant.LoadPolicyFromFile(configFile)
+			policy, err := grant.LoadPolicyFromFile(configFile)
+			if err == nil {
+				resolvedConfigPath = configFile
+			}
+			return policy, err
 		}
 		return nil, fmt.Errorf("specified config file not found: %s", configFile)
 	}
@@ -110,6 +125,7 @@ func loadPolicyConfig(configFile string) (*grant.Policy, error) {
 		if _, err := os.Stat(location); err == nil {
 			policy, err := grant.LoadPolicyFromFile(location)
 			if err == nil {
+				resolvedConfigPath = location
 				return policy, nil
 			}
 			// Continue looking if this file exists but is invalid
