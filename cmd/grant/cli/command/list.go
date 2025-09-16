@@ -189,6 +189,12 @@ func runList(cmd *cobra.Command, args []string) error {
 	packageDetail, _ := cmd.Flags().GetString("pkg")
 	groupBy, _ := cmd.Flags().GetString("group-by")
 
+	// Show loading progress before cataloging
+	if internal.IsTerminalOutput() && !globalConfig.Quiet {
+		ui := internal.NewRealtimeUI(globalConfig.Quiet)
+		ui.ShowLoadingProgress(target)
+	}
+
 	// Create orchestrator and perform list operation
 	result, err := performListOperation(target, licenseFilters, disableFileSearch, globalConfig)
 	if err != nil {
@@ -432,7 +438,7 @@ func outputListTableWithFilters(result *grant.RunResponse, licenseFilters []stri
 func outputListTargetTableWithFilters(target grant.TargetResult, licenseFilters []string) error {
 	// Only show progress TUI if outputting to a terminal
 	if internal.IsTerminalOutput() {
-		// Display progress steps
+		// Display completed progress steps
 		fmt.Printf(" %s Loaded %s                                                                              %s\n",
 			color.Green.Sprint("✔"),
 			target.Source.Ref,
