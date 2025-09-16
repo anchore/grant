@@ -3,23 +3,20 @@
 View licenses for container images, SBOM documents, filesystems, and apply rules that help you build a license
 compliance report.
 
-![demo](https://github.com/anchore/grant/assets/32073428/981be7c0-582f-4966-a1e9-31e770aba9eb)
-
-### Supply an image
+### Supply an image to view the licenses found in the image
 ```bash
-$ grant check redis:latest
+$ grant list redis:latest
 ```
 
-#### Supply an SBOM document
+#### Supply an SBOM document and see all the licenses in that document
 ```bash
-$ grant check alpine.spdx.json
+$ grant list alpine.spdx.json
 ```
 
-### Supply multiple sources including stdin and a mix of image and sbom
+### Check a local directory for licenses
 ```bash
-$ syft -o spdx-json alpine:latest | grant check node:latest
+$ grant list dir:.
 ```
-
 
 ## Installation
 ```bash
@@ -34,27 +31,20 @@ curl -sSfL https://get.anchore.io/grant | sudo sh -s -- -b <DESTINATION_DIR> <RE
 
 ## Usage
 
-Grant can be used with any container image, sbom document, or directory to scan for licenses and check those classifierResults
-against a set of rules provided by the user.
+Grant can be used with any container image, sbom document, or directory to scan for licenses and evaluate them against a license configuration.
 
-Rules take the form of a pattern to match the license against, a name to identify the rule, a mode to either allow,
-deny, or ignore the license,
-a reason for the rule, and a list of packages that are exceptions to the rule.
-```
-pattern: "*gpl*"
-name: "deny-gpl"
-mode: "deny"
-reason: "GPL licenses are not allowed"
-exceptions:
-  - "alpine-base-layout" # We don't link against this package so we don't care about its license
-```
+**Default Behavior:**
+- **DENY all licenses** except those explicitly permitted in the `allow` list
+- **DENY packages without licenses** (when `require-license` is true)
+- **Allow packages with non-SPDX/unparsable licenses** (when `require-known-license` is false)
 
-Matching Rules:
-- Denying licenses take precedence over allowing licenses
-- License patterns are matched on a case-insensitive basis.
-- If a license is has rules for both modes it is denied
+**Configuration Options:**
+- `allow`: List of license patterns to permit (supports glob patterns)
+- `ignore-packages`: List of package patterns to exclude from license checking
+- `require-license`: Set to `false` to allow packages with no detected licenses (default: `false`)
+- `require-known-license`: Set to `false` to allow non-SPDX/unparsable licenses (default: `false`)
 
-Supplied patterns follow a standard globbing syntax:
+License patterns support standard globbing syntax:
 ```
 pattern:
 { term }
@@ -80,63 +70,34 @@ pattern { `,` pattern }
 comma-separated (without spaces) patterns
 ```
 
-By default grant is configured to deny all licenses out of the box.
-
-Grant can be used to deny specific licenses while allowing all others.
-
-It can also be used to allow specific licenses, denying all others.
-
-## Output
-#### Table
-![table-output](https://github.com/anchore/grant/assets/32073428/59a516de-3acd-4f4a-8861-4e90eae09866)
-
-#### JSON: TODO
-![json-output](https://github.com/anchore/grant/assets/32073428/c2d89645-e323-4f99-a179-77e5a750ee6a)
-
 ## Configuration
 
-### Example: Deny GPL
+### Basic Configuration
 
 ```yaml
 #.grant.yaml
-config: ".grant.yaml"
-format: table # table, json
-show-packages: false # show the packages which contain the licenses --show-packages
-non-spdx: false # list only licenses that could not be matched to an SPDX identifier --non-spdx
-osi-approved: false # highlight licenses that are not OSI approved --osi-approved
-disable-file-search: false # skip grant's license file search (e.g., LICENSE, COPYING files not associated with packages) --disable-file-search
-rules: 
-    - pattern: "*gpl*"
-      name: "deny-gpl"
-      mode: "deny"
-      reason: "GPL licenses are not allowed per xxx-xx company policy"
-      exceptions:
-        - "alpine-base-layout" # We don't link against this package so we don't care about its license
-```
+# Default behavior: DENY all licenses except those explicitly permitted
+# Default behavior: DENY packages without licenses
+require-license: false        # Deny packages with no detected licenses
+require-known-license: false # Deny non-SPDX / unparsable licenses
 
-### Example: Allow Lists
+# Allowed licenses (glob patterns supported)
+allow:
+  - BSD*
+  - CC0*
+  - MIT*
+  - Apache*
+  - MPL*
+  - ISC
+  - WTFPL
+  - Unlicense
 
-In this example, all licenses are denied except BSD and MIT:
+ignore-packages:
+  # packageurl-go is released under the MIT license located in the root of the repo at /mit.LICENSE
+  - github.com/anchore/packageurl-go
 
-```yaml
-#.grant.yaml
-rules:
-  - pattern: "BSD-*"
-    name: "bsd-allow"
-    mode: "allow"
-    reason: "BSD is compatible with our project"
-    exceptions:
-      # Packages to disallow even if they are licensed under BSD.
-      - my-package
-  - pattern: "MIT"
-    name: "mit-allow"
-    mode: "allow"
-    reason: "MIT is compatible with our project"
-  # Reject the rest.
-  - pattern: "*"
-    name: "default-deny-all"
-    mode: "deny"
-    reason: "All licenses need to be explicitly allowed"
+  # syft is under the Apache-2 license but gets flagged because of some test dependencies
+  - github.com/anchore/syft
 ```
 
 ### License Detection Modes

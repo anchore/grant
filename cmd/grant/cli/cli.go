@@ -26,6 +26,7 @@ func Application() *cobra.Command {
 	app.AddCommand(
 		command.Check(),
 		command.List(),
+		command.Config(),
 	)
 
 	return app
