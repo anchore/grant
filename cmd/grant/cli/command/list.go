@@ -954,11 +954,6 @@ func displayPackageDetails(result *grant.RunResponse, packageName string) error 
 
 	// Display progress-style header only if outputting to a terminal
 	if internal.IsTerminalOutput() {
-		fmt.Printf(" %s Loaded %s                                                                              %s\n",
-			color.Green.Sprint("✔"),
-			target.Source.Ref,
-			target.Source.Type)
-
 		fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
 		fmt.Printf(" %s Package details                    [package=\"%s\"]\n",
 			color.Green.Sprint("✔"),
