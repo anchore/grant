@@ -59,6 +59,15 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	globalConfig := GetGlobalConfig(cmd)
 	flags := parseCheckFlags(cmd)
 
+	// Check if input is grant JSON from stdin
+	if len(args) > 0 {
+		if grantResult, isGrantJSON := isGrantJSONInput(args[0]); isGrantJSON {
+			// Handle grant JSON input directly
+			result := handleGrantJSONInput(grantResult, []string{}) // No license filters for check
+			return handleCheckOutput(result, globalConfig, flags)
+		}
+	}
+
 	realtimeUI := setupRealtimeUI(globalConfig, args)
 	orchestrator, err := setupOrchestrator(globalConfig, flags.DisableFileSearch)
 	if err != nil {
@@ -155,19 +164,27 @@ func updateUIWithResults(realtimeUI *internal.RealtimeUI, result *grant.RunRespo
 // handleCheckOutput processes and displays the check results
 func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, flags *checkFlags) error {
 	if globalConfig.Quiet {
+		// Handle output file if specified in quiet mode
+		if globalConfig.OutputFile != "" {
+			output := internal.NewOutput()
+			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+				HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
+				return err
+			}
+		}
 		handleQuietOutput(result)
 		return nil
 	}
 
 	if flags.Summary {
-		return handleSummaryOutput(result, globalConfig.OutputFormat)
+		return handleSummaryOutput(result, globalConfig.OutputFormat, globalConfig.OutputFile)
 	}
 
 	if flags.Unlicensed {
-		return handleUnlicensedOutput(result, globalConfig.OutputFormat)
+		return handleUnlicensedOutput(result, globalConfig.OutputFormat, globalConfig.OutputFile)
 	}
 
-	if err := OutputResult(result, globalConfig.OutputFormat); err != nil {
+	if err := OutputResult(result, globalConfig.OutputFormat, globalConfig.OutputFile); err != nil {
 		HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
 		return err
 	}
@@ -197,10 +214,10 @@ func handleQuietOutput(result *grant.RunResponse) {
 }
 
 // handleSummaryOutput handles summary-only output
-func handleSummaryOutput(result *grant.RunResponse, format string) error {
+func handleSummaryOutput(result *grant.RunResponse, format string, outputFile string) error {
 	if format == formatJSON {
 		// For JSON, output full result but caller can filter
-		return OutputResult(result, format)
+		return OutputResult(result, format, outputFile)
 	}
 
 	// For table format, show summary only
@@ -245,11 +262,11 @@ func handleSummaryOutput(result *grant.RunResponse, format string) error {
 }
 
 // handleUnlicensedOutput handles unlicensed output
-func handleUnlicensedOutput(result *grant.RunResponse, format string) error {
+func handleUnlicensedOutput(result *grant.RunResponse, format string, outputFile string) error {
 	if format == formatJSON {
 		// For JSON, filter the result to only show packages without licenses
 		filteredResult := filterResultForNoLicenses(result)
-		return OutputResult(filteredResult, format)
+		return OutputResult(filteredResult, format, outputFile)
 	}
 
 	// For table format, use the same structure as default output

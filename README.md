@@ -23,8 +23,7 @@
 
 # Grant
 
-View licenses for container images, SBOM documents, filesystems, and apply rules that help you build a license
-compliance report.
+View licenses for container images, SBOM documents, filesystems, and apply rules that help you build a license compliance report. Grant provides powerful filtering, detailed package analysis, and workflow automation capabilities for comprehensive license management.
 
 ### Supply an image to view the licenses found in the image
 ```bash
@@ -39,6 +38,19 @@ $ grant list alpine.spdx.json
 ### Check a local directory for licenses
 ```bash
 $ grant list dir:.
+```
+
+### Filter packages by license and get detailed information
+```bash
+# Show only packages with MIT license
+$ grant list dir:. "MIT"
+
+# Get detailed info about a specific package
+$ grant list dir:. "MIT" --pkg "github.com/BurntSushi/toml"
+
+# Save results to JSON file for further processing
+$ grant list dir:. -f results.json
+$ cat results.json | grant list - "Apache-2.0"
 ```
 
 ## Installation
@@ -135,3 +147,177 @@ The `--disable-file-search` option allows you to skip the second type of detecti
 - You need faster scanning by avoiding filesystem traversal for license files
 
 **Note**: SBOM generation includes its own file analysis process which will still run regardless of the `--disable-file-search` setting.
+
+## Advanced Features
+
+### JSON Output to File
+
+Grant can write JSON output to a file while still displaying table output in the terminal. This is useful for automation and further processing:
+
+```bash
+# Save JSON output to file while showing table in terminal
+grant list dir:. -f output.json
+grant check dir:. --output-file results.json
+
+# Use shorthand flag
+grant list dir:. -f output.json
+```
+
+The JSON output contains complete machine-readable data regardless of the terminal display format.
+
+### License Filtering
+
+Filter the list output to show only packages with specific licenses:
+
+```bash
+# Show only packages with MIT license
+grant list dir:. "MIT"
+
+# Show packages with MIT OR Apache-2.0 licenses
+grant list dir:. "MIT" "Apache-2.0"
+
+# Combine with output file
+grant list dir:. "ISC" -f isc-packages.json
+```
+
+When license filtering is applied, the output shows:
+- Filter status in the progress display
+- Package and license counts for filtered results
+- Detailed package table instead of aggregated license table
+
+### Package Detail View
+
+Get detailed information about a specific package, including complete license details and file locations:
+
+```bash
+# Show detailed info for a specific package (requires license filter)
+grant list dir:. "MIT" --pkg "github.com/BurntSushi/toml"
+
+# Works with multiple license filters
+grant list dir:. "MIT" "ISC" --pkg "github.com/emirpasic/gods"
+
+# Combine with JSON output
+grant list dir:. "MIT" --pkg "github.com/BurntSushi/toml" -f package-details.json
+```
+
+Package details include:
+- Package metadata (name, version, type, ID, decision)
+- Complete license information (ID, name, OSI approval, deprecation status, details URL)
+- Evidence and file locations
+- Support for multiple package instances
+
+### JSON Input Processing
+
+Grant can use its own JSON output as input, enabling powerful workflow automation:
+
+```bash
+# Save results and reprocess them
+grant list dir:. -f results.json
+cat results.json | grant list -
+
+# Apply different filters to saved results
+cat results.json | grant list - "MIT"
+cat results.json | grant check -
+
+# Chain operations
+grant list dir:. -f all-packages.json
+cat all-packages.json | grant list - "GPL-3.0-only" --pkg "some/package"
+```
+
+This enables:
+- **Result caching**: Save expensive analysis results for reuse
+- **Offline analysis**: Process results without re-scanning targets
+- **Workflow automation**: Chain grant commands in scripts
+- **Filter experimentation**: Try different license filters on the same dataset
+
+### Output Modes and Flags
+
+Grant supports multiple output modes and combinations:
+
+```bash
+# Quiet mode - minimal output
+grant list -q dir:.                    # Shows license count
+grant check -q dir:.                   # Shows non-compliant count
+
+# Summary mode (check only)
+grant check --summary dir:.            # Shows compliance summary
+
+# Filtered views (list only)
+grant list --licenses-only dir:.       # Shows only license information
+grant list --packages-only dir:.       # Shows only package information
+
+# Unlicensed packages (check only)
+grant check --unlicensed dir:.         # Shows packages without licenses
+
+# JSON format
+grant list -o json dir:.               # JSON to stdout
+grant check -o json dir:.              # JSON to stdout
+```
+
+### Advanced Workflow Examples
+
+**License Compliance Pipeline:**
+```bash
+# 1. Generate comprehensive report
+grant check dir:. -f compliance-report.json
+
+# 2. Extract packages with problematic licenses
+cat compliance-report.json | grant list - "GPL-3.0-only" "AGPL-3.0-only" -f gpl-packages.json
+
+# 3. Get detailed info about specific problematic packages
+cat gpl-packages.json | grant list - "GPL-3.0-only" --pkg "some/problematic-package"
+```
+
+**License Inventory Workflow:**
+```bash
+# 1. Scan and save all licenses
+grant list dir:. -f full-inventory.json
+
+# 2. Filter by license families
+cat full-inventory.json | grant list - "*GPL*" -f gpl-licenses.json
+cat full-inventory.json | grant list - "*Apache*" -f apache-licenses.json
+
+# 3. Generate license-only reports
+cat full-inventory.json | grant list --licenses-only - > license-summary.txt
+```
+
+**Package Investigation:**
+```bash
+# 1. Find packages with specific license
+grant list dir:. "MIT" -f mit-packages.json
+
+# 2. Investigate specific package details
+cat mit-packages.json | grant list - "MIT" --pkg "github.com/some/package"
+
+# 3. Save detailed package info
+cat mit-packages.json | grant list - "MIT" --pkg "github.com/some/package" -f package-investigation.json
+```
+
+## Quick Reference
+
+### Common Commands
+
+| Command | Description |
+|---------|-------------|
+| `grant list dir:.` | List all licenses in current directory |
+| `grant check dir:.` | Check license compliance |
+| `grant list dir:. "MIT"` | Show only packages with MIT license |
+| `grant list dir:. -f output.json` | Save JSON output to file |
+| `grant list dir:. "MIT" --pkg "package/name"` | Show detailed package information |
+| `cat output.json \| grant list -` | Process saved JSON results |
+| `grant check --summary dir:.` | Show compliance summary only |
+| `grant list --licenses-only dir:.` | Show license information only |
+
+### Flags and Options
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--output-file` | `-f` | Write JSON output to file |
+| `--output` | `-o` | Output format (table, json) |
+| `--quiet` | `-q` | Minimal output |
+| `--config` | `-c` | Configuration file path |
+| `--pkg` | | Show detailed package info (requires license filter) |
+| `--licenses-only` | | Show only license information |
+| `--packages-only` | | Show only package information |
+| `--summary` | | Show summary only (check command) |
+| `--unlicensed` | | Show unlicensed packages only (check command) |

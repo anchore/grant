@@ -26,8 +26,19 @@ func NewOutput() *Output {
 }
 
 // OutputJSON outputs the result as JSON
-func (o *Output) OutputJSON(result *grant.RunResponse) error {
-	encoder := json.NewEncoder(os.Stdout)
+func (o *Output) OutputJSON(result *grant.RunResponse, outputFile string) error {
+	var writer = os.Stdout
+
+	if outputFile != "" {
+		file, err := os.Create(outputFile)
+		if err != nil {
+			return fmt.Errorf("failed to create output file %s: %w", outputFile, err)
+		}
+		defer file.Close()
+		writer = file
+	}
+
+	encoder := json.NewEncoder(writer)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(result)
 }
@@ -36,6 +47,17 @@ func (o *Output) OutputJSON(result *grant.RunResponse) error {
 func (o *Output) OutputTable(result *grant.RunResponse) error {
 	for _, target := range result.Run.Targets {
 		if err := o.outputTargetTable(target); err != nil {
+			return err
+		}
+		fmt.Println() // Add spacing between targets
+	}
+	return nil
+}
+
+// OutputListTable outputs the result as a list-specific table format with progress and aggregated licenses
+func (o *Output) OutputListTable(result *grant.RunResponse) error {
+	for _, target := range result.Run.Targets {
+		if err := o.outputListTargetTable(target); err != nil {
 			return err
 		}
 		fmt.Println() // Add spacing between targets
@@ -61,6 +83,52 @@ func (o *Output) outputTargetTable(target grant.TargetResult) error {
 	}
 
 	return nil
+}
+
+// outputListTargetTable outputs a single target in list format with progress and aggregated licenses
+func (o *Output) outputListTargetTable(target grant.TargetResult) error {
+	// Display progress steps
+	fmt.Printf(" %s Loaded %s                                                                              %s\n",
+		color.Green.Sprint("✔"),
+		target.Source.Ref,
+		target.Source.Type)
+
+	fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
+	fmt.Printf(" %s Cataloged contents\n", color.Green.Sprint("✔"))
+
+	// Display tree structure with counts
+	fmt.Printf("   %s %s %-30s %s\n",
+		"├──",
+		color.Green.Sprint("✔"),
+		"Packages",
+		fmt.Sprintf("[%d packages]", target.Evaluation.Summary.Packages.Total))
+
+	fmt.Printf("   %s %s %-30s %s\n",
+		"├──",
+		color.Green.Sprint("✔"),
+		"Licenses",
+		fmt.Sprintf("[%d unique]", target.Evaluation.Summary.Licenses.Unique))
+
+	// Count total file locations across all packages
+	totalLocations := 0
+	for _, pkg := range target.Evaluation.Findings.Packages {
+		totalLocations += len(pkg.Locations)
+	}
+
+	fmt.Printf("   %s %s %-30s %s\n",
+		"└──",
+		color.Green.Sprint("✔"),
+		"File metadata",
+		fmt.Sprintf("[%d locations]", totalLocations))
+
+	// Display aggregated licenses section
+	fmt.Printf(" %s Aggregated licenses                [grouped by license, desc by count]\n",
+		color.Green.Sprint("✔"))
+
+	fmt.Println()
+
+	// Create aggregated license table
+	return o.printAggregatedLicenseTable(target.Evaluation.Findings.Packages)
 }
 
 // printPackageTable prints packages in a table format
@@ -201,5 +269,70 @@ func (o *Output) OutputQuiet(result *grant.RunResponse) error {
 	if nonCompliantCount > 0 {
 		fmt.Printf("%d\n", nonCompliantCount)
 	}
+	return nil
+}
+
+// printAggregatedLicenseTable prints licenses grouped by license name with package counts
+func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) error {
+	// Create license count map
+	licenseMap := make(map[string]int)
+
+	for _, pkg := range packages {
+		if len(pkg.Licenses) == 0 {
+			// Package with no licenses
+			licenseMap["(no licenses found)"]++
+		} else {
+			for _, license := range pkg.Licenses {
+				licenseKey := license.ID
+				if licenseKey == "" {
+					licenseKey = license.Name
+				}
+				if licenseKey == "" {
+					licenseKey = "(unknown)"
+				}
+				licenseMap[licenseKey]++
+			}
+		}
+	}
+
+	// Convert to slice for sorting
+	type licenseCount struct {
+		license string
+		count   int
+	}
+
+	var licenseCounts []licenseCount
+	for license, count := range licenseMap {
+		licenseCounts = append(licenseCounts, licenseCount{license, count})
+	}
+
+	// Sort by count descending, then by name ascending
+	sort.Slice(licenseCounts, func(i, j int) bool {
+		if licenseCounts[i].count == licenseCounts[j].count {
+			return licenseCounts[i].license < licenseCounts[j].license
+		}
+		return licenseCounts[i].count > licenseCounts[j].count
+	})
+
+	// Create table
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	// Configure table style to match the desired output
+	t.Style().Options.SeparateHeader = false
+	t.Style().Options.DrawBorder = false
+	t.Style().Options.SeparateColumns = true
+	t.Style().Options.SeparateFooter = false
+	t.Style().Options.SeparateRows = false
+
+	// Set headers
+	t.AppendHeader(table.Row{"LICENSE", "PACKAGES"})
+
+	// Add rows
+	for _, lc := range licenseCounts {
+		t.AppendRow(table.Row{lc.license, lc.count})
+	}
+
+	t.Render()
 	return nil
 }
