@@ -60,6 +60,47 @@ This command always returns exit code 0 unless there are processing errors.`,
 	return cmd
 }
 
+// handleJSONInput processes grant JSON input from stdin
+func handleJSONInput(cmd *cobra.Command, target string, licenseFilters []string) (*grant.RunResponse, bool, error) {
+	if grantResult, isGrantJSON := isGrantJSONInput(target); isGrantJSON {
+		result := handleGrantJSONInput(grantResult, licenseFilters)
+		globalConfig := GetGlobalConfig(cmd)
+
+		packageDetail, _ := cmd.Flags().GetString("pkg")
+		if packageDetail != "" {
+			if len(licenseFilters) == 0 {
+				return nil, true, fmt.Errorf("--pkg flag requires license filter arguments")
+			}
+			result = filterResultByPackage(result, packageDetail)
+			return result, true, displayPackageDetails(result, packageDetail)
+		}
+
+		licensesOnly, _ := cmd.Flags().GetBool("licenses-only")
+		packagesOnly, _ := cmd.Flags().GetBool("packages-only")
+
+		if licensesOnly {
+			return result, true, showLicensesOnly(result, globalConfig.Quiet)
+		}
+		if packagesOnly {
+			return result, true, showPackagesOnly(result, globalConfig.Quiet)
+		}
+
+		if globalConfig.OutputFile != "" {
+			output := internal.NewOutput()
+			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+				return nil, true, fmt.Errorf("failed to write output file: %w", err)
+			}
+		}
+
+		if globalConfig.OutputFormat == "table" {
+			return result, true, outputListTableWithFilters(result, licenseFilters)
+		} else {
+			return result, true, OutputResult(result, globalConfig.OutputFormat, "")
+		}
+	}
+	return nil, false, nil
+}
+
 // runList executes the list command
 func runList(cmd *cobra.Command, args []string) error {
 	// Parse arguments: first is target, rest are license filters
@@ -70,75 +111,11 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check if input is grant JSON from stdin
-	if grantResult, isGrantJSON := isGrantJSONInput(target); isGrantJSON {
-		// Handle grant JSON input directly
-		result := handleGrantJSONInput(grantResult, licenseFilters)
-
-		// Get global configuration for output handling
-		globalConfig := GetGlobalConfig(cmd)
-
-		// Get command-specific flags for compatibility
-		licensesOnly, _ := cmd.Flags().GetBool("licenses-only")
-		packagesOnly, _ := cmd.Flags().GetBool("packages-only")
-		packageDetail, _ := cmd.Flags().GetString("pkg")
-
-		// Handle package detail view if specified
-		if packageDetail != "" {
-			// Validate that license filters are provided
-			if len(licenseFilters) == 0 {
-				return fmt.Errorf("--pkg flag requires license filter arguments")
-			}
-
-			// Filter to show only the specified package
-			result = filterResultByPackage(result, packageDetail)
-
-			// Show detailed package information instead of normal output
-			return handlePackageDetailOutput(result, packageDetail, globalConfig)
+	if _, handled, err := handleJSONInput(cmd, target, licenseFilters); handled {
+		if err != nil {
+			HandleError(err, GetGlobalConfig(cmd).Quiet)
 		}
-
-		// Handle filtered output
-		if licensesOnly || packagesOnly {
-			return handleFilteredOutput(result, globalConfig.OutputFormat, licensesOnly, packagesOnly, globalConfig.Quiet, globalConfig.OutputFile)
-		}
-
-		// Handle output
-		if globalConfig.Quiet {
-			// Handle output file if specified in quiet mode
-			if globalConfig.OutputFile != "" {
-				output := internal.NewOutput()
-				if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-					HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-					return err
-				}
-			}
-			handleListQuietOutput(result)
-			return nil
-		}
-
-		// Handle output file if specified
-		if globalConfig.OutputFile != "" {
-			output := internal.NewOutput()
-			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-				HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-				return err
-			}
-		}
-
-		// Normal output - use list-specific formatting for table output
-		if globalConfig.OutputFormat == "table" {
-			output := internal.NewOutput()
-			if err := outputListTableWithFilters(output, result, licenseFilters); err != nil {
-				HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
-				return err
-			}
-		} else {
-			if err := OutputResult(result, globalConfig.OutputFormat, globalConfig.OutputFile); err != nil {
-				HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
-				return err
-			}
-		}
-
-		return nil
+		return err
 	}
 
 	// Get global configuration
@@ -184,7 +161,7 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Apply license filtering if specified
 	if len(licenseFilters) > 0 {
-		result = filterResultByLicenses(result, licenseFilters)
+		result = filterGrantJSONByLicenses(result, licenseFilters)
 	}
 
 	// Handle package detail view if specified
@@ -231,8 +208,7 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Normal output - use list-specific formatting for table output
 	if globalConfig.OutputFormat == "table" {
-		output := internal.NewOutput()
-		if err := outputListTableWithFilters(output, result, licenseFilters); err != nil {
+		if err := outputListTableWithFilters(result, licenseFilters); err != nil {
 			HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
 			return err
 		}
@@ -289,7 +265,7 @@ func showLicensesOnly(result *grant.RunResponse, quiet bool) error {
 					licenseKey = license.Name
 				}
 				if licenseKey == "" {
-					licenseKey = "(unknown)"
+					licenseKey = unknownLicense
 				}
 				licenseMap[licenseKey]++
 			}
@@ -367,91 +343,10 @@ func handleListQuietOutput(result *grant.RunResponse) {
 	fmt.Printf("%d\n", len(licenseMap))
 }
 
-// filterResultByLicenses filters the result to only include packages that have licenses matching the specified filters
-func filterResultByLicenses(result *grant.RunResponse, licenseFilters []string) *grant.RunResponse {
-	// Create a map for faster license lookup
-	filterMap := make(map[string]bool)
-	for _, filter := range licenseFilters {
-		filterMap[filter] = true
-	}
-
-	// Create a new result with filtered packages
-	filteredResult := &grant.RunResponse{
-		Tool:    result.Tool,
-		Version: result.Version,
-		Run: grant.RunDetails{
-			Argv:    result.Run.Argv,
-			Policy:  result.Run.Policy,
-			Targets: []grant.TargetResult{},
-		},
-	}
-
-	for _, target := range result.Run.Targets {
-		filteredPackages := []grant.PackageFinding{}
-		matchedLicenses := make(map[string]bool)
-		packageMap := make(map[string]grant.PackageFinding) // For deduplication
-
-		// Filter packages that have any of the specified licenses
-		for _, pkg := range target.Evaluation.Findings.Packages {
-			hasMatchingLicense := false
-			for _, license := range pkg.Licenses {
-				licenseKey := license.ID
-				if licenseKey == "" {
-					licenseKey = license.Name
-				}
-				if filterMap[licenseKey] {
-					hasMatchingLicense = true
-					matchedLicenses[licenseKey] = true
-				}
-			}
-			if hasMatchingLicense {
-				// Use package name + version as deduplication key
-				packageKey := pkg.Name + "@" + pkg.Version
-				packageMap[packageKey] = pkg
-			}
-		}
-
-		// Convert map back to slice for deduplicated packages
-		for _, pkg := range packageMap {
-			filteredPackages = append(filteredPackages, pkg)
-		}
-
-		// Create filtered target with updated summary
-		filteredTarget := grant.TargetResult{
-			Source: target.Source,
-			Evaluation: grant.TargetEvaluation{
-				Status: target.Evaluation.Status,
-				Summary: grant.EvaluationSummaryJSON{
-					Packages: grant.PackageSummary{
-						Total:      len(filteredPackages),
-						Unlicensed: 0, // Will be calculated if needed
-						Allowed:    len(filteredPackages), // All filtered packages are "allowed" for display
-						Denied:     0,
-						Ignored:    0,
-					},
-					Licenses: grant.LicenseSummary{
-						Unique:  len(matchedLicenses),
-						Allowed: len(matchedLicenses),
-						Denied:  0,
-						NonSPDX: 0, // Would need to calculate if needed
-					},
-				},
-				Findings: grant.EvaluationFindings{
-					Packages: filteredPackages,
-				},
-			},
-		}
-
-		filteredResult.Run.Targets = append(filteredResult.Run.Targets, filteredTarget)
-	}
-
-	return filteredResult
-}
-
 // outputListTableWithFilters outputs the list table with filter information
-func outputListTableWithFilters(output *internal.Output, result *grant.RunResponse, licenseFilters []string) error {
+func outputListTableWithFilters(result *grant.RunResponse, licenseFilters []string) error {
 	for _, target := range result.Run.Targets {
-		if err := outputListTargetTableWithFilters(output, target, licenseFilters); err != nil {
+		if err := outputListTargetTableWithFilters(target, licenseFilters); err != nil {
 			return err
 		}
 		fmt.Println() // Add spacing between targets
@@ -460,7 +355,7 @@ func outputListTableWithFilters(output *internal.Output, result *grant.RunRespon
 }
 
 // outputListTargetTableWithFilters outputs a single target in list format with filter information
-func outputListTargetTableWithFilters(output *internal.Output, target grant.TargetResult, licenseFilters []string) error {
+func outputListTargetTableWithFilters(target grant.TargetResult, licenseFilters []string) error {
 	// Display progress steps
 	fmt.Printf(" %s Loaded %s                                                                              %s\n",
 		color.Green.Sprint("✔"),
@@ -569,7 +464,7 @@ func printFilteredPackageTable(packages []grant.PackageFinding) error {
 		licenses := formatLicenses(pkg.Licenses)
 		version := pkg.Version
 		if version == "" {
-			version = "(no version)"
+			version = noVersion
 		}
 
 		t.AppendRow(table.Row{
@@ -596,7 +491,7 @@ func formatLicenses(licenses []grant.LicenseDetail) string {
 			licenseStr = license.Name
 		}
 		if licenseStr == "" {
-			licenseStr = "(unknown)"
+			licenseStr = unknownLicense
 		}
 
 		// Shorten long license strings (like sha256 hashes)
@@ -643,7 +538,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 					licenseKey = license.Name
 				}
 				if licenseKey == "" {
-					licenseKey = "(unknown)"
+					licenseKey = unknownLicense
 				}
 				if licensePackages[licenseKey] == nil {
 					licensePackages[licenseKey] = make(map[string]bool)

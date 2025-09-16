@@ -14,7 +14,10 @@ import (
 )
 
 const (
-	formatJSON = "json"
+	formatJSON     = "json"
+	formatTable    = "table"
+	unknownLicense = "(unknown)"
+	noVersion      = "(no version)"
 )
 
 // GlobalConfig holds configuration that applies to all commands
@@ -84,7 +87,7 @@ func OutputResult(result *grant.RunResponse, format string, outputFile string) e
 		}
 		// If output file is specified, we already wrote to file, so no stdout output
 		return nil
-	case "table":
+	case formatTable:
 		return output.OutputTable(result)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
@@ -185,7 +188,7 @@ func filterGrantJSONByLicenses(result *grant.RunResponse, licenseFilters []strin
 				Summary: grant.EvaluationSummaryJSON{
 					Packages: grant.PackageSummary{
 						Total:      len(filteredPackages),
-						Unlicensed: 0, // Will be calculated if needed
+						Unlicensed: 0,                     // Will be calculated if needed
 						Allowed:    len(filteredPackages), // All filtered packages are "allowed" for display
 						Denied:     0,
 						Ignored:    0,

@@ -99,7 +99,7 @@ func parseCheckFlags(cmd *cobra.Command) *checkFlags {
 
 // setupRealtimeUI initializes the real-time UI for progress display
 func setupRealtimeUI(globalConfig *GlobalConfig, args []string) *internal.RealtimeUI {
-	if globalConfig.Quiet || globalConfig.OutputFormat != "table" {
+	if globalConfig.Quiet || globalConfig.OutputFormat != formatTable {
 		return nil
 	}
 
@@ -409,7 +409,7 @@ func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 	for _, pkg := range packages {
 		version := pkg.Version
 		if version == "" {
-			version = "(no version)"
+			version = noVersion
 		}
 
 		// For packages without licenses, show "(no licenses found)" in red

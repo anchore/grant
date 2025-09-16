@@ -41,11 +41,16 @@ func (o *Output) OutputJSON(result *grant.RunResponse, outputFile string) error 
 	var writer = os.Stdout
 
 	if outputFile != "" {
+		// #nosec G304 - outputFile is controlled by user via CLI flag
 		file, err := os.Create(outputFile)
 		if err != nil {
 			return fmt.Errorf("failed to create output file %s: %w", outputFile, err)
 		}
-		defer file.Close()
+		defer func() {
+			if err := file.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close output file: %v\n", err)
+			}
+		}()
 		writer = file
 	}
 

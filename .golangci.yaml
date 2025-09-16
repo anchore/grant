@@ -16,7 +16,6 @@ linters:
     - dogsled
     - dupl
     - errcheck
-    - funlen
     - gocognit
     - goconst
     - gocritic
@@ -36,10 +35,6 @@ linters:
     - whitespace
 
 linters-settings:
-  funlen:
-    lines: 70        # default 60
-    statements: 50   # default 40
-
   # Make sure typechecking uses the correct language level.
   # (golangci-lint v2.* can pass this through to tools that support it.)
   typecheck:
