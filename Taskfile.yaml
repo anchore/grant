@@ -47,16 +47,11 @@ tasks:
   tools:
     desc: Install all tools needed for CI and local development
     deps: [binny]
+    aliases:
+      - bootstrap
     generates:
-      - "{{ .TOOL_DIR }}/binny"
-      - "{{ .TOOL_DIR }}/grant"
-      - "{{ .TOOL_DIR }}/task"
-      - "{{ .TOOL_DIR }}/gosimports"
-      - "{{ .TOOL_DIR }}/golangci-lint"
-      - "{{ .TOOL_DIR }}/chronicle"
-      - "{{ .TOOL_DIR }}/glow"
-      - "{{ .TOOL_DIR }}/goreleaser"
-      - "{{ .TOOL_DIR }}/bouncer"
+      - ".binny.yaml"
+      - "{{ .TOOL_DIR }}/*"
     status:
       - "{{ .TOOL_DIR }}/binny check -v"
     cmd: "{{ .TOOL_DIR }}/binny install -v"
@@ -156,6 +151,13 @@ tasks:
     cmds:
       - cmd: .github/scripts/trigger-release.sh
         silent: true
+
+  ## Demo tasks #################################
+
+  demo:
+    desc: Generate demo GIF using VHS
+    cmds:
+      - vhs .github/images/demo.tape
 
   ## Generate tasks #################################
 

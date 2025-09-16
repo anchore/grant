@@ -190,8 +190,9 @@ func runList(cmd *cobra.Command, args []string) error {
 	groupBy, _ := cmd.Flags().GetString("group-by")
 
 	// Show loading progress before cataloging
+	var ui *internal.RealtimeUI
 	if internal.IsTerminalOutput() && !globalConfig.Quiet {
-		ui := internal.NewRealtimeUI(globalConfig.Quiet)
+		ui = internal.NewRealtimeUI(globalConfig.Quiet)
 		ui.ShowLoadingProgress(target)
 	}
 
@@ -199,6 +200,15 @@ func runList(cmd *cobra.Command, args []string) error {
 	result, err := performListOperation(target, licenseFilters, disableFileSearch, globalConfig)
 	if err != nil {
 		return err
+	}
+
+	// Show scan complete after successful operation
+	if ui != nil {
+		sourceType := ""
+		if result != nil && len(result.Run.Targets) > 0 {
+			sourceType = result.Run.Targets[0].Source.Type
+		}
+		ui.ShowScanComplete(target, sourceType)
 	}
 
 	// Apply license filtering if specified
@@ -439,11 +449,7 @@ func outputListTargetTableWithFilters(target grant.TargetResult, licenseFilters 
 	// Only show progress TUI if outputting to a terminal
 	if internal.IsTerminalOutput() {
 		// Display completed progress steps
-		fmt.Printf(" %s Loaded %s                                                                              %s\n",
-			color.Green.Sprint("✔"),
-			target.Source.Ref,
-			target.Source.Type)
-
+		// Note: "Loaded" message was already shown by ui.ShowScanComplete()
 		fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
 
 		// Show filter applied if license filters are specified
@@ -948,11 +954,6 @@ func displayPackageDetails(result *grant.RunResponse, packageName string) error 
 
 	// Display progress-style header only if outputting to a terminal
 	if internal.IsTerminalOutput() {
-		fmt.Printf(" %s Loaded %s                                                                              %s\n",
-			color.Green.Sprint("✔"),
-			target.Source.Ref,
-			target.Source.Type)
-
 		fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
 		fmt.Printf(" %s Package details                    [package=\"%s\"]\n",
 			color.Green.Sprint("✔"),
