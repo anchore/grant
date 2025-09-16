@@ -38,7 +38,7 @@ func (ui *RealtimeUI) ShowScanComplete(source string, sourceType string) {
 	fmt.Printf("\r %s Loaded %s",
 		color.Green.Sprint("✔"), source)
 	if sourceType != "" {
-		fmt.Printf("                                                                              %s", color.Gray.Sprint(sourceType))
+		fmt.Printf("                              %s", color.Gray.Sprint(sourceType))
 	}
 	fmt.Printf("\n")
 }

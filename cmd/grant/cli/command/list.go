@@ -449,11 +449,7 @@ func outputListTargetTableWithFilters(target grant.TargetResult, licenseFilters 
 	// Only show progress TUI if outputting to a terminal
 	if internal.IsTerminalOutput() {
 		// Display completed progress steps
-		fmt.Printf(" %s Loaded %s                                                                              %s\n",
-			color.Green.Sprint("✔"),
-			target.Source.Ref,
-			target.Source.Type)
-
+		// Note: "Loaded" message was already shown by ui.ShowScanComplete()
 		fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
 
 		// Show filter applied if license filters are specified

@@ -29,7 +29,7 @@ Set Theme {
 }
 #Set FontFamily "Iosevka Term"
 Set FontSize 22
-Set Width 1080
+Set Width 1300
 Set Height 1080
 Set Padding 2
 Set WindowBar Rings
