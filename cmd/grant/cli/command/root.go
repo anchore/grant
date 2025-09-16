@@ -2,9 +2,11 @@ package command
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -128,30 +130,50 @@ func OutputResult(result *grant.RunResponse, format string, outputFile string) e
 	}
 }
 
-// isGrantJSONInput checks if the target is "-" (stdin) and if stdin contains grant JSON output
+// isGrantJSONInput checks if the target is stdin or a file and if it contains grant JSON output
 func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
-	if !strings.EqualFold(target, "-") {
-		return nil, false
-	}
+	var data []byte
+	var err error
 
-	// Check if stdin is available
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) != 0 {
-		// stdin is not available (terminal mode)
-		return nil, false
-	}
+	switch {
+	case strings.EqualFold(target, "-"):
+		// Handle stdin input
+		// Check if stdin is available
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) != 0 {
+			// stdin is not available (terminal mode)
+			return nil, false
+		}
 
-	// Read from stdin
-	data, err := io.ReadAll(os.Stdin)
-	if err != nil {
+		// Read from stdin
+		data, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, false
+		}
+	case strings.HasSuffix(target, ".json"):
+		// Handle file input - check if it's a JSON file that might be grant output
+		// Check if the file exists
+		if _, err := os.Stat(target); os.IsNotExist(err) {
+			return nil, false
+		}
+
+		// Read from file
+		data, err = readInputFile(target)
+		if err != nil {
+			return nil, false
+		}
+	default:
+		// Not stdin and not a JSON file
 		return nil, false
 	}
 
 	// Try to parse as grant RunResponse
 	var result grant.RunResponse
 	if err := json.Unmarshal(data, &result); err != nil {
-		// Not grant JSON - save for SBOM processing
-		stdinbuffer.Set(data)
+		// Not grant JSON - if from stdin, save for SBOM processing
+		if strings.EqualFold(target, "-") {
+			stdinbuffer.Set(data)
+		}
 		return nil, false
 	}
 
@@ -160,8 +182,10 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 		return &result, true
 	}
 
-	// Not grant JSON - save for SBOM processing
-	stdinbuffer.Set(data)
+	// Not grant JSON - if from stdin, save for SBOM processing
+	if strings.EqualFold(target, "-") {
+		stdinbuffer.Set(data)
+	}
 	return nil, false
 }
 
@@ -264,4 +288,61 @@ func filterGrantJSONByLicenses(result *grant.RunResponse, licenseFilters []strin
 	}
 
 	return filteredResult
+}
+
+var maxUserFileBytes int64 = 100 << 20 // 100 MiB cap
+
+// readInputFile reads a user-specified JSON or XML file with safety checks.
+// It intentionally accepts arbitrary file paths but guards against symlinks, large files,
+// and unsupported formats.
+func readInputFile(target string) ([]byte, error) {
+	// Support "-" as stdin (for piping JSON/XML)
+	if target == "-" {
+		return io.ReadAll(io.LimitReader(os.Stdin, maxUserFileBytes+1))
+	}
+
+	clean := filepath.Clean(target)
+
+	// Check extension (case-insensitive)
+	ext := strings.ToLower(filepath.Ext(clean))
+	if ext != ".json" && ext != ".xml" {
+		return nil, fmt.Errorf("unsupported file type %q (must be .json or .xml)", ext)
+	}
+
+	fi, err := os.Lstat(clean)
+	if err != nil {
+		return nil, fmt.Errorf("stat %q: %w", clean, err)
+	}
+
+	if fi.Mode()&os.ModeSymlink != 0 {
+		return nil, fmt.Errorf("refusing to read symlink: %s", clean)
+	}
+	if !fi.Mode().IsRegular() {
+		return nil, fmt.Errorf("refusing to read non-regular file: %s", clean)
+	}
+	if fi.Size() > maxUserFileBytes {
+		return nil, fmt.Errorf("file too large (%d bytes > %d)", fi.Size(), maxUserFileBytes)
+	}
+
+	// #nosec G304 -- design: CLI intentionally accepts arbitrary JSON/XML file paths
+	f, err := os.Open(clean)
+	if err != nil {
+		return nil, fmt.Errorf("open %q: %w", clean, err)
+	}
+
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	data, err := io.ReadAll(io.LimitReader(f, maxUserFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read %q: %w", clean, err)
+	}
+	if int64(len(data)) > maxUserFileBytes {
+		return nil, errors.New("file exceeds maximum allowed size")
+	}
+
+	return data, err
 }
