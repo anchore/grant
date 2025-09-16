@@ -21,7 +21,6 @@ const (
 	noVersion      = "(no version)"
 )
 
-
 // GlobalConfig holds configuration that applies to all commands
 type GlobalConfig struct {
 	ConfigFile   string

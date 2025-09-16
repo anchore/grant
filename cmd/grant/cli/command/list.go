@@ -265,24 +265,6 @@ func performListOperation(target string, licenseFilters []string, disableFileSea
 	return result, nil
 }
 
-// parseListArguments extracts target and license filters from command arguments
-func parseListArguments(cmd *cobra.Command, args []string) (string, []string) {
-	target := args[0]
-	var licenseFilters []string
-	if len(args) > 1 {
-		licenseFilters = args[1:]
-	}
-
-	// Check if --unlicensed flag is set
-	unlicensed, _ := cmd.Flags().GetBool("unlicensed")
-	if unlicensed {
-		// Add "(no licenses found)" to the filter list
-		licenseFilters = append(licenseFilters, "(no licenses found)")
-	}
-
-	return target, licenseFilters
-}
-
 // parseListArgumentsWithStdin extracts target and license filters, defaulting to stdin when appropriate
 func parseListArgumentsWithStdin(cmd *cobra.Command, args []string) (string, []string, error) {
 	var target string

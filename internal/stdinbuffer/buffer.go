@@ -19,6 +19,7 @@ func Set(data []byte) {
 }
 
 // Get retrieves the stored stdin data and clears the buffer
+// Returns nil if no data is available or if seek fails
 func Get() io.ReadSeeker {
 	mu.Lock()
 	defer mu.Unlock()
@@ -28,7 +29,11 @@ func Get() io.ReadSeeker {
 	}
 
 	// Reset seek position to beginning
-	buffer.Seek(0, io.SeekStart)
+	if _, err := buffer.Seek(0, io.SeekStart); err != nil {
+		// If we can't seek to the beginning, the buffer is unusable
+		buffer = nil
+		return nil
+	}
 
 	// Return the buffer and clear it for next use
 	b := buffer
