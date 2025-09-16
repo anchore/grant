@@ -15,6 +15,10 @@
 
 View licenses for container images, SBOM documents, and filesystems! Apply filters and views that can help you build a picture of licenses in your SBOM. Grant provides powerful filtering and cli capabilities for tackling license investigation and management, including license risk categorization.
 
+<p align="center">
+ <img src=".github/images/demo.gif" width="800" alt="Grant demo - program does license work in terminal" />
+</p>
+
 ## Quick Start
 
 ## Installation
