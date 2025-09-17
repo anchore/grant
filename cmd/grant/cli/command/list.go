@@ -844,10 +844,7 @@ func handleGroupByRiskOutput(result *grant.RunResponse, globalConfig *GlobalConf
 func outputRiskGroupedTable(target grant.TargetResult) error {
 	// Display progress-style header only if outputting to a terminal
 	if internal.IsTerminalOutput() {
-		fmt.Printf(" %s Loaded %s\n",
-			color.Green.Sprint("✔"),
-			target.Source.Ref)
-
+		// Note: "Loaded" message was already shown by ui.ShowScanComplete()
 		fmt.Printf(" %s License listing\n", color.Green.Sprint("✔"))
 		fmt.Printf(" %s Aggregated by risk\n", color.Green.Sprint("✔"))
 		fmt.Println()
@@ -925,8 +922,21 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 	for _, category := range categoryOrder {
 		stats := riskCategories[category]
 		if len(stats.licenses) > 0 || len(stats.packages) > 0 {
+			// Color code the risk category
+			var coloredCategory string
+			switch category {
+			case "Strong Copyleft":
+				coloredCategory = color.Red.Sprint(category)
+			case "Weak Copyleft":
+				coloredCategory = color.Yellow.Sprint(category)
+			case "Permissive":
+				coloredCategory = color.Green.Sprint(category)
+			default:
+				coloredCategory = category
+			}
+
 			t.AppendRow(table.Row{
-				category,
+				coloredCategory,
 				len(stats.licenses),
 				len(stats.packages),
 			})
