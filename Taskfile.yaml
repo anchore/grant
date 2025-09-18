@@ -99,6 +99,12 @@ tasks:
     cmds:
       - .github/scripts/go-mod-tidy-check.sh && echo "go.mod and go.sum are tidy!"
 
+  license-validations:
+    desc: Run license validation check using grant
+    cmds:
+      - cmd: syft -o json --override-default-catalogers go-module-file-cataloger dir:. | grant check -c .grant.yaml -
+        ignore_error: false
+
   ## Testing tasks #################################
 
   unit:
