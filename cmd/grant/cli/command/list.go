@@ -1017,7 +1017,14 @@ func displayPackageDetails(result *grant.RunResponse, packageName string) error 
 				} else {
 					fmt.Printf("• %s\n", licenseName)
 				}
-				fmt.Printf("  OSI Approved: %t | Deprecated: %t\n", license.IsOsiApproved, license.IsDeprecatedLicenseID)
+
+				// Format OSI Approved status with warning if false
+				osiStatus := fmt.Sprintf("OSI Approved: %t", license.IsOsiApproved)
+				if !license.IsOsiApproved {
+					osiStatus = color.Yellow.Sprintf("⚠️  OSI Approved: false")
+				}
+
+				fmt.Printf("  %s | Deprecated: %t\n", osiStatus, license.IsDeprecatedLicenseID)
 				if len(license.Evidence) > 0 {
 					fmt.Printf("  Evidence: %v\n", license.Evidence)
 				}
