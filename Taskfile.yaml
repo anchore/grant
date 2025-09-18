@@ -26,6 +26,7 @@ tasks:
     cmds:
       - task: check-go-mod-tidy
       - task: lint
+      - task: license-validations
 
   test:
     desc: Run all levels of test
@@ -98,6 +99,10 @@ tasks:
     # desc: Ensure go.mod and go.sum are up to date
     cmds:
       - .github/scripts/go-mod-tidy-check.sh && echo "go.mod and go.sum are tidy!"
+
+  license-validations:
+    cmds:
+      - "{{ .TOOL_DIR }}/syft -o json --override-default-catalogers go-module-file-cataloger dir:. | {{ .TOOL_DIR }}/grant check -c .grant.yaml -"
 
   ## Testing tasks #################################
 
