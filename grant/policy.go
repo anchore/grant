@@ -34,13 +34,30 @@ func (p *Policy) IsLicensePermitted(license string) bool {
 			return true
 		}
 
+		// Convert common regex-style patterns to glob patterns
+		pattern := convertRegexToGlob(permitted)
+
 		// Glob pattern match
-		if matched, err := filepath.Match(permitted, license); err == nil && matched {
+		if matched, err := filepath.Match(pattern, license); err == nil && matched {
 			return true
 		}
 	}
 
 	return false
+}
+
+// convertRegexToGlob converts common regex patterns to shell glob patterns
+// This allows users to use either regex-style (BSD.*) or glob-style (BSD-*) patterns
+func convertRegexToGlob(pattern string) string {
+	// Replace .* (regex any) with * (glob any)
+	if strings.Contains(pattern, ".*") {
+		return strings.ReplaceAll(pattern, ".*", "*")
+	}
+	// Replace .+ (regex one or more) with * (glob any)
+	if strings.Contains(pattern, ".+") {
+		return strings.ReplaceAll(pattern, ".+", "*")
+	}
+	return pattern
 }
 
 // IsPackageIgnored checks if a software package should be ignored based on ignore-packages patterns

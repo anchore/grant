@@ -94,6 +94,38 @@ func TestPolicy_IsLicensePermitted(t *testing.T) {
 	}
 }
 
+func TestPolicy_IsLicensePermitted_RegexStyle(t *testing.T) {
+	policy := &Policy{
+		Allow: []string{"MIT.*", "Apache.*", "BSD.*", "CC0.*", "MPL.*"},
+	}
+
+	tests := []struct {
+		name    string
+		license string
+		want    bool
+	}{
+		{"regex style MIT", "MIT", true},
+		{"regex style MIT-0", "MIT-0", true},
+		{"regex style Apache-2.0", "Apache-2.0", true},
+		{"regex style Apache-1.0", "Apache-1.0", true},
+		{"regex style BSD-2-Clause", "BSD-2-Clause", true},
+		{"regex style BSD-3-Clause", "BSD-3-Clause", true},
+		{"regex style BSD-4-Clause", "BSD-4-Clause", true},
+		{"regex style CC0-1.0", "CC0-1.0", true},
+		{"regex style MPL-2.0", "MPL-2.0", true},
+		{"denied license GPL", "GPL-2.0", false},
+		{"denied license ISC", "ISC", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := policy.IsLicensePermitted(tt.license); got != tt.want {
+				t.Errorf("Policy.IsLicensePermitted(%q) = %v, want %v", tt.license, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPolicy_IsLicensePermitted_EmptyAllow(t *testing.T) {
 	policy := &Policy{
 		Allow: []string{},
