@@ -29,6 +29,3 @@ jobs:
 
       - name: Run all validations
         run: make pr-validations
-
-      - name: License Gate Check
-        run: make license-validations

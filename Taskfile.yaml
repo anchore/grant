@@ -26,6 +26,7 @@ tasks:
     cmds:
       - task: check-go-mod-tidy
       - task: lint
+      - task: license-validations
 
   test:
     desc: Run all levels of test
