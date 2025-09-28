@@ -70,9 +70,9 @@ func GetBuildInfo() BuildInfo {
 }
 
 // ApplicationVersion returns the current version for backward compatibility
-var ApplicationVersion = func() string {
+func ApplicationVersion() string {
 	if version != NotProvided {
 		return version
 	}
 	return "0.0.1"
-}()
+}

@@ -18,7 +18,7 @@ func Test_VersionCommand(t *testing.T) {
 		{
 			name:             "text output",
 			command:          "--version",
-			expectedInOutput: []string{"[not provided]"},
+			expectedInOutput: []string{"grant version"},
 		},
 		{
 			name:    "long form",
