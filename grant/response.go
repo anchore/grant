@@ -108,7 +108,7 @@ type LicenseDetail struct {
 func NewRunResponse(argv []string, policy *Policy) *RunResponse {
 	return &RunResponse{
 		Tool:    internal.ApplicationName,
-		Version: internal.ApplicationVersion,
+		Version: internal.ApplicationVersion(),
 		Run: RunDetails{
 			Argv: argv,
 			Policy: PolicyConfig{
