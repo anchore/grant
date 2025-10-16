@@ -7,7 +7,7 @@ require (
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 	github.com/anchore/go-logger v0.0.0-20250318195838-07ae343dd722
 	github.com/anchore/stereoscope v0.1.11
-	github.com/anchore/syft v1.34.1
+	github.com/anchore/syft v1.34.2
 	github.com/github/go-spdx/v2 v2.3.3
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/gookit/color v1.6.0
