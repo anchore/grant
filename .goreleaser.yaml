@@ -102,85 +102,41 @@ signs:
       - "--yes"
     artifacts: checksum
 
-
-dockers:
-  - image_templates:
-      - anchore/grant:{{.Tag}}-amd64
-      - ghcr.io/anchore/grant:{{.Tag}}-amd64
-    goarch: amd64
+dockers_v2:
+  - images:
+      - anchore/grant
+      - ghcr.io/anchore/grant
     dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
+    platforms:
+      - linux/amd64
+      - linux/arm64/v8
+      - linux/ppc64le
+      - linux/s390x
+    tags:
+      - latest
+      - "{{.Tag}}"
+      - "{{.Version}}"
+    build_args:
+      BUILD_DATE: "{{.Date}}"
+      BUILD_VERSION: "{{.Version}}"
+      VCS_REF: "{{.FullCommit}}"
+      VCS_URL: "{{.GitURL}}"
 
-  - image_templates:
-      - anchore/grant:{{.Tag}}-arm64v8
-      - ghcr.io/anchore/grant:{{.Tag}}-arm64v8
-    goarch: arm64
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
-
-  - image_templates:
-      - anchore/grant:{{.Tag}}-ppc64le
-      - ghcr.io/anchore/grant:{{.Tag}}-ppc64le
-    goarch: ppc64le
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/ppc64le"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
-
-  - image_templates:
-      - anchore/grant:{{.Tag}}-s390x
-      - ghcr.io/anchore/grant:{{.Tag}}-s390x
-    goarch: s390x
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/s390x"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
-
-docker_manifests:
-  - name_template: anchore/grant:latest
-    image_templates:
-      - anchore/grant:{{.Tag}}-amd64
-      - anchore/grant:{{.Tag}}-arm64v8
-      - anchore/grant:{{.Tag}}-ppc64le
-      - anchore/grant:{{.Tag}}-s390x
-
-  - name_template: ghcr.io/anchore/grant:latest
-    image_templates:
-      - ghcr.io/anchore/grant:{{.Tag}}-amd64
-      - ghcr.io/anchore/grant:{{.Tag}}-arm64v8
-      - ghcr.io/anchore/grant:{{.Tag}}-ppc64le
-      - ghcr.io/anchore/grant:{{.Tag}}-s390x
-
-  - name_template: anchore/grant:{{.Tag}}
-    image_templates:
-      - anchore/grant:{{.Tag}}-amd64
-      - anchore/grant:{{.Tag}}-arm64v8
-      - anchore/grant:{{.Tag}}-ppc64le
-      - anchore/grant:{{.Tag}}-s390x
-
-  - name_template: ghcr.io/anchore/grant:{{.Tag}}
-    image_templates:
-      - ghcr.io/anchore/grant:{{.Tag}}-amd64
-      - ghcr.io/anchore/grant:{{.Tag}}-arm64v8
-      - ghcr.io/anchore/grant:{{.Tag}}-ppc64le
-      - ghcr.io/anchore/grant:{{.Tag}}-s390x
+  - images:
+      - anchore/grant
+      - ghcr.io/anchore/grant
+    dockerfile: Dockerfile.debug
+    platforms:
+      - linux/amd64
+      - linux/arm64/v8
+      - linux/ppc64le
+      - linux/s390x
+    tags:
+      - debug
+      - "{{.Tag}}-debug"
+      - "{{.Version}}-debug"
+    build_args:
+      BUILD_DATE: "{{.Date}}"
+      BUILD_VERSION: "{{.Version}}"
+      VCS_REF: "{{.FullCommit}}"
+      VCS_URL: "{{.GitURL}}"
