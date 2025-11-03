@@ -15,21 +15,21 @@ tools:
 
   - name: binny
     version:
-      want: v0.6.2
+      want: v0.10.0
     method: github-release
     with:
       repo: anchore/binny
 
   - name: gh
     version:
-      want: v2.35.0
+      want: v2.82.1
     method: github-release
     with:
       repo: cli/cli
 
   - name: quill
     version:
-      want: v0.4.1
+      want: v0.5.1
     method: github-release
     with:
       repo: anchore/quill
@@ -50,7 +50,7 @@ tools:
 
   - name: glow
     version:
-      want: v1.5.1
+      want: v2.1.1
     method: github-release
     with:
       repo: charmbracelet/glow
@@ -65,14 +65,14 @@ tools:
 
   - name: goreleaser
     version:
-      want: v2.3.2
+      want: v2.12.7
     method: github-release
     with:
       repo: goreleaser/goreleaser
 
   - name: golangci-lint
     version:
-      want: v2.4.0
+      want: v2.6.0
     method: github-release
     with:
       repo: golangci/golangci-lint
@@ -86,14 +86,14 @@ tools:
 
   - name: task
     version:
-      want: v3.30.1
+      want: v3.45.4
     method: github-release
     with:
       repo: go-task/task
 
   - name: syft
     version:
-      want: v1.2.0
+      want: v1.37.0
     method: github-release
     with:
       repo: anchore/syft
