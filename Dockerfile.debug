@@ -3,8 +3,7 @@ FROM gcr.io/distroless/static-debian12:debug-nonroot
 # create the /tmp dir, which is needed for image content cache
 WORKDIR /tmp
 
-ARG TARGETPLATFORM
-COPY $TARGETPLATFORM/grant /
+COPY grant /
 
 USER nonroot
 

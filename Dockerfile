@@ -7,8 +7,7 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 # create the /tmp dir, which is needed for image content cache
 WORKDIR /tmp
 
-ARG TARGETPLATFORM
-COPY $TARGETPLATFORM/grant /
+COPY grant /
 
 ARG BUILD_DATE
 ARG BUILD_VERSION
