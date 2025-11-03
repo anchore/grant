@@ -33,16 +33,17 @@ tasks:
     cmds:
       - task: unit
 
+
   ## Bootstrap tasks #################################
+
   binny:
     internal: true
-    desc: Get the binny tool
+    # desc: Get the binny tool
     generates:
       - "{{ .TOOL_DIR }}/binny"
     status:
       - "test -f {{ .TOOL_DIR }}/binny"
-    # we just need a release of binny, doesn't matter which one (binny will update itself, this is just a bootstrap step)
-    cmd: "curl -sSfL https://get.anchore.io/binny | sh -s -- -b {{ .TOOL_DIR }}"
+    cmd: "curl -sSfL https://get.anchore.io/binny | sh -s -- -b .tool"
     silent: true
 
   tools:
@@ -58,6 +59,32 @@ tasks:
     cmd: "{{ .TOOL_DIR }}/binny install -v"
     silent: true
 
+  update-tools:
+    desc: Update pinned versions of all tools to their latest available versions
+    deps: [binny]
+    generates:
+      - ".binny.yaml"
+      - "{{ .TOOL_DIR }}/*"
+    cmd: "{{ .TOOL_DIR }}/binny update -v"
+    silent: true
+
+  list-tools:
+    desc: List all tools needed for CI and local development
+    deps: [binny]
+    cmd: "{{ .TOOL_DIR }}/binny list"
+    silent: true
+
+  list-tool-updates:
+    desc: List all tools that are not up to date relative to the binny config
+    deps: [binny]
+    cmd: "{{ .TOOL_DIR }}/binny list --updates"
+    silent: true
+
+  tmpdir:
+    silent: true
+    generates:
+      - "{{ .TMP_DIR }}"
+    cmd: "mkdir -p {{ .TMP_DIR }}"
 
   ## Static analysis tasks #################################
 
