@@ -248,8 +248,6 @@ func TestCaseHandler_CloseWithActiveOperations(t *testing.T) {
 	// Verify that the operation completed successfully without panicking
 	require.NoError(t, handleErr)
 	assert.GreaterOrEqual(t, len(result.Licenses), 1, "Should have found licenses")
-
-	t.Log("Test passed: No panic occurred when closing handler after operations")
 }
 
 func TestCaseHandler_MultipleHandleLicenseFilesConcurrent(t *testing.T) {
@@ -306,6 +304,4 @@ func TestCaseHandler_MultipleHandleLicenseFilesConcurrent(t *testing.T) {
 
 	// Verify that we successfully processed at least some licenses concurrently
 	assert.Greater(t, successCount, 0, "Should have successfully processed at least one license")
-
-	t.Logf("Test passed: %d/%d concurrent operations completed successfully without panic", successCount, len(licensePaths))
 }
