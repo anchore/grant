@@ -123,6 +123,7 @@ type CaseHandler struct {
 	Backend      *backend.ClassifierBackend
 	Config       CaseConfig
 	backendMutex sync.Mutex
+	activeOps    sync.WaitGroup // Tracks active backend operations to prevent premature closure
 }
 
 type CaseConfig struct {
@@ -146,6 +147,10 @@ func NewCaseHandlerWithConfig(config CaseConfig) (*CaseHandler, error) {
 }
 
 func (ch *CaseHandler) Close() {
+	// Wait for all active backend operations to complete before closing
+	// This prevents the "send on closed channel" panic when goroutines
+	// spawned by ClassifyLicensesWithContext are still running
+	ch.activeOps.Wait()
 	ch.Backend.Close()
 }
 
@@ -267,6 +272,10 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 
 func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 	// alright we couldn't get an SBOM, let's see if the bytes are just a LICENSE (google license classifier)
+
+	// Track this operation to prevent premature backend closure
+	ch.activeOps.Add(1)
+	defer ch.activeOps.Done()
 
 	// google license classifier is noisy, so we'll silence it for now
 	golog.SetOutput(io.Discard)
