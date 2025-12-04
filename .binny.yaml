@@ -22,7 +22,7 @@ tools:
 
   - name: gh
     version:
-      want: v2.83.0
+      want: v2.83.1
     method: github-release
     with:
       repo: cli/cli
@@ -65,14 +65,14 @@ tools:
 
   - name: goreleaser
     version:
-      want: v2.12.7
+      want: v2.13.0
     method: github-release
     with:
       repo: goreleaser/goreleaser
 
   - name: golangci-lint
     version:
-      want: v2.6.1
+      want: v2.6.2
     method: github-release
     with:
       repo: golangci/golangci-lint
@@ -93,7 +93,7 @@ tools:
 
   - name: syft
     version:
-      want: v1.37.0
+      want: v1.38.0
     method: github-release
     with:
       repo: anchore/syft
