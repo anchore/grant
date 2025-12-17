@@ -2,14 +2,15 @@
 
 ## Supported Versions
 
-Currently Grant is pre v1.0.0. Any security fixes reported by github or other scanning tools that are merged will result 
-in a patch version of the program being released to mitigate the vulnerability. Users are encouraged to always be updating 
-to the latest version to consume these rolling fixes. 
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.x.x   | :white_check_mark: |
+Security updates are applied only to the most recent release, try to always be up to date.
 
 ## Reporting a Vulnerability
 
-[Anchore Security Team](mailto:security@anchore.com)
+To report a security issue, please email
+[security@anchore.com](mailto:security@anchore.com)
+with a description of the issue, the steps you took to create the issue,
+affected versions, and, if known, mitigations for the issue.
+
+All support will be made on a best effort basis, so please indicate the "urgency level" of the vulnerability as Critical, High, Medium or Low.
+
+For more details, see our [security policy documentation](https://oss.anchore.com/docs/contributing/security/).
