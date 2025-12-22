@@ -7,7 +7,7 @@ require (
 	github.com/anchore/go-collections v0.0.0-20251016125210-a3c352120e8c
 	github.com/anchore/go-logger v0.0.0-20250318195838-07ae343dd722
 	github.com/anchore/stereoscope v0.1.16
-	github.com/anchore/syft v1.38.2
+	github.com/anchore/syft v1.39.0
 	github.com/github/go-spdx/v2 v2.3.5
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/gookit/color v1.6.0
@@ -139,7 +139,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-restruct/restruct v1.2.0-alpha // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/goccy/go-yaml v1.19.0 // indirect
+	github.com/goccy/go-yaml v1.19.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/gohugoio/hashstructure v0.6.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
