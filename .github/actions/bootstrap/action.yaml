@@ -37,7 +37,10 @@ runs:
     - name: (cache-miss) Bootstrap project tools
       shell: bash
       if: inputs.tools == 'true'
-      run: make ci-bootstrap-tools
+      run: |
+        make ci-bootstrap-tools
+        .tool/binny list
+        .tool/binny check
 
     - name: Bootstrap go dependencies
       shell: bash
