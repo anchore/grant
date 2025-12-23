@@ -93,7 +93,7 @@ tools:
 
   - name: syft
     version:
-      want: v1.38.2
+      want: v1.39.0
     method: github-release
     with:
       repo: anchore/syft
