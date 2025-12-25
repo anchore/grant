@@ -65,7 +65,7 @@ tools:
 
   - name: goreleaser
     version:
-      want: v2.13.1
+      want: v2.13.2
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -86,7 +86,7 @@ tools:
 
   - name: task
     version:
-      want: v3.46.3
+      want: v3.46.4
     method: github-release
     with:
       repo: go-task/task
