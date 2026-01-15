@@ -1,0 +1,38 @@
+{
+    "name": "Grant Development",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "version": "latest",
+            "moby": true
+        },
+        "ghcr.io/devcontainers/features/go:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/git:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "golang.Go",
+                "eamodio.gitlens"
+            ],
+            "settings": {
+                "go.toolsManagement.checkForUpdates": "local",
+                "go.useLanguageServer": true,
+                "go.buildOnSave": "off"
+            }
+        }
+    },
+    "postCreateCommand": "bash -c 'go mod download && make setup || echo \"Setup complete or skipped\"'",
+    "remoteUser": "vscode",
+    "containerEnv": {
+        "BUILD_DATE": "2024-01-01",
+        "BUILD_VERSION": "dev",
+        "VCS_REF": "local",
+        "VCS_URL": "https://github.com/anchore/grant"
+    },
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind"
+}
