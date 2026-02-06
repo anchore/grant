@@ -410,6 +410,20 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 			return nil
 		}
 
+		// WalkDir uses lstat semantics, so symlinks appear as non-directory
+		// entries even when they point to directories. Resolve symlinks to
+		// determine the actual target type; skip directory targets (they
+		// can't be read as files) and broken symlinks.
+		if d.Type()&os.ModeSymlink != 0 {
+			fi, err := os.Stat(path)
+			if err != nil {
+				return nil
+			}
+			if fi.IsDir() {
+				return nil
+			}
+		}
+
 		// skip if we've already processed this file
 		if visited[path] {
 			return nil

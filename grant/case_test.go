@@ -205,3 +205,73 @@ func TestHandleDir_DisableFileSearchConfig(t *testing.T) {
 	// Just verify that licenses were found - the specific type detection depends on the classifier
 	assert.True(t, len(result2.Licenses) > 0, "Should detect licenses when DisableFileSearch is false")
 }
+
+func TestSearchLicenseFiles_SymlinkToDirectory(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create a subdirectory with a file inside (mimics snap package layout
+	// where libncursesw6 -> libtinfo6/ is a symlink to a directory)
+	subDir := filepath.Join(tempDir, "libtinfo6")
+	require.NoError(t, os.MkdirAll(subDir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(subDir, "copyright"), []byte("some copyright info"), 0644))
+
+	// Create a symlink to the directory
+	symlinkPath := filepath.Join(tempDir, "libncursesw6")
+	require.NoError(t, os.Symlink(subDir, symlinkPath))
+
+	// Also add a real license file so we verify scanning continues
+	mitLicense := readTestLicense(t, "mit-license.txt")
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "LICENSE"), []byte(mitLicense), 0644))
+
+	ch, err := NewCaseHandler()
+	require.NoError(t, err)
+	defer ch.Close()
+
+	// Should not error when encountering symlinks to directories
+	licenses, err := ch.searchLicenseFiles(tempDir)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(licenses), 1, "Should find the LICENSE file without erroring on the symlink")
+}
+
+func TestSearchLicenseFiles_SymlinkToFile(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create a license file and a symlink to it
+	mitLicense := readTestLicense(t, "mit-license.txt")
+	realFile := filepath.Join(tempDir, "actual-license.txt")
+	require.NoError(t, os.WriteFile(realFile, []byte(mitLicense), 0644))
+
+	// Create a symlink named LICENSE pointing to the real file
+	symlinkPath := filepath.Join(tempDir, "LICENSE")
+	require.NoError(t, os.Symlink(realFile, symlinkPath))
+
+	ch, err := NewCaseHandler()
+	require.NoError(t, err)
+	defer ch.Close()
+
+	// Should follow symlinks to regular files and classify them
+	licenses, err := ch.searchLicenseFiles(tempDir)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(licenses), 1, "Should follow symlink to regular file and classify it")
+}
+
+func TestSearchLicenseFiles_BrokenSymlink(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create a broken symlink (points to non-existent target)
+	symlinkPath := filepath.Join(tempDir, "LICENSE")
+	require.NoError(t, os.Symlink("/nonexistent/target", symlinkPath))
+
+	// Also add a real license file
+	mitLicense := readTestLicense(t, "mit-license.txt")
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "COPYING"), []byte(mitLicense), 0644))
+
+	ch, err := NewCaseHandler()
+	require.NoError(t, err)
+	defer ch.Close()
+
+	// Should skip broken symlinks without error
+	licenses, err := ch.searchLicenseFiles(tempDir)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(licenses), 1, "Should find the COPYING file without erroring on the broken symlink")
+}
