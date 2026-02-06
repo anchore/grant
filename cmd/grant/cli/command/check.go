@@ -163,7 +163,6 @@ func setupRealtimeUI(globalConfig *GlobalConfig, args []string) *internal.Realti
 func setupOrchestrator(globalConfig *GlobalConfig, disableFileSearch bool) (*grant.Orchestrator, error) {
 	policy, err := LoadPolicyFromConfig(globalConfig)
 	if err != nil {
-		HandleError(err, globalConfig.Quiet)
 		return nil, err
 	}
 
@@ -173,8 +172,7 @@ func setupOrchestrator(globalConfig *GlobalConfig, disableFileSearch bool) (*gra
 
 	orchestrator, err := grant.NewOrchestratorWithConfig(policy, caseConfig)
 	if err != nil {
-		HandleError(fmt.Errorf("failed to create orchestrator: %w", err), globalConfig.Quiet)
-		return nil, err
+		return nil, fmt.Errorf("failed to create orchestrator: %w", err)
 	}
 
 	return orchestrator, nil
@@ -189,8 +187,7 @@ func performCheck(orchestrator *grant.Orchestrator, globalConfig *GlobalConfig, 
 
 	result, err := orchestrator.Check(argv, args...)
 	if err != nil {
-		HandleError(fmt.Errorf("check failed: %w", err), globalConfig.Quiet)
-		return nil, err
+		return nil, fmt.Errorf("check failed: %w", err)
 	}
 
 	return result, nil
