@@ -12,30 +12,68 @@ const testSBOM = `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[{"t
 
 func Test_CheckCmd(t *testing.T) {
 	tests := []struct {
-		name             string
-		args             []string
-		stdin            string
-		expectedInOutput []string
-		wantExitZero     bool
+		name         string
+		args         []string
+		stdin        string
+		wantInOutput []string
+		wantAbsent   []string
+		wantFail     bool
 	}{
 		{
 			name:  "check command will deny all on empty config",
 			args:  []string{"-c", emptyConfigPath, "check", "-"},
 			stdin: testSBOM,
-			expectedInOutput: []string{
+			wantInOutput: []string{
 				"denied",
 				"test-pkg",
 			},
+			wantFail: true,
 		},
 		{
 			name:  "dry-run suppresses violation exit code",
 			args:  []string{"-c", emptyConfigPath, "check", "--dry-run", "-"},
 			stdin: testSBOM,
-			expectedInOutput: []string{
+			wantInOutput: []string{
 				"denied",
 				"test-pkg",
 			},
-			wantExitZero: true,
+			wantFail: false,
+		},
+		{
+			name:     "quiet with violations exits non-zero",
+			args:     []string{"-c", emptyConfigPath, "-q", "check", "-"},
+			stdin:    testSBOM,
+			wantFail: true,
+		},
+		{
+			name:     "quiet dry-run with violations exits zero",
+			args:     []string{"-c", emptyConfigPath, "-q", "check", "--dry-run", "-"},
+			stdin:    testSBOM,
+			wantFail: false,
+		},
+		{
+			name:  "summary with violations exits non-zero",
+			args:  []string{"-c", emptyConfigPath, "check", "--summary", "-"},
+			stdin: testSBOM,
+			wantInOutput: []string{
+				"Non-compliant",
+			},
+			wantFail: true,
+		},
+		{
+			name:  "summary dry-run with violations exits zero",
+			args:  []string{"-c", emptyConfigPath, "check", "--summary", "--dry-run", "-"},
+			stdin: testSBOM,
+			wantInOutput: []string{
+				"Non-compliant",
+			},
+			wantFail: false,
+		},
+		{
+			name:     "json output with violations exits non-zero",
+			args:     []string{"-c", emptyConfigPath, "-o", "json", "check", "-"},
+			stdin:    testSBOM,
+			wantFail: true,
 		},
 	}
 	for _, tt := range tests {
@@ -45,23 +83,29 @@ func Test_CheckCmd(t *testing.T) {
 				cmd.Stdin = strings.NewReader(tt.stdin)
 			}
 			output, err := cmd.CombinedOutput()
+			got := string(output)
 
-			if tt.wantExitZero {
-				if err != nil {
-					t.Fatalf("expected exit code 0, got error: %s\noutput: %s", err, string(output))
-				}
-			} else {
+			if tt.wantFail {
 				if err == nil {
-					t.Fatalf("expected non-zero exit code, got exit 0\noutput: %s", string(output))
+					t.Fatalf("expected non-zero exit code, got exit 0\noutput: %s", got)
 				}
 				if !strings.Contains(err.Error(), "exit status 1") {
-					t.Fatalf("expected exit status 1, got: %s\noutput: %s", err, string(output))
+					t.Fatalf("expected exit status 1, got: %s\noutput: %s", err, got)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("expected exit code 0, got error: %s\noutput: %s", err, got)
 				}
 			}
 
-			for _, expected := range tt.expectedInOutput {
-				if !strings.Contains(string(output), expected) {
-					t.Errorf("expected %q to be in output, but it wasn't; output: %s", expected, string(output))
+			for _, want := range tt.wantInOutput {
+				if !strings.Contains(got, want) {
+					t.Errorf("output does not contain %q\ngot: %s", want, got)
+				}
+			}
+			for _, absent := range tt.wantAbsent {
+				if strings.Contains(got, absent) {
+					t.Errorf("output unexpectedly contains %q\ngot: %s", absent, got)
 				}
 			}
 		})
@@ -73,42 +117,39 @@ func Test_CheckCmdStdin(t *testing.T) {
 		name         string
 		args         []string
 		stdin        string
-		wantErr      bool
+		wantFail     bool
 		wantInOutput []string
 		wantAbsent   []string
 	}{
 		{
-			name:    "no args and no stdin shows helpful error",
-			args:    []string{"check"},
-			wantErr: true,
+			name:     "no args and no stdin shows helpful error",
+			args:     []string{"check"},
+			wantFail: true,
 			wantInOutput: []string{
 				"no target specified and no input available on stdin",
 			},
 		},
 		{
-			name:    "piped stdin with no args reads from stdin",
-			args:    []string{"check"},
-			stdin:   `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`,
-			wantErr: false,
+			name:  "piped stdin with no args reads from stdin",
+			args:  []string{"check"},
+			stdin: `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`,
 			wantAbsent: []string{
 				"no target specified",
 				"requires at least 1 arg",
 			},
 		},
 		{
-			name:    "explicit args are used even when stdin is available",
-			args:    []string{"check", "../../grant/testdata/mit-license.txt"},
-			stdin:   "this should be ignored",
-			wantErr: false,
+			name:  "explicit args are used even when stdin is available",
+			args:  []string{"check", "../../grant/testdata/mit-license.txt"},
+			stdin: "this should be ignored",
 			wantAbsent: []string{
 				"no target specified",
 			},
 		},
 		{
-			name:    "explicit dash reads from stdin",
-			args:    []string{"check", "-"},
-			stdin:   `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`,
-			wantErr: false,
+			name:  "explicit dash reads from stdin",
+			args:  []string{"check", "-"},
+			stdin: `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`,
 			wantAbsent: []string{
 				"no target specified",
 				"requires at least 1 arg",
@@ -124,7 +165,7 @@ func Test_CheckCmdStdin(t *testing.T) {
 			output, err := cmd.CombinedOutput()
 			got := string(output)
 
-			if tt.wantErr {
+			if tt.wantFail {
 				if err == nil {
 					t.Fatalf("grant %s: got success, want error", strings.Join(tt.args, " "))
 				}
