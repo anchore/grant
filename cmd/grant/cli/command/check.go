@@ -231,8 +231,7 @@ func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 }
 
 // renderCheckOutput writes the output file (if requested) and renders to
-// the terminal based on the active flags. It uses early returns so every
-// mode is a flat, independent branch.
+// the terminal based on the active flags.
 func renderCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, flags *checkFlags) error {
 	// Write JSON output file (applies to all modes).
 	if globalConfig.OutputFile != "" {
