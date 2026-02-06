@@ -11,6 +11,7 @@ import (
 
 	"github.com/anchore/grant/cmd/grant/cli/internal"
 	"github.com/anchore/grant/grant"
+	"github.com/anchore/grant/internal/input"
 )
 
 type checkFlags struct {
@@ -43,7 +44,7 @@ Targets can be:
 Exit codes:
 - 0: All targets are compliant
 - 1: One or more targets are non-compliant or an error occurred`,
-		Args: cobra.MinimumNArgs(1),
+		Args: cobra.ArbitraryArgs,
 		RunE: runCheck,
 	}
 
@@ -56,33 +57,55 @@ Exit codes:
 	return cmd
 }
 
+// parseCheckArgumentsWithStdin resolves targets, defaulting to stdin when no args are provided and stdin is available.
+func parseCheckArgumentsWithStdin(args []string) ([]string, error) {
+	hasStdin, err := input.IsStdinPipeOrRedirect()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) == 0 {
+		if hasStdin {
+			return []string{"-"}, nil
+		}
+		return nil, fmt.Errorf("no target specified and no input available on stdin")
+	}
+
+	return args, nil
+}
+
 // runCheck executes the check command
 func runCheck(cmd *cobra.Command, args []string) error {
+	targets, err := parseCheckArgumentsWithStdin(args)
+	if err != nil {
+		return err
+	}
+
 	globalConfig := GetGlobalConfig(cmd)
 	flags := parseCheckFlags(cmd)
 
 	// Check if input is grant JSON from stdin
-	if len(args) > 0 {
-		if grantResult, isGrantJSON := isGrantJSONInput(args[0]); isGrantJSON {
+	if len(targets) > 0 {
+		if grantResult, isGrantJSON := isGrantJSONInput(targets[0]); isGrantJSON {
 			// Handle grant JSON input directly
 			result := handleGrantJSONInput(grantResult, []string{}) // No license filters for check
 			return handleCheckOutput(result, globalConfig, flags)
 		}
 	}
 
-	realtimeUI := setupRealtimeUI(globalConfig, args)
+	realtimeUI := setupRealtimeUI(globalConfig, targets)
 	orchestrator, err := setupOrchestrator(globalConfig, flags.DisableFileSearch)
 	if err != nil {
 		return err
 	}
 	defer orchestrator.Close()
 
-	result, err := performCheck(orchestrator, globalConfig, args)
+	result, err := performCheck(orchestrator, globalConfig, targets)
 	if err != nil {
 		return err
 	}
 
-	updateUIWithResults(realtimeUI, result, args)
+	updateUIWithResults(realtimeUI, result, targets)
 	return handleCheckOutput(result, globalConfig, flags)
 }
 
