@@ -260,9 +260,14 @@ func handleQuietOutput(result *grant.RunResponse, dryRun bool) {
 
 	if nonCompliantCount > 0 || errorCount > 0 {
 		fmt.Printf("%d\n", nonCompliantCount+errorCount)
-		if !dryRun {
-			os.Exit(1)
-		}
+	}
+
+	if errorCount > 0 {
+		os.Exit(1)
+	}
+
+	if nonCompliantCount > 0 && !dryRun {
+		os.Exit(1)
 	}
 }
 
@@ -522,13 +527,11 @@ func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 	return nil
 }
 
-// handleExitCode determines the appropriate exit code
+// handleExitCode determines the appropriate exit code.
+// Errors always cause a non-zero exit. In dry-run mode, noncompliant
+// violations are suppressed (exit 0) so that callers can distinguish
+// "grant had an error" from "grant found license violations".
 func handleExitCode(result *grant.RunResponse, dryRun bool) {
-	if dryRun {
-		// In dry-run mode, don't exit with error code
-		return
-	}
-
 	hasNonCompliant := false
 	hasErrors := false
 
@@ -541,7 +544,11 @@ func handleExitCode(result *grant.RunResponse, dryRun bool) {
 		}
 	}
 
-	if hasNonCompliant || hasErrors {
+	if hasErrors {
+		os.Exit(1)
+	}
+
+	if hasNonCompliant && !dryRun {
 		os.Exit(1)
 	}
 }

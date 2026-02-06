@@ -6,32 +6,59 @@ import (
 	"testing"
 )
 
+// testSBOM is a minimal CycloneDX SBOM with a single MIT-licensed package,
+// useful for testing policy evaluation against the empty config (which denies all).
+const testSBOM = `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[{"type":"library","name":"test-pkg","version":"1.0.0","licenses":[{"license":{"id":"MIT"}}]}]}`
+
 func Test_CheckCmd(t *testing.T) {
 	tests := []struct {
 		name             string
 		args             []string
+		stdin            string
 		expectedInOutput []string
+		wantExitZero     bool
 	}{
 		{
-			name: "check command will deny all on empty config",
-			args: []string{"-c", emptyConfigPath, "check", "dir:../../."},
+			name:  "check command will deny all on empty config",
+			args:  []string{"-c", emptyConfigPath, "check", "-"},
+			stdin: testSBOM,
 			expectedInOutput: []string{
-				"check failed",
-				"✗",      // Non-compliant indicator
-				"DENIED", // Shows denied packages
+				"denied",
+				"test-pkg",
 			},
+		},
+		{
+			name:  "dry-run suppresses violation exit code",
+			args:  []string{"-c", emptyConfigPath, "check", "--dry-run", "-"},
+			stdin: testSBOM,
+			expectedInOutput: []string{
+				"denied",    // Still shows violations in output
+				"test-pkg",  // Package name still appears
+			},
+			wantExitZero: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(grantTmpPath, tt.args...)
-			output, err := cmd.CombinedOutput()
-			if err != nil && !strings.Contains(err.Error(), "exit status 1") {
-				t.Fatalf("cmd.CombinedOutput() failed with %s\n %s", err, string(output))
+			if tt.stdin != "" {
+				cmd.Stdin = strings.NewReader(tt.stdin)
 			}
+			output, err := cmd.CombinedOutput()
+
+			if tt.wantExitZero {
+				if err != nil {
+					t.Fatalf("expected exit code 0, got error: %s\noutput: %s", err, string(output))
+				}
+			} else {
+				if err != nil && !strings.Contains(err.Error(), "exit status 1") {
+					t.Fatalf("cmd.CombinedOutput() failed with %s\n %s", err, string(output))
+				}
+			}
+
 			for _, expected := range tt.expectedInOutput {
 				if !strings.Contains(string(output), expected) {
-					t.Errorf("expected %s to be in output, but it wasn't; output: %s", expected, string(output))
+					t.Errorf("expected %q to be in output, but it wasn't; output: %s", expected, string(output))
 				}
 			}
 		})
