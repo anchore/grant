@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -25,6 +26,27 @@ const (
 	statusNonCompliant = "noncompliant"
 	statusError        = "error"
 )
+
+// ErrViolations indicates the check found policy violations that warrant
+// a non-zero exit code.
+var ErrViolations = errors.New("check failed")
+
+// shouldFailCheck reports whether the check result warrants a non-zero
+// exit code. Errors always fail. Non-compliant targets fail only when
+// not in dry-run mode.
+func shouldFailCheck(result *grant.RunResponse, dryRun bool) bool {
+	for _, target := range result.Run.Targets {
+		switch target.Evaluation.Status {
+		case statusError:
+			return true
+		case statusNonCompliant:
+			if !dryRun {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // Check creates the check command
 func Check() *cobra.Command {
@@ -207,45 +229,39 @@ func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 				return err
 			}
 		}
-		handleQuietOutput(result, flags.DryRun)
-		return nil
-	}
-
-	if flags.Summary {
+		handleQuietOutput(result)
+	} else if flags.Summary {
 		return handleSummaryOutput(result, globalConfig.OutputFormat, globalConfig.OutputFile, globalConfig.NoOutput)
-	}
-
-	if flags.Unlicensed {
+	} else if flags.Unlicensed {
 		return handleUnlicensedOutput(result, globalConfig.OutputFormat, globalConfig.OutputFile, globalConfig.NoOutput)
-	}
+	} else {
+		// Write to file if specified
+		if globalConfig.OutputFile != "" {
+			output := internal.NewOutput()
+			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
+				HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
+				return err
+			}
+		}
 
-	// Write to file if specified
-	if globalConfig.OutputFile != "" {
-		output := internal.NewOutput()
-		if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-			HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-			return err
+		// Output to terminal unless suppressed
+		if !(globalConfig.NoOutput && globalConfig.OutputFile != "") {
+			if err := OutputResult(result, globalConfig.OutputFormat, ""); err != nil {
+				HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
+				return err
+			}
 		}
 	}
 
-	// Skip terminal output if no-output flag is set and output file is specified
-	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
-		handleExitCode(result, flags.DryRun)
-		return nil
+	// Single exit-code decision point (covers quiet, no-output, and normal paths).
+	if shouldFailCheck(result, flags.DryRun) {
+		return ErrViolations
 	}
-
-	// Output to terminal based on format
-	if err := OutputResult(result, globalConfig.OutputFormat, ""); err != nil {
-		HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
-		return err
-	}
-
-	handleExitCode(result, flags.DryRun)
 	return nil
 }
 
-// handleQuietOutput handles quiet mode output
-func handleQuietOutput(result *grant.RunResponse, dryRun bool) {
+// handleQuietOutput handles quiet mode output by printing the violation count.
+func handleQuietOutput(result *grant.RunResponse) {
 	nonCompliantCount := 0
 	errorCount := 0
 
@@ -260,14 +276,6 @@ func handleQuietOutput(result *grant.RunResponse, dryRun bool) {
 
 	if nonCompliantCount > 0 || errorCount > 0 {
 		fmt.Printf("%d\n", nonCompliantCount+errorCount)
-	}
-
-	if errorCount > 0 {
-		os.Exit(1)
-	}
-
-	if nonCompliantCount > 0 && !dryRun {
-		os.Exit(1)
 	}
 }
 
@@ -527,28 +535,3 @@ func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 	return nil
 }
 
-// handleExitCode determines the appropriate exit code.
-// Errors always cause a non-zero exit. In dry-run mode, noncompliant
-// violations are suppressed (exit 0) so that callers can distinguish
-// "grant had an error" from "grant found license violations".
-func handleExitCode(result *grant.RunResponse, dryRun bool) {
-	hasNonCompliant := false
-	hasErrors := false
-
-	for _, target := range result.Run.Targets {
-		switch target.Evaluation.Status {
-		case statusNonCompliant:
-			hasNonCompliant = true
-		case statusError:
-			hasErrors = true
-		}
-	}
-
-	if hasErrors {
-		os.Exit(1)
-	}
-
-	if hasNonCompliant && !dryRun {
-		os.Exit(1)
-	}
-}

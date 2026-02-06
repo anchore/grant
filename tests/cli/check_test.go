@@ -32,8 +32,8 @@ func Test_CheckCmd(t *testing.T) {
 			args:  []string{"-c", emptyConfigPath, "check", "--dry-run", "-"},
 			stdin: testSBOM,
 			expectedInOutput: []string{
-				"denied",    // Still shows violations in output
-				"test-pkg",  // Package name still appears
+				"denied",
+				"test-pkg",
 			},
 			wantExitZero: true,
 		},
@@ -51,8 +51,11 @@ func Test_CheckCmd(t *testing.T) {
 					t.Fatalf("expected exit code 0, got error: %s\noutput: %s", err, string(output))
 				}
 			} else {
-				if err != nil && !strings.Contains(err.Error(), "exit status 1") {
-					t.Fatalf("cmd.CombinedOutput() failed with %s\n %s", err, string(output))
+				if err == nil {
+					t.Fatalf("expected non-zero exit code, got exit 0\noutput: %s", string(output))
+				}
+				if !strings.Contains(err.Error(), "exit status 1") {
+					t.Fatalf("expected exit status 1, got: %s\noutput: %s", err, string(output))
 				}
 			}
 
