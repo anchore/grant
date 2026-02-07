@@ -390,6 +390,14 @@ var skipDirectories = map[string]bool{
 	"temp":          true,
 }
 
+// isSymlinkToDir reports whether path is a symlink that points to a directory
+// (or is a broken symlink). Used to skip entries that WalkDir reports as
+// non-directories due to lstat semantics.
+func isSymlinkToDir(path string) bool {
+	fi, err := os.Stat(path)
+	return err != nil || fi.IsDir()
+}
+
 // searchLicenseFiles searches for license files recursively in the given directory
 func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 	patterns := licensepatterns.Patterns
@@ -414,14 +422,8 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 		// entries even when they point to directories. Resolve symlinks to
 		// determine the actual target type; skip directory targets (they
 		// can't be read as files) and broken symlinks.
-		if d.Type()&os.ModeSymlink != 0 {
-			fi, err := os.Stat(path)
-			if err != nil {
-				return nil
-			}
-			if fi.IsDir() {
-				return nil
-			}
+		if d.Type()&os.ModeSymlink != 0 && isSymlinkToDir(path) {
+			return nil
 		}
 
 		// skip if we've already processed this file
