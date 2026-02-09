@@ -390,10 +390,15 @@ var skipDirectories = map[string]bool{
 	"temp":          true,
 }
 
-// isSymlinkToDir reports whether path is a symlink that points to a directory
-// (or is a broken symlink). Used to skip entries that WalkDir reports as
-// non-directories due to lstat semantics.
-func isSymlinkToDir(path string) bool {
+// skipSymlink reports whether d is a symlink that should be skipped.
+// This includes symlinks to directories and broken symlinks whose targets
+// no longer exist. Symlinks to regular files are not skipped.
+// WalkDir uses lstat semantics, so symlinks appear as non-directory entries
+// even when they point to directories.
+func skipSymlink(path string, d os.DirEntry) bool {
+	if d.Type()&os.ModeSymlink == 0 {
+		return false
+	}
 	fi, err := os.Stat(path)
 	return err != nil || fi.IsDir()
 }
@@ -410,6 +415,8 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 			return nil // Continue walking even if there's an error with a specific directory
 		}
 
+		// this returns false for a symlink to a directory
+		// current implementations of walk dir never descends into a symlinked dir
 		if d.IsDir() {
 			dirName := d.Name()
 			if skipDirectories[dirName] {
@@ -418,11 +425,13 @@ func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 			return nil
 		}
 
-		// WalkDir uses lstat semantics, so symlinks appear as non-directory
-		// entries even when they point to directories. Resolve symlinks to
-		// determine the actual target type; skip directory targets (they
-		// can't be read as files) and broken symlinks.
-		if d.Type()&os.ModeSymlink != 0 && isSymlinkToDir(path) {
+		// TODO: grant's local license analysis (outside of the syft SBOM)
+		// does not follow/resolve directory symlinks. This should be improved.
+		// For now we need to skip these since WalkDir uses lstat semantics.
+		// If we do not skip symlinked dirs then they would get passed to the license classifier.
+		// This can cause errors as seen in: https://github.com/anchore/grant/issues/70
+		// Regular file symlink targets are allowed and work as expected
+		if skipSymlink(path, d) {
 			return nil
 		}
 
