@@ -205,3 +205,61 @@ func TestHandleDir_DisableFileSearchConfig(t *testing.T) {
 	// Just verify that licenses were found - the specific type detection depends on the classifier
 	assert.True(t, len(result2.Licenses) > 0, "Should detect licenses when DisableFileSearch is false")
 }
+
+func TestSearchLicenseFiles_Symlinks(t *testing.T) {
+	tests := []struct {
+		name     string
+		setup    func(t *testing.T, dir string)
+		minCount int
+	}{
+		{
+			name: "skips symlink to directory",
+			setup: func(t *testing.T, dir string) {
+				// Mimics snap package layout (e.g. libncursesw6 -> libtinfo6/)
+				subDir := filepath.Join(dir, "libtinfo6")
+				require.NoError(t, os.MkdirAll(subDir, 0755))
+				require.NoError(t, os.WriteFile(filepath.Join(subDir, "copyright"), []byte("some copyright info"), 0644))
+				require.NoError(t, os.Symlink(subDir, filepath.Join(dir, "libncursesw6")))
+
+				mitLicense := readTestLicense(t, "mit-license.txt")
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "LICENSE"), []byte(mitLicense), 0644))
+			},
+			minCount: 1,
+		},
+		{
+			name: "follows symlink to file",
+			setup: func(t *testing.T, dir string) {
+				mitLicense := readTestLicense(t, "mit-license.txt")
+				realFile := filepath.Join(dir, "actual-license.txt")
+				require.NoError(t, os.WriteFile(realFile, []byte(mitLicense), 0644))
+				require.NoError(t, os.Symlink(realFile, filepath.Join(dir, "LICENSE")))
+			},
+			minCount: 1,
+		},
+		{
+			name: "skips broken symlink",
+			setup: func(t *testing.T, dir string) {
+				require.NoError(t, os.Symlink("/nonexistent/target", filepath.Join(dir, "LICENSE")))
+
+				mitLicense := readTestLicense(t, "mit-license.txt")
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "COPYING"), []byte(mitLicense), 0644))
+			},
+			minCount: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			tt.setup(t, dir)
+
+			ch, err := NewCaseHandler()
+			require.NoError(t, err)
+			defer ch.Close()
+
+			licenses, err := ch.searchLicenseFiles(dir)
+			require.NoError(t, err)
+			assert.GreaterOrEqual(t, len(licenses), tt.minCount, "searchLicenseFiles(%s) returned %d licenses, want >= %d", dir, len(licenses), tt.minCount)
+		})
+	}
+}
