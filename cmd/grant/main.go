@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"runtime"
 
 	"github.com/anchore/grant/cmd/grant/cli"
+	"github.com/anchore/grant/cmd/grant/cli/command"
 	"github.com/anchore/grant/internal"
 )
 
@@ -21,6 +24,9 @@ func main() {
 	app := cli.Application()
 
 	if err := app.Execute(); err != nil {
+		if !errors.Is(err, command.ErrViolations) {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
 		os.Exit(1)
 	}
 }
