@@ -20,7 +20,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/wagoodman/go-partybus v0.0.0-20230516145632-8ccac152c651
 	github.com/wagoodman/go-progress v0.0.0-20230925121702-07e42b3cdba0
-	golang.org/x/term v0.39.0
+	golang.org/x/term v0.40.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.44.3
 )
@@ -276,7 +276,7 @@ require (
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/oauth2 v0.33.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect
