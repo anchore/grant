@@ -23,8 +23,10 @@ type checkFlags struct {
 }
 
 const (
+	statusCompliant    = "compliant"
 	statusNonCompliant = "noncompliant"
 	statusError        = "error"
+	statusList         = "list"
 )
 
 // ErrViolations indicates the check found policy violations that warrant
@@ -246,14 +248,17 @@ func renderCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 		handleQuietOutput(result)
 		return nil
 	}
+	// When writing JSON to a file, suppress terminal output — it would be
+	// identical. Table format still renders to the terminal alongside the
+	// file write. --no-output always suppresses terminal output.
+	if globalConfig.OutputFile != "" && (globalConfig.NoOutput || globalConfig.OutputFormat == formatJSON) {
+		return nil
+	}
 	if flags.Summary {
 		return renderSummaryToTerminal(result, globalConfig)
 	}
 	if flags.Unlicensed {
 		return renderUnlicensedToTerminal(result, globalConfig)
-	}
-	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
-		return nil
 	}
 	return OutputResult(result, globalConfig.OutputFormat, "")
 }
@@ -280,10 +285,6 @@ func handleQuietOutput(result *grant.RunResponse) {
 // renderSummaryToTerminal renders only the summary view to the terminal.
 // File output and no-output suppression are handled by the caller.
 func renderSummaryToTerminal(result *grant.RunResponse, globalConfig *GlobalConfig) error {
-	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
-		return nil
-	}
-
 	if globalConfig.OutputFormat == formatJSON {
 		output := internal.NewOutput()
 		return output.OutputJSON(result, "")
@@ -297,7 +298,7 @@ func renderSummaryToTerminal(result *grant.RunResponse, globalConfig *GlobalConf
 
 	for _, target := range result.Run.Targets {
 		switch target.Evaluation.Status {
-		case "compliant":
+		case statusCompliant:
 			totalCompliant++
 		case statusNonCompliant:
 			totalNonCompliant++
@@ -321,7 +322,7 @@ func renderSummaryToTerminal(result *grant.RunResponse, globalConfig *GlobalConf
 	if totalNonCompliant > 0 || totalErrors > 0 {
 		fmt.Println("\nNon-compliant/Error targets:")
 		for _, target := range result.Run.Targets {
-			if target.Evaluation.Status == "noncompliant" || target.Evaluation.Status == "error" {
+			if target.Evaluation.Status == statusNonCompliant || target.Evaluation.Status == statusError {
 				fmt.Printf("  - %s: %s\n", target.Source.Ref, target.Evaluation.Status)
 			}
 		}
@@ -334,10 +335,6 @@ func renderSummaryToTerminal(result *grant.RunResponse, globalConfig *GlobalConf
 // terminal. File output is handled by the caller; for JSON terminal output
 // the result is filtered to show only unlicensed packages.
 func renderUnlicensedToTerminal(result *grant.RunResponse, globalConfig *GlobalConfig) error {
-	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
-		return nil
-	}
-
 	if globalConfig.OutputFormat == formatJSON {
 		filteredResult := filterResultForNoLicenses(result)
 		output := internal.NewOutput()
@@ -442,13 +439,13 @@ func filterResultForNoLicenses(result *grant.RunResponse) *grant.RunResponse {
 // formatStatus formats the status with colors (copied from output.go)
 func formatStatus(status string) string {
 	switch status {
-	case "compliant":
+	case statusCompliant:
 		return color.Green.Sprint("[compliant]")
-	case "noncompliant":
+	case statusNonCompliant:
 		return color.Red.Sprint("[non-compliant]")
-	case "error":
+	case statusError:
 		return color.Red.Sprint("[error]")
-	case "list":
+	case statusList:
 		return color.Blue.Sprint("[list]")
 	default:
 		return fmt.Sprintf("[%s]", status)
