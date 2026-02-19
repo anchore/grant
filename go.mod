@@ -6,7 +6,7 @@ require (
 	github.com/anchore/clio v0.0.0-20250319180342-2cfe4b0cb716
 	github.com/anchore/go-collections v0.0.0-20251016125210-a3c352120e8c
 	github.com/anchore/go-logger v0.0.0-20250318195838-07ae343dd722
-	github.com/anchore/stereoscope v0.1.20
+	github.com/anchore/stereoscope v0.1.21-0.20260219211146-1754fdcf0335
 	github.com/anchore/syft v1.42.1
 	github.com/github/go-spdx/v2 v2.3.6
 	github.com/google/licenseclassifier/v2 v2.0.0
