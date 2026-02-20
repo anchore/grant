@@ -22,7 +22,7 @@ tools:
 
   - name: gh
     version:
-      want: v2.86.0
+      want: v2.87.0
     method: github-release
     with:
       repo: cli/cli
@@ -58,7 +58,7 @@ tools:
   # used for signing the checksums file at release
   - name: cosign
     version:
-      want: v3.0.4
+      want: v3.0.5
     method: github-release
     with:
       repo: sigstore/cosign
@@ -72,7 +72,7 @@ tools:
 
   - name: golangci-lint
     version:
-      want: v2.9.0
+      want: v2.10.1
     method: github-release
     with:
       repo: golangci/golangci-lint
@@ -93,7 +93,7 @@ tools:
 
   - name: syft
     version:
-      want: v1.42.0
+      want: v1.42.1
     method: github-release
     with:
       repo: anchore/syft
