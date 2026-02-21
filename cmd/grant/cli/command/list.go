@@ -175,9 +175,6 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Check if input is grant JSON from stdin
 	if _, handled, err := handleJSONInput(cmd, target, licenseFilters); handled {
-		if err != nil {
-			HandleError(err, GetGlobalConfig(cmd).Quiet)
-		}
 		return err
 	}
 
@@ -244,7 +241,6 @@ func performListOperation(target string, licenseFilters []string, disableFileSea
 	// Load policy (needed for orchestrator, but not used for evaluation)
 	policy, err := LoadPolicyFromConfig(globalConfig)
 	if err != nil {
-		HandleError(err, globalConfig.Quiet)
 		return nil, err
 	}
 
@@ -255,8 +251,7 @@ func performListOperation(target string, licenseFilters []string, disableFileSea
 
 	orchestrator, err := grant.NewOrchestratorWithConfig(policy, caseConfig)
 	if err != nil {
-		HandleError(fmt.Errorf("failed to create orchestrator: %w", err), globalConfig.Quiet)
-		return nil, err
+		return nil, fmt.Errorf("failed to create orchestrator: %w", err)
 	}
 	defer orchestrator.Close()
 
@@ -274,8 +269,7 @@ func performListOperation(target string, licenseFilters []string, disableFileSea
 	// Perform list
 	result, err := orchestrator.List(argv, target)
 	if err != nil {
-		HandleError(fmt.Errorf("list failed: %w", err), globalConfig.Quiet)
-		return nil, err
+		return nil, fmt.Errorf("list failed: %w", err)
 	}
 
 	return result, nil
@@ -371,8 +365,7 @@ func handleListOutput(result *grant.RunResponse, licenseFilters []string, global
 		if globalConfig.OutputFile != "" {
 			output := internal.NewOutput()
 			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-				HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-				return err
+				return fmt.Errorf("failed to write output file: %w", err)
 			}
 		}
 		handleListQuietOutput(result)
@@ -383,8 +376,7 @@ func handleListOutput(result *grant.RunResponse, licenseFilters []string, global
 	if globalConfig.OutputFile != "" {
 		output := internal.NewOutput()
 		if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-			HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-			return err
+			return fmt.Errorf("failed to write output file: %w", err)
 		}
 	}
 
@@ -396,13 +388,11 @@ func handleListOutput(result *grant.RunResponse, licenseFilters []string, global
 	// Normal output - use list-specific formatting for table output
 	if globalConfig.OutputFormat == "table" {
 		if err := outputListTableWithFilters(result, licenseFilters); err != nil {
-			HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
-			return err
+			return fmt.Errorf("failed to output result: %w", err)
 		}
 	} else {
 		if err := OutputResult(result, globalConfig.OutputFormat, globalConfig.OutputFile); err != nil {
-			HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
-			return err
+			return fmt.Errorf("failed to output result: %w", err)
 		}
 	}
 
@@ -760,8 +750,7 @@ func handlePackageDetailOutput(result *grant.RunResponse, packageName string, gl
 	if globalConfig.OutputFile != "" {
 		output := internal.NewOutput()
 		if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-			HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-			return err
+			return fmt.Errorf("failed to write output file: %w", err)
 		}
 	}
 
@@ -801,8 +790,7 @@ func handleGroupByRiskOutput(result *grant.RunResponse, globalConfig *GlobalConf
 	if globalConfig.OutputFile != "" {
 		output := internal.NewOutput()
 		if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-			HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-			return err
+			return fmt.Errorf("failed to write output file: %w", err)
 		}
 	}
 
