@@ -10,10 +10,12 @@ import (
 // Application constructs the grant CLI application
 func Application() *cobra.Command {
 	app := &cobra.Command{
-		Use:     "grant",
-		Short:   "A license compliance tool for container images, SBOMs, filesystems, and more",
-		Long:    `Grant helps you view licenses for container images, SBOM documents, and filesystems. Apply filters and views that can help you build a picture of licenses in your SBOM.`,
-		Version: internal.ApplicationVersion(),
+		Use:           "grant",
+		Short:         "A license compliance tool for container images, SBOMs, filesystems, and more",
+		Long:          `Grant helps you view licenses for container images, SBOM documents, and filesystems. Apply filters and views that can help you build a picture of licenses in your SBOM.`,
+		Version:       internal.ApplicationVersion(),
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Set up logging based on verbose flag
 			verbose, _ := cmd.Flags().GetBool("verbose")

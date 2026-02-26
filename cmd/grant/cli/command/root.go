@@ -100,13 +100,6 @@ func LoadPolicyFromConfig(config *GlobalConfig) (*grant.Policy, error) {
 	return internalConfig.Policy, nil
 }
 
-// HandleError handles command errors consistently
-func HandleError(err error, quiet bool) {
-	if err != nil && !quiet {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-	}
-}
-
 // OutputResult outputs the result in the specified format
 func OutputResult(result *grant.RunResponse, format string, outputFile string) error {
 	output := internal.NewOutput()
