@@ -14,7 +14,6 @@ import (
 	"github.com/anchore/grant/internal/spdxlicense"
 )
 
-
 // formatClickableLicense formats a license name as a clickable blue link if SPDX reference is available
 func formatClickableLicense(licenseName string) string {
 	if spdxLicense, err := spdxlicense.GetLicenseByID(licenseName); err == nil && spdxLicense.Reference != "" {
