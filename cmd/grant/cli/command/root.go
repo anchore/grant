@@ -100,21 +100,13 @@ func LoadPolicyFromConfig(config *GlobalConfig) (*grant.Policy, error) {
 	return internalConfig.Policy, nil
 }
 
-// OutputResult outputs the result in the specified format
-func OutputResult(result *grant.RunResponse, format string, outputFile string) error {
+// OutputResult renders the result to the terminal in the specified format.
+// Callers are responsible for writing to an output file separately.
+func OutputResult(result *grant.RunResponse, format string) error {
 	output := internal.NewOutput()
 
-	// If output file is specified, always write JSON to file
-	if outputFile != "" {
-		if err := output.OutputJSON(result, outputFile); err != nil {
-			return err
-		}
-	}
-
-	// Handle terminal output based on format
 	switch format {
 	case formatJSON:
-		// Always output to terminal (caller should check no-output flag)
 		return output.OutputJSON(result, "")
 	case formatTable:
 		return output.OutputTable(result)

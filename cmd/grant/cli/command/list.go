@@ -159,7 +159,7 @@ func handleJSONInput(cmd *cobra.Command, target string, licenseFilters []string)
 		if globalConfig.OutputFormat == "table" {
 			return result, true, outputListTableWithFilters(result, licenseFilters)
 		} else {
-			return result, true, OutputResult(result, globalConfig.OutputFormat, "")
+			return result, true, OutputResult(result, globalConfig.OutputFormat)
 		}
 	}
 	return nil, false, nil
@@ -391,7 +391,7 @@ func handleListOutput(result *grant.RunResponse, licenseFilters []string, global
 			return fmt.Errorf("failed to output result: %w", err)
 		}
 	} else {
-		if err := OutputResult(result, globalConfig.OutputFormat, globalConfig.OutputFile); err != nil {
+		if err := OutputResult(result, globalConfig.OutputFormat); err != nil {
 			return fmt.Errorf("failed to output result: %w", err)
 		}
 	}

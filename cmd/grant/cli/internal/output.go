@@ -14,9 +14,6 @@ import (
 	"github.com/anchore/grant/internal/spdxlicense"
 )
 
-const (
-	statusCompliant = "compliant"
-)
 
 // formatClickableLicense formats a license name as a clickable blue link if SPDX reference is available
 func formatClickableLicense(licenseName string) string {
@@ -321,7 +318,7 @@ func (o *Output) OutputSummaryOnly(result *grant.RunResponse) error {
 	totalTargets := len(result.Run.Targets)
 
 	for _, target := range result.Run.Targets {
-		if target.Evaluation.Status == statusCompliant {
+		if target.Evaluation.Status == grant.StatusCompliant {
 			totalCompliant++
 		}
 	}
@@ -336,7 +333,7 @@ func (o *Output) OutputSummaryOnly(result *grant.RunResponse) error {
 
 		// List non-compliant targets
 		for _, target := range result.Run.Targets {
-			if target.Evaluation.Status != statusCompliant {
+			if target.Evaluation.Status != grant.StatusCompliant {
 				fmt.Printf("  - %s: %s\n", target.Source.Ref, target.Evaluation.Status)
 			}
 		}
@@ -348,7 +345,7 @@ func (o *Output) OutputSummaryOnly(result *grant.RunResponse) error {
 func (o *Output) OutputQuiet(result *grant.RunResponse) error {
 	nonCompliantCount := 0
 	for _, target := range result.Run.Targets {
-		if target.Evaluation.Status != statusCompliant {
+		if target.Evaluation.Status != grant.StatusCompliant {
 			nonCompliantCount++
 		}
 	}

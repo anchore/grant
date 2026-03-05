@@ -5,6 +5,14 @@ import (
 	"github.com/anchore/grant/internal/spdxlicense"
 )
 
+// Status constants for target evaluation results.
+const (
+	StatusCompliant    = "compliant"
+	StatusNonCompliant = "noncompliant"
+	StatusError        = "error"
+	StatusList         = "list"
+)
+
 // RunResponse represents the complete JSON response structure for grant operations
 type RunResponse struct {
 	Tool    string     `json:"tool"`
@@ -259,9 +267,9 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 // determineComplianceStatus determines the overall compliance status
 func determineComplianceStatus(evalResult *EvaluationResult) string {
 	if len(evalResult.DeniedPackages) > 0 {
-		return "noncompliant"
+		return StatusNonCompliant
 	}
-	return "compliant"
+	return StatusCompliant
 }
 
 // populateSPDXLicenseData enriches a LicenseDetail with SPDX license data

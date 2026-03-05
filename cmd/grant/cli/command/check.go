@@ -22,13 +22,6 @@ type checkFlags struct {
 	DryRun            bool
 }
 
-const (
-	statusCompliant    = "compliant"
-	statusNonCompliant = "noncompliant"
-	statusError        = "error"
-	statusList         = "list"
-)
-
 // ErrViolations indicates the check found policy violations that warrant
 // a non-zero exit code.
 var ErrViolations = errors.New("check failed")
@@ -39,9 +32,9 @@ var ErrViolations = errors.New("check failed")
 func shouldFailCheck(result *grant.RunResponse, dryRun bool) bool {
 	for _, target := range result.Run.Targets {
 		switch target.Evaluation.Status {
-		case statusError:
+		case grant.StatusError:
 			return true
-		case statusNonCompliant:
+		case grant.StatusNonCompliant:
 			if !dryRun {
 				return true
 			}
@@ -260,7 +253,7 @@ func renderCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, fl
 	if flags.Unlicensed {
 		return renderUnlicensedToTerminal(result, globalConfig)
 	}
-	return OutputResult(result, globalConfig.OutputFormat, "")
+	return OutputResult(result, globalConfig.OutputFormat)
 }
 
 // handleQuietOutput handles quiet mode output by printing the violation count.
@@ -270,9 +263,9 @@ func handleQuietOutput(result *grant.RunResponse) {
 
 	for _, target := range result.Run.Targets {
 		switch target.Evaluation.Status {
-		case statusNonCompliant:
+		case grant.StatusNonCompliant:
 			nonCompliantCount++
-		case statusError:
+		case grant.StatusError:
 			errorCount++
 		}
 	}
@@ -298,11 +291,11 @@ func renderSummaryToTerminal(result *grant.RunResponse, globalConfig *GlobalConf
 
 	for _, target := range result.Run.Targets {
 		switch target.Evaluation.Status {
-		case statusCompliant:
+		case grant.StatusCompliant:
 			totalCompliant++
-		case statusNonCompliant:
+		case grant.StatusNonCompliant:
 			totalNonCompliant++
-		case statusError:
+		case grant.StatusError:
 			totalErrors++
 		}
 	}
@@ -322,7 +315,7 @@ func renderSummaryToTerminal(result *grant.RunResponse, globalConfig *GlobalConf
 	if totalNonCompliant > 0 || totalErrors > 0 {
 		fmt.Println("\nNon-compliant/Error targets:")
 		for _, target := range result.Run.Targets {
-			if target.Evaluation.Status == statusNonCompliant || target.Evaluation.Status == statusError {
+			if target.Evaluation.Status == grant.StatusNonCompliant || target.Evaluation.Status == grant.StatusError {
 				fmt.Printf("  - %s: %s\n", target.Source.Ref, target.Evaluation.Status)
 			}
 		}
@@ -439,13 +432,13 @@ func filterResultForNoLicenses(result *grant.RunResponse) *grant.RunResponse {
 // formatStatus formats the status with colors (copied from output.go)
 func formatStatus(status string) string {
 	switch status {
-	case statusCompliant:
+	case grant.StatusCompliant:
 		return color.Green.Sprint("[compliant]")
-	case statusNonCompliant:
+	case grant.StatusNonCompliant:
 		return color.Red.Sprint("[non-compliant]")
-	case statusError:
+	case grant.StatusError:
 		return color.Red.Sprint("[error]")
-	case statusList:
+	case grant.StatusList:
 		return color.Blue.Sprint("[list]")
 	default:
 		return fmt.Sprintf("[%s]", status)
