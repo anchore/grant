@@ -69,7 +69,7 @@ func (o *Orchestrator) Check(argv []string, targets ...string) (*RunResponse, er
 		if err != nil {
 			// Add error result for this target
 			response.AddTarget(source, TargetEvaluation{
-				Status: "error",
+				Status: StatusError,
 				Summary: EvaluationSummaryJSON{
 					Packages: PackageSummary{},
 					Licenses: LicenseSummary{},
@@ -86,7 +86,7 @@ func (o *Orchestrator) Check(argv []string, targets ...string) (*RunResponse, er
 		if err != nil {
 			// Add error result for this target
 			response.AddTarget(source, TargetEvaluation{
-				Status: "error",
+				Status: StatusError,
 				Summary: EvaluationSummaryJSON{
 					Packages: PackageSummary{},
 					Licenses: LicenseSummary{},
@@ -135,7 +135,7 @@ func (o *Orchestrator) processListTarget(target string) TargetEvaluation {
 	summary := buildListSummary(licensePackages, licenses, packagesNoLicenses)
 
 	return TargetEvaluation{
-		Status:   "list",
+		Status:   StatusUnevaluated,
 		Summary:  summary,
 		Findings: findings,
 	}
@@ -144,7 +144,7 @@ func (o *Orchestrator) processListTarget(target string) TargetEvaluation {
 // createErrorTargetEvaluation creates a standard error response
 func createErrorTargetEvaluation() TargetEvaluation {
 	return TargetEvaluation{
-		Status: "error",
+		Status: StatusError,
 		Summary: EvaluationSummaryJSON{
 			Packages: PackageSummary{},
 			Licenses: LicenseSummary{},
@@ -163,13 +163,13 @@ func buildListFindings(licensePackages map[string][]*Package, packagesNoLicenses
 
 	for _, packages := range licensePackages {
 		for _, pkg := range packages {
-			finding := packageToFinding(*pkg, "list")
+			finding := packageToFinding(*pkg, DecisionUnevaluated)
 			findings.Packages = append(findings.Packages, finding)
 		}
 	}
 
 	for _, pkg := range packagesNoLicenses {
-		finding := packageToFinding(pkg, "list")
+		finding := packageToFinding(pkg, DecisionUnevaluated)
 		findings.Packages = append(findings.Packages, finding)
 	}
 

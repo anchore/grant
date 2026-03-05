@@ -429,7 +429,9 @@ func filterResultForNoLicenses(result *grant.RunResponse) *grant.RunResponse {
 	return filtered
 }
 
-// formatStatus formats the status with colors (copied from output.go)
+// formatStatus formats the status with colors.
+// TODO: the display strings are UI concerns that don't derive from the Status* constants;
+// if a constant value changes, update the corresponding display string here.
 func formatStatus(status string) string {
 	switch status {
 	case grant.StatusCompliant:
@@ -438,8 +440,8 @@ func formatStatus(status string) string {
 		return color.Red.Sprint("[non-compliant]")
 	case grant.StatusError:
 		return color.Red.Sprint("[error]")
-	case grant.StatusList:
-		return color.Blue.Sprint("[list]")
+	case grant.StatusUnevaluated:
+		return color.Blue.Sprint("[unevaluated]")
 	default:
 		return fmt.Sprintf("[%s]", status)
 	}

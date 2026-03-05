@@ -216,7 +216,7 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 	// Filter to only show denied packages
 	deniedPackages := []grant.PackageFinding{}
 	for _, pkg := range packages {
-		if pkg.Decision == "deny" {
+		if pkg.Decision == grant.DecisionDeny {
 			deniedPackages = append(deniedPackages, pkg)
 		}
 	}
