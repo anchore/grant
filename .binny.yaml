@@ -15,7 +15,7 @@ tools:
 
   - name: binny
     version:
-      want: v0.11.3
+      want: v0.12.0
     method: github-release
     with:
       repo: anchore/binny
@@ -29,7 +29,7 @@ tools:
 
   - name: quill
     version:
-      want: v0.5.1
+      want: v0.7.0
     method: github-release
     with:
       repo: anchore/quill
@@ -65,7 +65,7 @@ tools:
 
   - name: goreleaser
     version:
-      want: v2.14.2
+      want: v2.14.3
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -93,7 +93,7 @@ tools:
 
   - name: syft
     version:
-      want: v1.42.1
+      want: v1.42.2
     method: github-release
     with:
       repo: anchore/syft
