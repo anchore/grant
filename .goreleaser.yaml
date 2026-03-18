@@ -112,6 +112,7 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
+      - "--provenance=false"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
@@ -125,6 +126,7 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64/v8"
+      - "--provenance=false"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
@@ -138,6 +140,7 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/ppc64le"
+      - "--provenance=false"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
@@ -151,6 +154,7 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/s390x"
+      - "--provenance=false"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
@@ -164,6 +168,7 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
+      - "--provenance=false"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
@@ -177,6 +182,7 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64/v8"
+      - "--provenance=false"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
@@ -190,6 +196,7 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/ppc64le"
+      - "--provenance=false"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
@@ -203,6 +210,7 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/s390x"
+      - "--provenance=false"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
