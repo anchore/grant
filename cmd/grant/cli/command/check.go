@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -21,10 +22,26 @@ type checkFlags struct {
 	DryRun            bool
 }
 
-const (
-	statusNonCompliant = "noncompliant"
-	statusError        = "error"
-)
+// ErrViolations indicates the check found policy violations that warrant
+// a non-zero exit code.
+var ErrViolations = errors.New("check failed")
+
+// shouldFailCheck reports whether the check result warrants a non-zero
+// exit code. Errors always fail. Non-compliant targets fail only when
+// not in dry-run mode.
+func shouldFailCheck(result *grant.RunResponse, dryRun bool) bool {
+	for _, target := range result.Run.Targets {
+		switch target.Evaluation.Status {
+		case grant.StatusError:
+			return true
+		case grant.StatusNonCompliant:
+			if !dryRun {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // Check creates the check command
 func Check() *cobra.Command {
@@ -141,7 +158,6 @@ func setupRealtimeUI(globalConfig *GlobalConfig, args []string) *internal.Realti
 func setupOrchestrator(globalConfig *GlobalConfig, disableFileSearch bool) (*grant.Orchestrator, error) {
 	policy, err := LoadPolicyFromConfig(globalConfig)
 	if err != nil {
-		HandleError(err, globalConfig.Quiet)
 		return nil, err
 	}
 
@@ -151,8 +167,7 @@ func setupOrchestrator(globalConfig *GlobalConfig, disableFileSearch bool) (*gra
 
 	orchestrator, err := grant.NewOrchestratorWithConfig(policy, caseConfig)
 	if err != nil {
-		HandleError(fmt.Errorf("failed to create orchestrator: %w", err), globalConfig.Quiet)
-		return nil, err
+		return nil, fmt.Errorf("failed to create orchestrator: %w", err)
 	}
 
 	return orchestrator, nil
@@ -167,8 +182,7 @@ func performCheck(orchestrator *grant.Orchestrator, globalConfig *GlobalConfig, 
 
 	result, err := orchestrator.Check(argv, args...)
 	if err != nil {
-		HandleError(fmt.Errorf("check failed: %w", err), globalConfig.Quiet)
-		return nil, err
+		return nil, fmt.Errorf("check failed: %w", err)
 	}
 
 	return result, nil
@@ -196,101 +210,80 @@ func updateUIWithResults(realtimeUI *internal.RealtimeUI, result *grant.RunRespo
 	)
 }
 
-// handleCheckOutput processes and displays the check results
+// handleCheckOutput processes check results: renders output, then determines
+// the exit code. Every code path flows through shouldFailCheck.
 func handleCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, flags *checkFlags) error {
-	if globalConfig.Quiet {
-		// Handle output file if specified in quiet mode
-		if globalConfig.OutputFile != "" {
-			output := internal.NewOutput()
-			if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-				HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-				return err
-			}
-		}
-		handleQuietOutput(result, flags.DryRun)
-		return nil
-	}
-
-	if flags.Summary {
-		return handleSummaryOutput(result, globalConfig.OutputFormat, globalConfig.OutputFile, globalConfig.NoOutput)
-	}
-
-	if flags.Unlicensed {
-		return handleUnlicensedOutput(result, globalConfig.OutputFormat, globalConfig.OutputFile, globalConfig.NoOutput)
-	}
-
-	// Write to file if specified
-	if globalConfig.OutputFile != "" {
-		output := internal.NewOutput()
-		if err := output.OutputJSON(result, globalConfig.OutputFile); err != nil {
-			HandleError(fmt.Errorf("failed to write output file: %w", err), globalConfig.Quiet)
-			return err
-		}
-	}
-
-	// Skip terminal output if no-output flag is set and output file is specified
-	if globalConfig.NoOutput && globalConfig.OutputFile != "" {
-		handleExitCode(result, flags.DryRun)
-		return nil
-	}
-
-	// Output to terminal based on format
-	if err := OutputResult(result, globalConfig.OutputFormat, ""); err != nil {
-		HandleError(fmt.Errorf("failed to output result: %w", err), globalConfig.Quiet)
+	if err := renderCheckOutput(result, globalConfig, flags); err != nil {
 		return err
 	}
-
-	handleExitCode(result, flags.DryRun)
+	if shouldFailCheck(result, flags.DryRun) {
+		return ErrViolations
+	}
 	return nil
 }
 
-// handleQuietOutput handles quiet mode output
-func handleQuietOutput(result *grant.RunResponse, dryRun bool) {
+// renderCheckOutput writes the output file (if requested) and renders to
+// the terminal based on the active flags.
+func renderCheckOutput(result *grant.RunResponse, globalConfig *GlobalConfig, flags *checkFlags) error {
+	// Write JSON output file (applies to all modes).
+	if globalConfig.OutputFile != "" {
+		fileResult := result
+		if flags.Unlicensed && globalConfig.OutputFormat == formatJSON {
+			fileResult = filterResultForNoLicenses(result)
+		}
+		output := internal.NewOutput()
+		if err := output.OutputJSON(fileResult, globalConfig.OutputFile); err != nil {
+			return fmt.Errorf("failed to write output file: %w", err)
+		}
+	}
+
+	if globalConfig.Quiet {
+		handleQuietOutput(result)
+		return nil
+	}
+	// When writing JSON to a file, suppress terminal output — it would be
+	// identical. Table format still renders to the terminal alongside the
+	// file write. --no-output always suppresses terminal output.
+	if globalConfig.OutputFile != "" && (globalConfig.NoOutput || globalConfig.OutputFormat == formatJSON) {
+		return nil
+	}
+	if flags.Summary {
+		return renderSummaryToTerminal(result, globalConfig)
+	}
+	if flags.Unlicensed {
+		return renderUnlicensedToTerminal(result, globalConfig)
+	}
+	return OutputResult(result, globalConfig.OutputFormat)
+}
+
+// handleQuietOutput handles quiet mode output by printing the violation count.
+func handleQuietOutput(result *grant.RunResponse) {
 	nonCompliantCount := 0
 	errorCount := 0
 
 	for _, target := range result.Run.Targets {
 		switch target.Evaluation.Status {
-		case statusNonCompliant:
+		case grant.StatusNonCompliant:
 			nonCompliantCount++
-		case statusError:
+		case grant.StatusError:
 			errorCount++
 		}
 	}
 
 	if nonCompliantCount > 0 || errorCount > 0 {
 		fmt.Printf("%d\n", nonCompliantCount+errorCount)
-		if !dryRun {
-			os.Exit(1)
-		}
 	}
 }
 
-// handleSummaryOutput handles summary-only output
-func handleSummaryOutput(result *grant.RunResponse, format string, outputFile string, noOutput bool) error {
-	// Write to file if specified
-	if outputFile != "" {
+// renderSummaryToTerminal renders only the summary view to the terminal.
+// File output and no-output suppression are handled by the caller.
+func renderSummaryToTerminal(result *grant.RunResponse, globalConfig *GlobalConfig) error {
+	if globalConfig.OutputFormat == formatJSON {
 		output := internal.NewOutput()
-		if err := output.OutputJSON(result, outputFile); err != nil {
-			return fmt.Errorf("failed to write output file: %w", err)
-		}
+		return output.OutputJSON(result, "")
 	}
 
-	// Skip terminal output if no-output flag is set and output file is specified
-	if noOutput && outputFile != "" {
-		return nil
-	}
-
-	if format == formatJSON {
-		// For JSON, output full result if no file was specified
-		if outputFile == "" {
-			output := internal.NewOutput()
-			return output.OutputJSON(result, "")
-		}
-		return nil
-	}
-
-	// For table format, show summary only
+	// Table format: show summary only.
 	totalCompliant := 0
 	totalNonCompliant := 0
 	totalErrors := 0
@@ -298,11 +291,11 @@ func handleSummaryOutput(result *grant.RunResponse, format string, outputFile st
 
 	for _, target := range result.Run.Targets {
 		switch target.Evaluation.Status {
-		case "compliant":
+		case grant.StatusCompliant:
 			totalCompliant++
-		case statusNonCompliant:
+		case grant.StatusNonCompliant:
 			totalNonCompliant++
-		case statusError:
+		case grant.StatusError:
 			totalErrors++
 		}
 	}
@@ -322,7 +315,7 @@ func handleSummaryOutput(result *grant.RunResponse, format string, outputFile st
 	if totalNonCompliant > 0 || totalErrors > 0 {
 		fmt.Println("\nNon-compliant/Error targets:")
 		for _, target := range result.Run.Targets {
-			if target.Evaluation.Status == "noncompliant" || target.Evaluation.Status == "error" {
+			if target.Evaluation.Status == grant.StatusNonCompliant || target.Evaluation.Status == grant.StatusError {
 				fmt.Printf("  - %s: %s\n", target.Source.Ref, target.Evaluation.Status)
 			}
 		}
@@ -331,42 +324,22 @@ func handleSummaryOutput(result *grant.RunResponse, format string, outputFile st
 	return nil
 }
 
-// handleUnlicensedOutput handles unlicensed output
-func handleUnlicensedOutput(result *grant.RunResponse, format string, outputFile string, noOutput bool) error {
-	// For JSON, filter the result to only show packages without licenses
-	filteredResult := result
-	if format == formatJSON {
-		filteredResult = filterResultForNoLicenses(result)
-	}
-
-	// Write to file if specified
-	if outputFile != "" {
+// renderUnlicensedToTerminal renders the unlicensed-packages view to the
+// terminal. File output is handled by the caller; for JSON terminal output
+// the result is filtered to show only unlicensed packages.
+func renderUnlicensedToTerminal(result *grant.RunResponse, globalConfig *GlobalConfig) error {
+	if globalConfig.OutputFormat == formatJSON {
+		filteredResult := filterResultForNoLicenses(result)
 		output := internal.NewOutput()
-		if err := output.OutputJSON(filteredResult, outputFile); err != nil {
-			return fmt.Errorf("failed to write output file: %w", err)
-		}
+		return output.OutputJSON(filteredResult, "")
 	}
 
-	// Skip terminal output if no-output flag is set and output file is specified
-	if noOutput && outputFile != "" {
-		return nil
-	}
-
-	if format == formatJSON {
-		// For JSON, output filtered result if no file was specified
-		if outputFile == "" {
-			output := internal.NewOutput()
-			return output.OutputJSON(filteredResult, "")
-		}
-		return nil
-	}
-
-	// For table format, use the same structure as default output
+	// Table format: show unlicensed packages per target.
 	for _, target := range result.Run.Targets {
 		if err := outputTargetTableUnlicensed(target); err != nil {
 			return err
 		}
-		fmt.Println() // Add spacing between targets
+		fmt.Println()
 	}
 
 	return nil
@@ -456,17 +429,19 @@ func filterResultForNoLicenses(result *grant.RunResponse) *grant.RunResponse {
 	return filtered
 }
 
-// formatStatus formats the status with colors (copied from output.go)
+// formatStatus formats the status with colors.
+// TODO: the display strings are UI concerns that don't derive from the Status* constants;
+// if a constant value changes, update the corresponding display string here.
 func formatStatus(status string) string {
 	switch status {
-	case "compliant":
+	case grant.StatusCompliant:
 		return color.Green.Sprint("[compliant]")
-	case "noncompliant":
+	case grant.StatusNonCompliant:
 		return color.Red.Sprint("[non-compliant]")
-	case "error":
+	case grant.StatusError:
 		return color.Red.Sprint("[error]")
-	case "list":
-		return color.Blue.Sprint("[list]")
+	case grant.StatusUnevaluated:
+		return color.Blue.Sprint("[unevaluated]")
 	default:
 		return fmt.Sprintf("[%s]", status)
 	}
@@ -520,28 +495,4 @@ func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 	}
 	t.Render()
 	return nil
-}
-
-// handleExitCode determines the appropriate exit code
-func handleExitCode(result *grant.RunResponse, dryRun bool) {
-	if dryRun {
-		// In dry-run mode, don't exit with error code
-		return
-	}
-
-	hasNonCompliant := false
-	hasErrors := false
-
-	for _, target := range result.Run.Targets {
-		switch target.Evaluation.Status {
-		case statusNonCompliant:
-			hasNonCompliant = true
-		case statusError:
-			hasErrors = true
-		}
-	}
-
-	if hasNonCompliant || hasErrors {
-		os.Exit(1)
-	}
 }

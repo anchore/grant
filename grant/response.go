@@ -5,6 +5,22 @@ import (
 	"github.com/anchore/grant/internal/spdxlicense"
 )
 
+// Status constants for target evaluation results.
+const (
+	StatusCompliant    = "compliant"
+	StatusNonCompliant = "noncompliant"
+	StatusError        = "error"
+	StatusUnevaluated  = "unevaluated"
+)
+
+// Decision constants for package-level findings.
+const (
+	DecisionAllow       = "allow"
+	DecisionDeny        = "deny"
+	DecisionIgnore      = "ignore"
+	DecisionUnevaluated = "unevaluated"
+)
+
 // RunResponse represents the complete JSON response structure for grant operations
 type RunResponse struct {
 	Tool    string     `json:"tool"`
@@ -223,7 +239,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 
 	// Add allowed packages
 	for _, pkg := range evalResult.AllowedPackages {
-		finding := packageToFinding(pkg.Package, "allow")
+		finding := packageToFinding(pkg.Package, DecisionAllow)
 		key := pkg.Package.Name + "@" + pkg.Package.Version
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
@@ -232,7 +248,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 
 	// Add denied packages
 	for _, pkg := range evalResult.DeniedPackages {
-		finding := packageToFindingWithDeniedLicenses(pkg.Package, "deny", pkg.DeniedLicenses)
+		finding := packageToFindingWithDeniedLicenses(pkg.Package, DecisionDeny, pkg.DeniedLicenses)
 		key := pkg.Package.Name + "@" + pkg.Package.Version
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
@@ -241,7 +257,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 
 	// Add ignored packages
 	for _, pkg := range evalResult.IgnoredPackages {
-		finding := packageToFinding(pkg.Package, "ignore")
+		finding := packageToFinding(pkg.Package, DecisionIgnore)
 		key := pkg.Package.Name + "@" + pkg.Package.Version
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
@@ -259,9 +275,9 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 // determineComplianceStatus determines the overall compliance status
 func determineComplianceStatus(evalResult *EvaluationResult) string {
 	if len(evalResult.DeniedPackages) > 0 {
-		return "noncompliant"
+		return StatusNonCompliant
 	}
-	return "compliant"
+	return StatusCompliant
 }
 
 // populateSPDXLicenseData enriches a LicenseDetail with SPDX license data
@@ -316,7 +332,7 @@ func packageToFindingWithDeniedLicenses(pkg Package, decision string, deniedLice
 	// Only include the licenses that were actually denied
 	licenseDetails := []LicenseDetail{}
 
-	if decision == "deny" && len(pkg.Licenses) == 0 {
+	if decision == DecisionDeny && len(pkg.Licenses) == 0 {
 		// Package denied due to no licenses
 		licenseDetails = []LicenseDetail{} // Keep empty to indicate no licenses
 	} else {
