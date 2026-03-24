@@ -49,8 +49,8 @@ builds:
             - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
   - id: windows-build
-    dir: ./cmd/syft
-    binary: syft
+    dir: ./cmd/grant
+    binary: grant
     goos: [windows]
     goarch: [amd64, arm64]
     mod_timestamp: *build-timestamp
