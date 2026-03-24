@@ -48,6 +48,14 @@ builds:
           env:
             - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
+  - id: windows-build
+    dir: ./cmd/syft
+    binary: syft
+    goos: [windows]
+    goarch: [amd64, arm64]
+    mod_timestamp: *build-timestamp
+    ldflags: *build-ldflags
+
 archives:
   - id: linux-archives
     builds:
@@ -55,6 +63,12 @@ archives:
   - id: darwin-archives
     builds:
       - darwin-build
+
+  - id: windows-archives
+    formats:
+      - zip
+    builds:
+      - windows-build
 
 nfpms:
   - license: "Apache 2.0"
