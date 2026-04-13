@@ -74,8 +74,8 @@ func (p *Policy) IsPackageIgnored(packageName string) bool {
 		}
 
 		// Handle patterns like "github.com/mycompany/*"
-		if strings.HasSuffix(pattern, "/*") {
-			prefix := strings.TrimSuffix(pattern, "/*")
+		if before, ok := strings.CutSuffix(pattern, "/*"); ok {
+			prefix := before
 			if strings.HasPrefix(packageName, prefix+"/") {
 				return true
 			}

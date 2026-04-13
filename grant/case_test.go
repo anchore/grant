@@ -115,12 +115,12 @@ func TestHandleDir_PerformanceWithManyFiles(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create a large directory structure similar to node_modules
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		pkgDir := filepath.Join(tempDir, "node_modules", fmt.Sprintf("package%d", i))
 		require.NoError(t, os.MkdirAll(pkgDir, 0755))
 
 		// Create 10 files in each package
-		for j := 0; j < 10; j++ {
+		for j := range 10 {
 			filename := filepath.Join(pkgDir, fmt.Sprintf("file%d.js", j))
 			require.NoError(t, os.WriteFile(filename, []byte("test content"), 0644))
 		}

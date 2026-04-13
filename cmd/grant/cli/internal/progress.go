@@ -137,7 +137,7 @@ func (p *ProgressDisplay) getStatusIcon(status StepStatus) string {
 }
 
 // getStatusColor returns the color function for a given status
-func (p *ProgressDisplay) getStatusColor(status StepStatus) func(a ...interface{}) string {
+func (p *ProgressDisplay) getStatusColor(status StepStatus) func(a ...any) string {
 	switch status {
 	case StatusComplete:
 		return color.Green.Sprint
