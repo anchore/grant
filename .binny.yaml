@@ -15,7 +15,7 @@ tools:
 
   - name: binny
     version:
-      want: v0.12.0
+      want: v0.13.0
     method: github-release
     with:
       repo: anchore/binny
@@ -36,7 +36,7 @@ tools:
 
   - name: chronicle
     version:
-      want: v0.8.0
+      want: v0.8.3
     method: github-release
     with:
       repo: anchore/chronicle
@@ -50,7 +50,7 @@ tools:
 
   - name: glow
     version:
-      want: v2.1.1
+      want: v2.1.2
     method: github-release
     with:
       repo: charmbracelet/glow
@@ -58,14 +58,14 @@ tools:
   # used for signing the checksums file at release
   - name: cosign
     version:
-      want: v3.0.5
+      want: v3.0.6
     method: github-release
     with:
       repo: sigstore/cosign
 
   - name: goreleaser
     version:
-      want: v2.15.1
+      want: v2.15.2
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -86,14 +86,14 @@ tools:
 
   - name: task
     version:
-      want: v3.49.1
+      want: v3.50.0
     method: github-release
     with:
       repo: go-task/task
 
   - name: syft
     version:
-      want: v1.42.3
+      want: v1.42.4
     method: github-release
     with:
       repo: anchore/syft
