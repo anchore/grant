@@ -320,9 +320,7 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 	var foundLicenses []License
 
 	// Concurrently generate SBOM with shared license classifier backend
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		sb, err := ch.generateSyftSBOMWithBackend(root)
 		if err != nil {
 			log.Debugf("unable to generate SBOM for source %s: %+v", root, err)
@@ -330,20 +328,18 @@ func (ch *CaseHandler) handleDir(root string) (c Case, err error) {
 			return
 		}
 		dirCase.SBOMS = append(dirCase.SBOMS, sb)
-	}()
+	})
 
 	// Concurrently search for license files (unless DisableFileSearch is set)
 	if !ch.Config.DisableFileSearch {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			licenses, err := ch.searchLicenseFiles(root)
 			if err != nil {
 				licenseErr = err
 				return
 			}
 			foundLicenses = licenses
-		}()
+		})
 	}
 
 	wg.Wait()

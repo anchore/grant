@@ -1,6 +1,6 @@
 module github.com/anchore/grant
 
-go 1.25.8
+go 1.26.2
 
 require (
 	github.com/anchore/clio v0.0.0-20250319180342-2cfe4b0cb716
