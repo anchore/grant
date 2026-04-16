@@ -3,7 +3,7 @@ module github.com/anchore/grant
 go 1.26.2
 
 require (
-	github.com/anchore/clio v0.0.0-20250319180342-2cfe4b0cb716
+	github.com/anchore/clio v0.1.0
 	github.com/anchore/go-collections v0.0.0-20251016125210-a3c352120e8c
 	github.com/anchore/go-logger v0.0.0-20250318195838-07ae343dd722
 	github.com/anchore/stereoscope v0.1.22
