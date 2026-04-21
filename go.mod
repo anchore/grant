@@ -1,13 +1,13 @@
 module github.com/anchore/grant
 
-go 1.26.2
+go 1.25.8
 
 require (
-	github.com/anchore/clio v0.1.1-0.20260414122717-c63b2994e85a
-	github.com/anchore/go-collections v0.1.1-0.20260414124948-fc3f7459f372
-	github.com/anchore/go-logger v0.1.1-0.20260414131315-beb30ae87c9e
-	github.com/anchore/stereoscope v0.1.23-0.20260414014649-aeb4170b528f
-	github.com/anchore/syft v1.42.5-0.20260418002121-076fb211ccf8
+	github.com/anchore/clio v0.1.0
+	github.com/anchore/go-collections v0.1.0
+	github.com/anchore/go-logger v0.1.0
+	github.com/anchore/stereoscope v0.1.22
+	github.com/anchore/syft v1.42.4
 	github.com/github/go-spdx/v2 v2.4.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/gookit/color v1.6.0
