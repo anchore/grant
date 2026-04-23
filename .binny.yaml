@@ -22,7 +22,7 @@ tools:
 
   - name: gh
     version:
-      want: v2.90.0
+      want: v2.91.0
     method: github-release
     with:
       repo: cli/cli
@@ -65,7 +65,7 @@ tools:
 
   - name: goreleaser
     version:
-      want: v2.15.3
+      want: v2.15.4
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -93,7 +93,7 @@ tools:
 
   - name: syft
     version:
-      want: v1.42.4
+      want: v1.43.0
     method: github-release
     with:
       repo: anchore/syft
