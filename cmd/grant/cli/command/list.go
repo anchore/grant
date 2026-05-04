@@ -16,6 +16,12 @@ import (
 	"github.com/anchore/grant/internal/spdxlicense"
 )
 
+const (
+	riskCategoryStrongCopyleft = "Strong Copyleft"
+	riskCategoryWeakCopyleft   = "Weak Copyleft"
+	riskCategoryPermissive     = "Permissive"
+)
+
 // formatClickableLicense formats a license name as a clickable blue link if SPDX reference is available
 func formatClickableLicense(licenseName string) string {
 	if spdxLicense, err := spdxlicense.GetLicenseByID(licenseName); err == nil && spdxLicense.Reference != "" {
@@ -156,7 +162,7 @@ func handleJSONInput(cmd *cobra.Command, target string, licenseFilters []string)
 			return result, true, nil
 		}
 
-		if globalConfig.OutputFormat == "table" {
+		if globalConfig.OutputFormat == formatTable {
 			return result, true, outputListTableWithFilters(result, licenseFilters)
 		} else {
 			return result, true, OutputResult(result, globalConfig.OutputFormat)
@@ -256,7 +262,7 @@ func performListOperation(target string, licenseFilters []string, disableFileSea
 	defer orchestrator.Close()
 
 	// Build argv for the response
-	argv := []string{"grant", "list"}
+	argv := []string{cmdName, "list"}
 	if globalConfig.ConfigFile != "" {
 		argv = append(argv, "-c", globalConfig.ConfigFile)
 	}
@@ -845,15 +851,15 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 	}
 
 	riskCategories := map[string]*riskStats{
-		"Strong Copyleft": {
+		riskCategoryStrongCopyleft: {
 			licenses: make(map[string]bool),
 			packages: make(map[string]bool),
 		},
-		"Weak Copyleft": {
+		riskCategoryWeakCopyleft: {
 			licenses: make(map[string]bool),
 			packages: make(map[string]bool),
 		},
-		"Permissive": {
+		riskCategoryPermissive: {
 			licenses: make(map[string]bool),
 			packages: make(map[string]bool),
 		},
@@ -876,11 +882,11 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 			var categoryName string
 			switch {
 			case license.RiskCategory.IsHigh():
-				categoryName = "Strong Copyleft"
+				categoryName = riskCategoryStrongCopyleft
 			case license.RiskCategory.IsMedium():
-				categoryName = "Weak Copyleft"
+				categoryName = riskCategoryWeakCopyleft
 			case license.RiskCategory.IsLow():
-				categoryName = "Permissive"
+				categoryName = riskCategoryPermissive
 			default:
 				continue // Skip uncategorized
 			}
@@ -906,18 +912,18 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 	t.AppendHeader(table.Row{"RISK CATEGORY", "LICENSES", "PACKAGES"})
 
 	// Add rows in order of risk severity
-	categoryOrder := []string{"Strong Copyleft", "Weak Copyleft", "Permissive"}
+	categoryOrder := []string{riskCategoryStrongCopyleft, riskCategoryWeakCopyleft, riskCategoryPermissive}
 	for _, category := range categoryOrder {
 		stats := riskCategories[category]
 		if len(stats.licenses) > 0 || len(stats.packages) > 0 {
 			// Color code the risk category
 			var coloredCategory string
 			switch category {
-			case "Strong Copyleft":
+			case riskCategoryStrongCopyleft:
 				coloredCategory = color.Red.Sprint(category)
-			case "Weak Copyleft":
+			case riskCategoryWeakCopyleft:
 				coloredCategory = color.Yellow.Sprint(category)
-			case "Permissive":
+			case riskCategoryPermissive:
 				coloredCategory = color.Green.Sprint(category)
 			default:
 				coloredCategory = category

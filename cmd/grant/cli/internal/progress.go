@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	branch = "├──"
-	end    = "└──"
+	branch         = "├──"
+	end            = "└──"
+	analyzingValue = "[analyzing...]"
 )
 
 // ProgressDisplay manages the progress output for grant operations
@@ -161,9 +162,9 @@ func DisplayScanProgress(source string, sourceType string) *ProgressDisplay {
 
 	progress.AddStep("Cataloged contents")
 	progress.SetSubSteps(2, []SubStep{
-		{Icon: "✔", Title: "Packages", Value: "[analyzing...]"},
-		{Icon: "✔", Title: "Licenses", Value: "[analyzing...]"},
-		{Icon: "✔", Title: "File metadata", Value: "[analyzing...]"},
+		{Icon: "✔", Title: "Packages", Value: analyzingValue},
+		{Icon: "✔", Title: "Licenses", Value: analyzingValue},
+		{Icon: "✔", Title: "File metadata", Value: analyzingValue},
 	})
 	progress.CompleteStep(2)
 

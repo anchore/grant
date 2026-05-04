@@ -175,9 +175,9 @@ func setupOrchestrator(globalConfig *GlobalConfig, disableFileSearch bool) (*gra
 
 // performCheck executes the license compliance check
 func performCheck(orchestrator *grant.Orchestrator, globalConfig *GlobalConfig, args []string) (*grant.RunResponse, error) {
-	argv := append([]string{"grant", "check"}, args...)
+	argv := append([]string{cmdName, "check"}, args...)
 	if globalConfig.ConfigFile != "" {
-		argv = append([]string{"grant", "check", "-c", globalConfig.ConfigFile}, args...)
+		argv = append([]string{cmdName, "check", "-c", globalConfig.ConfigFile}, args...)
 	}
 
 	result, err := orchestrator.Check(argv, args...)
