@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+const reasonPackageIgnored = "package ignored per policy"
+
 // EvaluationResult represents the result of evaluating a Case against a Policy
 type EvaluationResult struct {
 	// AllowedPackages are packages that passed the policy evaluation
@@ -97,7 +99,7 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 	if policy.IsPackageIgnored(pkg.Name) {
 		return PackageResult{
 			Package: *pkg,
-			Reason:  "package ignored per policy",
+			Reason:  reasonPackageIgnored,
 		}
 	}
 
@@ -161,7 +163,7 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 	if policy.IsPackageIgnored(pkg.Name) {
 		return PackageResult{
 			Package: *pkg,
-			Reason:  "package ignored per policy",
+			Reason:  reasonPackageIgnored,
 		}
 	}
 
@@ -184,7 +186,7 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 // categorizePackageResult adds the package result to the appropriate category
 func (c *Case) categorizePackageResult(packageResult *PackageResult, result *EvaluationResult) {
 	switch {
-	case packageResult.Reason == "package ignored per policy":
+	case packageResult.Reason == reasonPackageIgnored:
 		result.IgnoredPackages = append(result.IgnoredPackages, *packageResult)
 	case len(packageResult.DeniedLicenses) > 0 || packageResult.Reason == "package denied - no licenses found":
 		result.DeniedPackages = append(result.DeniedPackages, *packageResult)
