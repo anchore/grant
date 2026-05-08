@@ -1,4 +1,12 @@
 name: "Release"
+
+permissions: {}
+
+# there should never be two releases in progress at the same time
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
@@ -6,53 +14,25 @@ on:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
 
-permissions:
-  contents: read
-  checks: read
-
-env:
-  FORCE_COLOR: true
-
 jobs:
-  quality-gate:
-    environment: release
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-        with:
-          persist-credentials: false
 
-      - name: Check if tag already exists
-        # note: this will fail if the tag already exists
-        env:
-          VERSION_INPUT: ${{ github.event.inputs.version }}
-        run: |
-          # Validate and sanitize version input
-          if [[ ! "$VERSION_INPUT" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?(\+[a-zA-Z0-9-]+)?$ ]]; then
-            echo "Invalid version format: '$VERSION_INPUT'. Expected format: v1.2.3 or v1.2.3-alpha or v1.2.3+build"
-            exit 1
-          fi
-          git tag "$VERSION_INPUT"
+  version-available:
+    uses: anchore/workflows/.github/workflows/check-version-available.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
+    with:
+      version: ${{ github.event.inputs.version }}
 
-      - name: Check validations results
-        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be #v1.2.0
-        id: validations
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github action job name (in .github/workflows/validations.yaml)
-          checkName: "Validations"
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Quality gate
-        if: steps.validations.outputs.conclusion != 'success'
-        env:
-          VALIDATION_STATUS: ${{ steps.validations.outputs.conclusion }}
-        run: |
-          echo "Validations Status: $VALIDATION_STATUS"
-          false
+  check-gate:
+    permissions:
+      checks: read   # required for getting the status of specific check names
+    uses: anchore/workflows/.github/workflows/check-gate.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
+    with:
+      # these are checks that should be run on pull-request and merges to main.
+      # we do NOT want to kick off a release if these have not been verified on main.
+      # Please see the validations.yaml workflow for the names that should be used here.
+      checks: '["Validations"]'
 
   release:
-    needs: [quality-gate]
+    needs: [check-gate, version-available]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
