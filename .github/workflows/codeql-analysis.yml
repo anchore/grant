@@ -14,8 +14,7 @@ on:
   schedule:
     - cron: '0 0 * * 3'
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   analyze:
@@ -23,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
+      contents: read
       security-events: write
 
     strategy:
