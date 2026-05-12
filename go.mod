@@ -3,11 +3,11 @@ module github.com/anchore/grant
 go 1.25.8
 
 require (
-	github.com/anchore/clio v0.1.1-0.20260508204925-8762785f430f
-	github.com/anchore/go-collections v0.1.1-0.20260508200018-f2942b056e64
-	github.com/anchore/go-logger v0.1.1-0.20260508200219-44dc746f18b5
-	github.com/anchore/stereoscope v0.1.24-0.20260508204819-017dec37f508
-	github.com/anchore/syft v1.44.1-0.20260508211631-87d6a288d7db
+	github.com/anchore/clio v0.1.1-0.20260511193628-5c87cc45e8ff
+	github.com/anchore/go-collections v0.1.1-0.20260511193623-be90d03e5518
+	github.com/anchore/go-logger v0.1.1-0.20260511194527-2d8db0f7057d
+	github.com/anchore/stereoscope v0.1.24-0.20260511202128-b538bad44d31
+	github.com/anchore/syft v1.44.1-0.20260511211017-36969bdeff22
 	github.com/github/go-spdx/v2 v2.6.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/gookit/color v1.6.1
@@ -51,15 +51,15 @@ require (
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
-	github.com/anchore/fangs v0.1.1-0.20260508223828-cbeb4655f393 // indirect
-	github.com/anchore/go-homedir v0.1.1-0.20260508200036-02d83ca12020 // indirect
-	github.com/anchore/go-lzo v0.1.1-0.20260508200238-28545769ce90 // indirect
-	github.com/anchore/go-macholibre v0.1.1-0.20260508232819-71f3fa529bef // indirect
-	github.com/anchore/go-rpmdb v0.1.1-0.20260508201041-20d133d9bc0a // indirect
+	github.com/anchore/fangs v0.1.1-0.20260511194021-d7f96b1aa034 // indirect
+	github.com/anchore/go-homedir v0.1.1-0.20260511194342-b0277dca7150 // indirect
+	github.com/anchore/go-lzo v0.1.1-0.20260511192204-89670e4b1540 // indirect
+	github.com/anchore/go-macholibre v0.1.1-0.20260511194857-63bb042d16eb // indirect
+	github.com/anchore/go-rpmdb v0.1.1-0.20260511195522-a6262a72c7a0 // indirect
 	github.com/anchore/go-struct-converter v0.1.0 // indirect
-	github.com/anchore/go-sync v0.1.1-0.20260508201425-6ca40de20c19 // indirect
+	github.com/anchore/go-sync v0.1.1-0.20260511195537-0a38dda083bf // indirect
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b // indirect
-	github.com/anchore/packageurl-go v0.2.1-0.20260508202742-314f01e7456a // indirect
+	github.com/anchore/packageurl-go v0.2.1-0.20260511200352-cd43773996f3 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aquasecurity/go-pep440-version v0.0.1 // indirect
