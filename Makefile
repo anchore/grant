@@ -7,7 +7,7 @@ snapshot:
 	@go run -C .make . snapshot
 
 .PHONY: *
-.DEFAULT_GOAL: make-default
+.DEFAULT_GOAL := make-default
 
 make-default:
 	@go run -C .make .
