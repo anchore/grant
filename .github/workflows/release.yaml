@@ -15,30 +15,31 @@ on:
         required: true
 
 jobs:
-
   version-available:
+    permissions:
+      contents: read # required for the reusable workflow to check out the repo and verify the version
     uses: anchore/workflows/.github/workflows/check-version-available.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
     with:
       version: ${{ github.event.inputs.version }}
 
   check-gate:
     permissions:
-      checks: read   # required for getting the status of specific check names
+      checks: read # required for getting the status of specific check names
     uses: anchore/workflows/.github/workflows/check-gate.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
     with:
       # these are checks that should be run on pull-request and merges to main.
       # we do NOT want to kick off a release if these have not been verified on main.
       # Please see the validations.yaml workflow for the names that should be used here.
-      checks: '["Validations"]'
+      checks: '["Static analysis", "Unit tests", "Build snapshot artifacts"]'
 
   release:
     needs: [check-gate, version-available]
+    environment: release
     runs-on: ubuntu-22.04
     permissions:
-      contents: write
-      packages: write
-      # required for goreleaser signs section with cosign
-      id-token: write
+      contents: write # required for creating the GitHub release and pushing the version tag
+      packages: write # required for publishing release artifacts to GitHub packages
+      id-token: write # required for keyless signing (cosign/sigstore OIDC)
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
         with:
@@ -46,9 +47,7 @@ jobs:
           persist-credentials: true
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
-        env:
-          FORCE_COLOR: true
+        uses: anchore/go-make/.github/actions/setup@88c36505984649108439f13fb35dcaea4ce61d94 # v0.4.0
 
       - name: Login to Docker Hub
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  #v4.1.0
@@ -63,24 +62,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag release
-        env:
-          VERSION_INPUT: ${{ github.event.inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Validate and sanitize version input
-          if [[ ! "$VERSION_INPUT" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?(\+[a-zA-Z0-9-]+)?$ ]]; then
-            echo "Invalid version format: '$VERSION_INPUT'. Expected format: v1.2.3 or v1.2.3-alpha or v1.2.3+build"
-            exit 1
-          fi
-          git config user.name "anchoreci"
-          git config user.email "anchoreci@users.noreply.github.com"
-          git tag -a "$VERSION_INPUT" -m "Release $VERSION_INPUT"
-          git push origin --tags
-
       - name: Build & publish release artifacts
         run: make ci-release
         env:
+          # for pushing tags (requires write access to content, but not packages)
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
           # for mac signing and notarization...
           QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
           QUILL_SIGN_PASSWORD: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_PASS }}
@@ -114,7 +101,9 @@ jobs:
   release-install-script:
     needs: [release]
     if: ${{ needs.release.result == 'success' }}
-    uses: "anchore/workflows/.github/workflows/release-install-script.yaml@main"
+    permissions:
+      contents: read # required for the reusable workflow to check out the repo and publish the install script
+    uses: anchore/workflows/.github/workflows/release-install-script.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
     with:
       tag: ${{ github.event.inputs.version }}
     secrets:
