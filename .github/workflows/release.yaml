@@ -50,13 +50,13 @@ jobs:
         uses: anchore/go-make/.github/actions/setup@88c36505984649108439f13fb35dcaea4ce61d94 # v0.4.0
 
       - name: Login to Docker Hub
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  #v4.1.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 #v4.1.0
         with:
           username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
           password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  #v4.1.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 #v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -77,26 +77,6 @@ jobs:
           # for creating the release (requires write access to packages and content)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
-
-      - name: Notify Slack on success
-        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c #v3.0.3
-        continue-on-error: true
-        with:
-          webhook: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            text: "A new Grant release has been published: https://github.com/anchore/grant/releases/tag/${{ github.event.inputs.version }}"
-            blocks:
-              - type: section
-                text:
-                  type: mrkdwn
-                  text: |
-                    *A new Grant release has been published* :rocket:
-                    • Release: <https://github.com/anchore/grant/releases/tag/${{ github.event.inputs.version }}|${{ github.event.inputs.version }}>
-                    • Repo: `${{ github.repository }}`
-                    • Workflow: `${{ github.workflow }}`
-                    • Event: `${{ github.event_name }}`
-        if: ${{ success() }}
 
   release-install-script:
     needs: [release]
