@@ -1,6 +1,9 @@
+# only pull in version updates that were released more than a week ago (low-pass filter for quickly-retracted releases)
 cooldown: 7d
-
+# note: we are inheriting tool definitions from anchore/go-make .binny.yaml, so we only need to specify tools here that
+# are not already defined there (or that we want to override with different versions)
 tools:
+  # used to dogfood grant's license check against its own dependencies
   - name: grant
     version:
       want: current
@@ -15,41 +18,7 @@ tools:
         # note: sprig functions are available: http://masterminds.github.io/sprig/
         - -X main.buildDate={{ now | date "2006-01-02T15:04:05Z07:00" }}
 
-  - name: binny
-    version:
-      want: v0.13.0
-    method: github-release
-    with:
-      repo: anchore/binny
-
-  - name: gh
-    version:
-      want: v2.92.0
-    method: github-release
-    with:
-      repo: cli/cli
-
-  - name: quill
-    version:
-      want: v0.7.1
-    method: github-release
-    with:
-      repo: anchore/quill
-
-  - name: chronicle
-    version:
-      want: v0.9.0
-    method: github-release
-    with:
-      repo: anchore/chronicle
-
-  - name: gosimports
-    version:
-      want: v0.3.8
-    method: github-release
-    with:
-      repo: rinchsan/gosimports
-
+  # used to render the changelog when running `make changelog` locally
   - name: glow
     version:
       want: v2.1.2
@@ -57,49 +26,7 @@ tools:
     with:
       repo: charmbracelet/glow
 
-  # used for signing the checksums file at release
-  - name: cosign
-    version:
-      want: v3.0.6
-    method: github-release
-    with:
-      repo: sigstore/cosign
-
-  - name: goreleaser
-    version:
-      want: v2.15.4
-    method: github-release
-    with:
-      repo: goreleaser/goreleaser
-
-  - name: golangci-lint
-    version:
-      want: v2.12.2
-    method: github-release
-    with:
-      repo: golangci/golangci-lint
-
-  - name: bouncer
-    version:
-      want: v0.4.0
-    method: github-release
-    with:
-      repo: wagoodman/go-bouncer
-
-  - name: task
-    version:
-      want: v3.50.0
-    method: github-release
-    with:
-      repo: go-task/task
-
-  - name: syft
-    version:
-      want: v1.44.0
-    method: github-release
-    with:
-      repo: anchore/syft
-
+  # used to generate the project demo GIF
   - name: vhs
     version:
       want: v0.11.0
