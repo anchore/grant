@@ -8,7 +8,7 @@ require (
 	github.com/anchore/go-logger v0.1.1-0.20260511194527-2d8db0f7057d
 	github.com/anchore/stereoscope v0.1.24-0.20260511202128-b538bad44d31
 	github.com/anchore/syft v1.44.1-0.20260511211017-36969bdeff22
-	github.com/github/go-spdx/v2 v2.6.0
+	github.com/github/go-spdx/v2 v2.7.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/gookit/color v1.6.1
 	github.com/jedib0t/go-pretty/v6 v6.7.10
@@ -20,7 +20,7 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20260303201901-10176f79b2c0
 	golang.org/x/term v0.43.0
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.50.0
+	modernc.org/sqlite v1.50.1
 )
 
 require (
@@ -284,7 +284,7 @@ require (
 	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	modernc.org/libc v1.72.0 // indirect
+	modernc.org/libc v1.72.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
