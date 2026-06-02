@@ -3,11 +3,11 @@ module github.com/anchore/grant
 go 1.26.3
 
 require (
-	github.com/anchore/clio v0.1.1-0.20260522204748-9850c9f5a051
-	github.com/anchore/go-collections v0.1.1-0.20260522084815-4d7ba31a9a2c
-	github.com/anchore/go-logger v0.1.1-0.20260522155832-d01ddfc0f474
-	github.com/anchore/stereoscope v0.2.1-0.20260522204303-ff4e7b896e8d
-	github.com/anchore/syft v1.44.1-0.20260526141138-e8c6b7151e5b
+	github.com/anchore/clio v0.1.0
+	github.com/anchore/go-collections v0.1.0
+	github.com/anchore/go-logger v0.1.0
+	github.com/anchore/stereoscope v0.2.0
+	github.com/anchore/syft v1.45.0
 	github.com/github/go-spdx/v2 v2.7.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/gookit/color v1.6.1
@@ -50,15 +50,15 @@ require (
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
-	github.com/anchore/fangs v0.1.1-0.20260522223704-35f09934bb49 // indirect
-	github.com/anchore/go-homedir v0.1.1-0.20260515142548-194b0bd6fe32 // indirect
-	github.com/anchore/go-lzo v0.1.1-0.20260522044024-f2cc565d982b // indirect
-	github.com/anchore/go-macholibre v0.1.1-0.20260522232641-0bc2e120e3f1 // indirect
-	github.com/anchore/go-rpmdb v0.1.1-0.20260515145543-e5335b3bb662 // indirect
+	github.com/anchore/fangs v0.1.0 // indirect
+	github.com/anchore/go-homedir v0.1.0 // indirect
+	github.com/anchore/go-lzo v0.1.0 // indirect
+	github.com/anchore/go-macholibre v0.1.0 // indirect
+	github.com/anchore/go-rpmdb v0.1.0 // indirect
 	github.com/anchore/go-struct-converter v0.1.0 // indirect
-	github.com/anchore/go-sync v0.1.1-0.20260522235644-272d0dfe7991 // indirect
+	github.com/anchore/go-sync v0.1.0 // indirect
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b // indirect
-	github.com/anchore/packageurl-go v0.2.1-0.20260515205721-1c33c0a69339 // indirect
+	github.com/anchore/packageurl-go v0.2.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aquasecurity/go-pep440-version v0.0.1 // indirect
