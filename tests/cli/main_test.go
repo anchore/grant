@@ -8,8 +8,10 @@ import (
 )
 
 const (
-	grantTmpPath    = "../../.tmp/grant"
-	emptyConfigPath = "../../.tmp/grant_empty.yaml"
+	grantTmpPath     = "../../.tmp/grant"
+	emptyConfigPath  = "../../.tmp/grant_empty.yaml"
+	allowListConfig  = "../../.tmp/grant_allowlist.yaml"
+	allowListContent = "rules:\n  allow:\n    - MIT\nrequire-license: false\n"
 )
 
 func buildBinary() (string, error) {
@@ -24,6 +26,13 @@ func generateEmptyConfig() (string, error) {
 	return emptyConfigPath, err
 }
 
+// generateAllowListConfig writes a policy that allows MIT and does not require a
+// license, used to exercise the allow-list path in issue #454.
+func generateAllowListConfig() (string, error) {
+	err := os.WriteFile(allowListConfig, []byte(allowListContent), 0o600)
+	return allowListConfig, err
+}
+
 // setup function that you want to run before any tests
 func setup(m *testing.M) {
 	_, err := buildBinary()
@@ -33,6 +42,10 @@ func setup(m *testing.M) {
 	_, err = generateEmptyConfig()
 	if err != nil {
 		log.Fatalf("Failed to generate empty config: %v", err)
+	}
+	_, err = generateAllowListConfig()
+	if err != nil {
+		log.Fatalf("Failed to generate allow-list config: %v", err)
 	}
 }
 

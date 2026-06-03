@@ -12,6 +12,17 @@ import (
 // useful for testing policy evaluation against the empty config (which denies all).
 const testSBOM = `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[{"type":"library","name":"test-pkg","version":"1.0.0","licenses":[{"license":{"id":"MIT"}}]}]}`
 
+// dupComponentSBOM catalogs the same package twice at the same version: one entry
+// carries a denied license (BSD) and the other carries no license at all. Under a
+// policy that allows MIT and does not require a license, the license-less entry is
+// allowed while the BSD entry is denied. This is the shape that produced issue
+// #454, where the denial drove a non-zero exit code but the table printed
+// "No denied packages found." because the allowed duplicate masked the denial.
+const dupComponentSBOM = `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[` +
+	`{"type":"library","name":"dup-pkg","version":"1.0.0","bom-ref":"a","licenses":[{"license":{"id":"BSD"}}]},` +
+	`{"type":"library","name":"dup-pkg","version":"1.0.0","bom-ref":"b"}` +
+	`]}`
+
 // assertCommandResult checks exit code and output content for a CLI invocation.
 // Exit-code mismatches are fatal (no point checking output if the exit is wrong).
 // Output containment mismatches use Errorf so all failures are reported.
@@ -125,6 +136,50 @@ func TestCheckCmd(t *testing.T) {
 			got := string(output)
 
 			assertCommandResult(t, got, err, tt.wantFail, tt.wantInOutput, tt.wantAbsent)
+		})
+	}
+}
+
+// TestCheckCmdDeniedPackageDisplayed is a regression test for issue #454: when a
+// package is denied, a non-zero exit code must be accompanied by the denied
+// package appearing in the output. The table must never claim "No denied packages
+// found." while exiting non-zero. Both the table and JSON renderers are checked.
+func TestCheckCmdDeniedPackageDisplayed(t *testing.T) {
+	tests := []struct {
+		name         string
+		args         []string
+		wantInOutput []string
+		wantAbsent   []string
+	}{
+		{
+			name: "table output shows the denied package",
+			args: []string{"-c", allowListConfig, "check", "-"},
+			wantInOutput: []string{
+				"dup-pkg",
+				"1 denied",
+			},
+			wantAbsent: []string{"No denied packages found."},
+		},
+		{
+			name: "json output marks the package denied",
+			args: []string{"-c", allowListConfig, "-o", "json", "check", "-"},
+			wantInOutput: []string{
+				"dup-pkg",
+				`"decision": "deny"`,
+				`"denied": 1`,
+				`"status": "noncompliant"`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := exec.Command(grantTmpPath, tt.args...)
+			cmd.Stdin = strings.NewReader(dupComponentSBOM)
+			output, err := cmd.CombinedOutput()
+			got := string(output)
+
+			// A denial must always produce a non-zero exit code.
+			assertCommandResult(t, got, err, true, tt.wantInOutput, tt.wantAbsent)
 		})
 	}
 }
