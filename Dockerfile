@@ -7,7 +7,11 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 # create the /tmp dir, which is needed for image content cache
 WORKDIR /tmp
 
-COPY grant /
+# dockers_v2 lays the binaries out per-platform in the build context (e.g. linux/arm64/grant),
+# so select the right one via the buildx-provided TARGETOS/TARGETARCH args
+ARG TARGETOS
+ARG TARGETARCH
+COPY ${TARGETOS}/${TARGETARCH}/grant /grant
 
 ARG BUILD_DATE
 ARG BUILD_VERSION
