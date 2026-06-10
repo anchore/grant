@@ -229,15 +229,9 @@ func calculateLicenseStatistics(evalResult *EvaluationResult) licenseStatistics 
 	}
 }
 
-// buildEvaluationFindings creates findings from evaluation results with deduplication.
-//
-// A single package can appear in more than one category when an SBOM catalogs it
-// from multiple sources (for example one entry that carries a license and another
-// that does not). When two entries share the same name@version key, the finding
-// must reflect the decision that drives the summary counts and the exit code, so
-// the more severe decision wins (deny > ignore > allow). Preferring the allow
-// entry would drop the denial from the findings while the summary still counts it,
-// which is what surfaced as "No denied packages found." on a non-zero exit.
+// buildEvaluationFindings creates findings from evaluation results, keyed by
+// name@version. Evaluate already collapses each cataloged package to a single
+// category, so a package appears in exactly one of the result buckets here.
 func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	findings := EvaluationFindings{
 		Packages: []PackageFinding{},
@@ -248,19 +242,28 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	// Add allowed packages
 	for _, pkg := range evalResult.AllowedPackages {
 		finding := packageToFinding(pkg.Package, DecisionAllow)
-		addFinding(packageMap, finding)
+		key := packageKey(finding.Name, finding.Version, finding.Type)
+		if _, exists := packageMap[key]; !exists {
+			packageMap[key] = finding
+		}
 	}
 
 	// Add denied packages
 	for _, pkg := range evalResult.DeniedPackages {
 		finding := packageToFindingWithDeniedLicenses(pkg.Package, DecisionDeny, pkg.DeniedLicenses)
-		addFinding(packageMap, finding)
+		key := packageKey(finding.Name, finding.Version, finding.Type)
+		if _, exists := packageMap[key]; !exists {
+			packageMap[key] = finding
+		}
 	}
 
 	// Add ignored packages
 	for _, pkg := range evalResult.IgnoredPackages {
 		finding := packageToFinding(pkg.Package, DecisionIgnore)
-		addFinding(packageMap, finding)
+		key := packageKey(finding.Name, finding.Version, finding.Type)
+		if _, exists := packageMap[key]; !exists {
+			packageMap[key] = finding
+		}
 	}
 
 	// Convert map back to slice
@@ -269,34 +272,6 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	}
 
 	return findings
-}
-
-// addFinding inserts a finding into packageMap keyed by name@version. When a key
-// already holds a finding, the one with the higher-severity decision is kept so
-// the rendered findings stay consistent with the summary and the exit code.
-func addFinding(packageMap map[string]PackageFinding, finding PackageFinding) {
-	key := finding.Name + "@" + finding.Version
-	if existing, exists := packageMap[key]; exists {
-		if decisionSeverity(finding.Decision) <= decisionSeverity(existing.Decision) {
-			return
-		}
-	}
-	packageMap[key] = finding
-}
-
-// decisionSeverity ranks a package decision so the most consequential one wins on
-// a key collision. Denials outrank everything because they drive non-compliance.
-func decisionSeverity(decision string) int {
-	switch decision {
-	case DecisionDeny:
-		return 3
-	case DecisionIgnore:
-		return 2
-	case DecisionAllow:
-		return 1
-	default:
-		return 0
-	}
 }
 
 // determineComplianceStatus determines the overall compliance status

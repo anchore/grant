@@ -39,10 +39,24 @@ func main() {
 
 		staticAnalysisTask(),
 		licenseValidationTask(),
+		cliTestTask(),
 
 		generateTasks(),
 		demoTask(),
 	)
+}
+
+// cliTestTask runs the end-to-end CLI tests under tests/cli, which the unit task
+// excludes. The suite builds the grant binary on demand (and honors a prebuilt
+// one via GRANT_BINARY_LOCATION), so no separate build step is needed here.
+func cliTestTask() Task {
+	return Task{
+		Name:        "cli",
+		Description: "run CLI tests against the grant binary",
+		Run: func() {
+			Run("go test -count=1 -timeout=15m ./tests/cli/...")
+		},
+	}
 }
 
 // staticAnalysisTask mirrors golint.StaticAnalysisTask but drops the

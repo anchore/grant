@@ -3,6 +3,7 @@ package grant
 import (
 	"testing"
 
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
@@ -196,6 +197,138 @@ func TestCase_Evaluate(t *testing.T) {
 	}
 }
 
+func TestCase_Evaluate_DuplicateCatalogedPackage(t *testing.T) {
+	tests := []struct {
+		name           string
+		packages       []Package
+		policy         *Policy
+		expectedResult EvaluationResult
+	}{
+		{
+			// The shape from issue #454: a denied license alongside a license-less
+			// duplicate. The denial must win and the duplicate must not be counted
+			// as a separate allowed (or unlicensed) package.
+			name: "denied license plus license-less duplicate counts once",
+			packages: []Package{
+				{Name: "dup-pkg", Version: "1.0.0", Licenses: []License{{SPDXExpression: "BSD-3-Clause"}}},
+				{Name: "dup-pkg", Version: "1.0.0", Licenses: []License{}},
+			},
+			policy: &Policy{Allow: []string{"MIT"}, RequireLicense: false},
+			expectedResult: EvaluationResult{
+				AllowedPackages: []PackageResult{},
+				DeniedPackages: []PackageResult{
+					{
+						Package:        Package{Name: "dup-pkg", Version: "1.0.0", Licenses: []License{{SPDXExpression: "BSD-3-Clause"}}},
+						DeniedLicenses: []License{{SPDXExpression: "BSD-3-Clause"}},
+						Reason:         "package denied due to 1 denied licenses",
+					},
+				},
+				IgnoredPackages: []PackageResult{},
+				Summary:         EvaluationSummary{TotalPackages: 1, AllowedPackages: 0, DeniedPackages: 1, IgnoredPackages: 0},
+			},
+		},
+		{
+			// Two distinct versions of the same package must both be evaluated.
+			// (Deduplicating on name alone silently dropped the second version.)
+			name: "distinct versions both evaluated",
+			packages: []Package{
+				{Name: "multi-ver", Version: "1.0.0", Licenses: []License{{SPDXExpression: "MIT"}}},
+				{Name: "multi-ver", Version: "2.0.0", Licenses: []License{{SPDXExpression: "GPL-3.0"}}},
+			},
+			policy: &Policy{Allow: []string{"MIT"}},
+			expectedResult: EvaluationResult{
+				AllowedPackages: []PackageResult{
+					{
+						Package:         Package{Name: "multi-ver", Version: "1.0.0", Licenses: []License{{SPDXExpression: "MIT"}}},
+						AllowedLicenses: []License{{SPDXExpression: "MIT"}},
+						Reason:          "all licenses allowed",
+					},
+				},
+				DeniedPackages: []PackageResult{
+					{
+						Package:        Package{Name: "multi-ver", Version: "2.0.0", Licenses: []License{{SPDXExpression: "GPL-3.0"}}},
+						DeniedLicenses: []License{{SPDXExpression: "GPL-3.0"}},
+						Reason:         "package denied due to 1 denied licenses",
+					},
+				},
+				IgnoredPackages: []PackageResult{},
+				Summary:         EvaluationSummary{TotalPackages: 2, AllowedPackages: 1, DeniedPackages: 1, IgnoredPackages: 0},
+			},
+		},
+		{
+			// The same name@version cataloged with different licenses has its
+			// licenses unioned, so a denied license is never masked by an allowed
+			// one carried on a separate entry.
+			name: "split licenses are unioned",
+			packages: []Package{
+				{Name: "split-pkg", Version: "1.0.0", Licenses: []License{{SPDXExpression: "MIT"}}},
+				{Name: "split-pkg", Version: "1.0.0", Licenses: []License{{SPDXExpression: "GPL-3.0"}}},
+			},
+			policy: &Policy{Allow: []string{"MIT"}},
+			expectedResult: EvaluationResult{
+				AllowedPackages: []PackageResult{},
+				DeniedPackages: []PackageResult{
+					{
+						Package:         Package{Name: "split-pkg", Version: "1.0.0", Licenses: []License{{SPDXExpression: "MIT"}, {SPDXExpression: "GPL-3.0"}}},
+						AllowedLicenses: []License{{SPDXExpression: "MIT"}},
+						DeniedLicenses:  []License{{SPDXExpression: "GPL-3.0"}},
+						Reason:          "package denied due to 1 denied licenses",
+					},
+				},
+				IgnoredPackages: []PackageResult{},
+				Summary:         EvaluationSummary{TotalPackages: 1, AllowedPackages: 0, DeniedPackages: 1, IgnoredPackages: 0},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := createCaseFromPackages(tt.packages)
+
+			result, err := c.Evaluate(tt.policy)
+			if err != nil {
+				t.Fatalf("Case.Evaluate() unexpected error: %v", err)
+			}
+
+			if !evaluationResultsEqual(*result, tt.expectedResult) {
+				t.Errorf("Case.Evaluate() got = %+v, want %+v", *result, tt.expectedResult)
+			}
+		})
+	}
+}
+
+func TestCase_Evaluate_MergesDuplicateLocations(t *testing.T) {
+	const distInfoPath = "/.venv/lib/python3.14/site-packages/distlib-0.4.0.dist-info/METADATA"
+	const lockPath = "/poetry.lock"
+
+	packages := []Package{
+		{
+			Name: "distlib", Version: "0.4.0", Type: "python",
+			Licenses:  []License{{SPDXExpression: "PSF-2.0"}},
+			Locations: []string{distInfoPath},
+		},
+		{
+			Name: "distlib", Version: "0.4.0", Type: "python",
+			Locations: []string{lockPath},
+		},
+	}
+
+	c := createCaseFromPackages(packages)
+	result, err := c.Evaluate(&Policy{Allow: []string{"MIT"}, RequireLicense: false})
+	if err != nil {
+		t.Fatalf("Evaluate() unexpected error: %v", err)
+	}
+
+	if len(result.DeniedPackages) != 1 {
+		t.Fatalf("expected the duplicate to collapse to one denied package, got %d: %+v", len(result.DeniedPackages), result.DeniedPackages)
+	}
+
+	got := result.DeniedPackages[0].Package.Locations
+	if !sameStringSet(got, []string{distInfoPath, lockPath}) {
+		t.Errorf("merged package must retain locations from every source, got %+v", got)
+	}
+}
+
 func TestCase_Evaluate_NilPolicy(t *testing.T) {
 	c := &Case{}
 	result, err := c.Evaluate(nil)
@@ -295,6 +428,88 @@ func TestEvaluationResult_IsCompliant(t *testing.T) {
 	}
 }
 
+func TestMergeDuplicatePackages(t *testing.T) {
+	// dup-pkg@1.0.0 (python) is cataloged three ways: the installed package (MIT,
+	// found at its dist-info), the same install seen again with a BSD license, and
+	// the lock-file entry (no license, found at the lock file). They must collapse
+	// into one package that unions every license and every location.
+	installed := &Package{
+		Name: "dup-pkg", Version: "1.0.0", Type: "python",
+		Licenses:  []License{{SPDXExpression: "MIT"}},
+		Locations: []string{"/site-packages/dup-pkg-1.0.0.dist-info/METADATA"},
+	}
+	bsd := &Package{
+		Name: "dup-pkg", Version: "1.0.0", Type: "python",
+		Licenses:  []License{{SPDXExpression: "BSD-3-Clause"}},
+		Locations: []string{"/site-packages/dup-pkg-1.0.0.dist-info/METADATA"}, // same path, must de-dup
+	}
+	lockEntry := Package{
+		Name: "dup-pkg", Version: "1.0.0", Type: "python",
+		Locations: []string{"/poetry.lock"},
+	}
+	// A different version and a different type share the name but are NOT the same
+	// package, so the tighter key must keep them separate.
+	otherVersion := &Package{Name: "dup-pkg", Version: "2.0.0", Type: "python", Licenses: []License{{SPDXExpression: "MIT"}}}
+	otherType := &Package{Name: "dup-pkg", Version: "1.0.0", Type: "npm", Licenses: []License{{SPDXExpression: "MIT"}}}
+
+	// licensePackages mirrors GetLicenses' output: keyed by license, the same
+	// package appears under each of its licenses.
+	licensePackages := map[string][]*Package{
+		"MIT":          {installed, otherVersion, otherType},
+		"BSD-3-Clause": {bsd},
+	}
+	packagesNoLicenses := []Package{lockEntry}
+
+	merged := mergeDuplicatePackages(licensePackages, packagesNoLicenses)
+
+	byKey := make(map[string]*Package)
+	for _, p := range merged {
+		byKey[packageKey(p.Name, p.Version, p.Type)] = p
+	}
+
+	if len(byKey) != 3 {
+		t.Fatalf("expected 3 distinct packages (python@1.0.0, python@2.0.0, npm@1.0.0), got %d: %+v", len(byKey), merged)
+	}
+
+	v1 := byKey[packageKey("dup-pkg", "1.0.0", "python")]
+	if v1 == nil {
+		t.Fatal("missing merged dup-pkg@1.0.0 (python)")
+	}
+	// licenses are unioned across all three entries
+	if !licenseSlicesEqual(v1.Licenses, []License{{SPDXExpression: "MIT"}, {SPDXExpression: "BSD-3-Clause"}}) {
+		t.Errorf("dup-pkg@1.0.0 should union its licenses, got %+v", v1.Licenses)
+	}
+	// locations are unioned and de-duplicated (the repeated dist-info path appears once)
+	if !sameStringSet(v1.Locations, []string{"/site-packages/dup-pkg-1.0.0.dist-info/METADATA", "/poetry.lock"}) {
+		t.Errorf("dup-pkg@1.0.0 should union locations without duplicates, got %+v", v1.Locations)
+	}
+
+	// a different version and a different type stay separate
+	if byKey[packageKey("dup-pkg", "2.0.0", "python")] == nil {
+		t.Error("dup-pkg@2.0.0 (python) should be kept as a distinct version")
+	}
+	if byKey[packageKey("dup-pkg", "1.0.0", "npm")] == nil {
+		t.Error("dup-pkg@1.0.0 (npm) should not merge with the python package of the same name@version")
+	}
+}
+
+// sameStringSet reports whether a and b contain the same elements, ignoring order.
+func sameStringSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	seen := make(map[string]bool, len(a))
+	for _, s := range a {
+		seen[s] = true
+	}
+	for _, s := range b {
+		if !seen[s] {
+			return false
+		}
+	}
+	return true
+}
+
 // Helper function to create a Case from packages for testing
 func createCaseFromPackages(packages []Package) *Case {
 	// Create a simple SBOM with the packages
@@ -308,10 +523,11 @@ func createCaseFromPackages(packages []Package) *Case {
 	// Convert grant packages back to syft packages and add to SBOM
 	for _, grantPkg := range packages {
 		syftPkg := pkg.Package{
-			Name:     grantPkg.Name,
-			Version:  grantPkg.Version,
-			Type:     pkg.Type(grantPkg.Type),
-			Licenses: pkg.NewLicenseSet(),
+			Name:      grantPkg.Name,
+			Version:   grantPkg.Version,
+			Type:      pkg.Type(grantPkg.Type),
+			Licenses:  pkg.NewLicenseSet(),
+			Locations: locationsFromPaths(grantPkg.Locations),
 		}
 
 		// Add licenses to syft package
@@ -336,6 +552,15 @@ func createCaseFromPackages(packages []Package) *Case {
 		SBOMS:    []sbom.SBOM{sb},
 		Licenses: []License{},
 	}
+}
+
+// locationsFromPaths builds a syft LocationSet from a set of real paths.
+func locationsFromPaths(paths []string) file.LocationSet {
+	locations := make([]file.Location, 0, len(paths))
+	for _, p := range paths {
+		locations = append(locations, file.NewLocation(p))
+	}
+	return file.NewLocationSet(locations...)
 }
 
 func evaluationResultsEqual(a, b EvaluationResult) bool {

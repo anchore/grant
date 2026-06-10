@@ -58,27 +58,17 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 	// Get all licenses and packages from the case
 	licensePackages, _, packagesNoLicenses := c.GetLicenses()
 
-	// Collect all unique packages with licenses (avoid duplicates while preserving order)
-	seenPackages := make(map[string]bool)
-	var uniquePackages []*Package
-	for _, packages := range licensePackages {
-		for _, pkg := range packages {
-			if !seenPackages[pkg.Name] {
-				seenPackages[pkg.Name] = true
-				uniquePackages = append(uniquePackages, pkg)
-			}
+	// An SBOM can catalog the same package more than once: the same
+	// version may appear with a license from one source and without a license from
+	// another(syft gap). We merge those entries into a single package, unioning their licenses,
+	// so each real package is evaluated and counted exactly once.
+	for _, pkg := range mergeDuplicatePackages(licensePackages, packagesNoLicenses) {
+		var packageResult PackageResult
+		if len(pkg.Licenses) == 0 {
+			packageResult = c.evaluatePackageNoLicense(pkg, policy)
+		} else {
+			packageResult = c.evaluatePackage(pkg, policy)
 		}
-	}
-
-	// Evaluate packages with licenses
-	for _, pkg := range uniquePackages {
-		packageResult := c.evaluatePackage(pkg, policy)
-		c.categorizePackageResult(&packageResult, result)
-	}
-
-	// Evaluate packages without licenses (these are typically denied unless ignored)
-	for _, pkg := range packagesNoLicenses {
-		packageResult := c.evaluatePackageNoLicense(&pkg, policy)
 		c.categorizePackageResult(&packageResult, result)
 	}
 
@@ -91,6 +81,71 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 	}
 
 	return result, nil
+}
+
+// packageKey identifies a package for deduplication. Name, version, and type
+// together distinguish a real package
+func packageKey(name, version, pkgType string) string {
+	return name + "@" + version + "@" + pkgType
+}
+
+// mergeDuplicatePackages collapses every cataloged entry for a given package
+// (see packageKey) into a single package, unioning licenses and locations (each
+// de-duplicated).
+func mergeDuplicatePackages(licensePackages map[string][]*Package, packagesNoLicenses []Package) []*Package {
+	order := make([]string, 0)
+	merged := make(map[string]*Package)
+	seenLicenses := make(map[string]map[string]bool)
+	seenLocations := make(map[string]map[string]bool)
+
+	add := func(pkg Package) {
+		key := packageKey(pkg.Name, pkg.Version, pkg.Type)
+		current, ok := merged[key]
+		if !ok {
+			clone := pkg
+			clone.Licenses = make([]License, 0, len(pkg.Licenses))
+			clone.Locations = make([]string, 0, len(pkg.Locations))
+			merged[key] = &clone
+			seenLicenses[key] = make(map[string]bool)
+			seenLocations[key] = make(map[string]bool)
+			order = append(order, key)
+			current = &clone
+		}
+		for _, license := range pkg.Licenses {
+			id := license.String()
+			if seenLicenses[key][id] {
+				continue
+			}
+			seenLicenses[key][id] = true
+			current.Licenses = append(current.Licenses, license)
+		}
+		// Union locations too: the same package is often cataloged from several
+		// sources (e.g. an installed dist-info and a lock file), each contributing
+		// distinct evidence paths. Keeping them all preserves location evidence
+		// without affecting the license decision.
+		for _, location := range pkg.Locations {
+			if seenLocations[key][location] {
+				continue
+			}
+			seenLocations[key][location] = true
+			current.Locations = append(current.Locations, location)
+		}
+	}
+
+	for _, packages := range licensePackages {
+		for _, pkg := range packages {
+			add(*pkg)
+		}
+	}
+	for _, pkg := range packagesNoLicenses {
+		add(pkg)
+	}
+
+	unique := make([]*Package, 0, len(order))
+	for _, key := range order {
+		unique = append(unique, merged[key])
+	}
+	return unique
 }
 
 // evaluatePackage evaluates a single package with licenses against the policy

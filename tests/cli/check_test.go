@@ -2,7 +2,6 @@ package cli
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -15,171 +14,133 @@ const testSBOM = `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[{"t
 // dupComponentSBOM catalogs the same package twice at the same version: one entry
 // carries a denied license (BSD) and the other carries no license at all. Under a
 // policy that allows MIT and does not require a license, the license-less entry is
-// allowed while the BSD entry is denied. This is the shape that produced issue
-// #454, where the denial drove a non-zero exit code but the table printed
-// "No denied packages found." because the allowed duplicate masked the denial.
+// allowed while the BSD entry is denied.
 const dupComponentSBOM = `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[` +
 	`{"type":"library","name":"dup-pkg","version":"1.0.0","bom-ref":"a","licenses":[{"license":{"id":"BSD"}}]},` +
 	`{"type":"library","name":"dup-pkg","version":"1.0.0","bom-ref":"b"}` +
 	`]}`
 
-// assertCommandResult checks exit code and output content for a CLI invocation.
-// Exit-code mismatches are fatal (no point checking output if the exit is wrong).
-// Output containment mismatches use Errorf so all failures are reported.
-func assertCommandResult(t *testing.T, got string, err error, wantFail bool, wantInOutput, wantAbsent []string) {
-	t.Helper()
-
-	if wantFail {
-		if err == nil {
-			t.Fatalf("got exit 0, want non-zero exit code\noutput: %s", got)
-		}
-		if !strings.Contains(err.Error(), "exit status 1") {
-			t.Fatalf("got %s, want exit status 1\noutput: %s", err, got)
-		}
-	} else {
-		if err != nil {
-			t.Fatalf("got error %s, want exit 0\noutput: %s", err, got)
-		}
-	}
-
-	for _, want := range wantInOutput {
-		if !strings.Contains(got, want) {
-			t.Errorf("output does not contain %q\ngot: %s", want, got)
-		}
-	}
-	for _, absent := range wantAbsent {
-		if strings.Contains(got, absent) {
-			t.Errorf("output unexpectedly contains %q\ngot: %s", absent, got)
-		}
-	}
-}
-
 func TestCheckCmd(t *testing.T) {
+	cfg := emptyConfig(t)
+
 	tests := []struct {
-		name         string
-		args         []string
-		stdin        string
-		wantInOutput []string
-		wantAbsent   []string
-		wantFail     bool
+		name       string
+		args       []string
+		stdin      string
+		assertions []traitAssertion
 	}{
 		{
 			name:  "check command will deny all on empty config",
-			args:  []string{"-c", emptyConfigPath, "check", "-"},
+			args:  []string{"-c", cfg, "check", "-"},
 			stdin: testSBOM,
-			wantInOutput: []string{
-				"denied",
-				"test-pkg",
+			assertions: []traitAssertion{
+				assertInOutput("denied"),
+				assertInOutput("test-pkg"),
+				assertFailingReturnCode,
 			},
-			wantFail: true,
 		},
 		{
 			name:  "dry-run suppresses violation exit code",
-			args:  []string{"-c", emptyConfigPath, "check", "--dry-run", "-"},
+			args:  []string{"-c", cfg, "check", "--dry-run", "-"},
 			stdin: testSBOM,
-			wantInOutput: []string{
-				"denied",
-				"test-pkg",
+			assertions: []traitAssertion{
+				assertInOutput("denied"),
+				assertInOutput("test-pkg"),
+				assertSuccessfulReturnCode,
 			},
-			wantFail: false,
 		},
 		{
-			name:     "quiet with violations exits non-zero",
-			args:     []string{"-c", emptyConfigPath, "-q", "check", "-"},
-			stdin:    testSBOM,
-			wantFail: true,
+			name:       "quiet with violations exits non-zero",
+			args:       []string{"-c", cfg, "-q", "check", "-"},
+			stdin:      testSBOM,
+			assertions: []traitAssertion{assertFailingReturnCode},
 		},
 		{
-			name:     "quiet dry-run with violations exits zero",
-			args:     []string{"-c", emptyConfigPath, "-q", "check", "--dry-run", "-"},
-			stdin:    testSBOM,
-			wantFail: false,
+			name:       "quiet dry-run with violations exits zero",
+			args:       []string{"-c", cfg, "-q", "check", "--dry-run", "-"},
+			stdin:      testSBOM,
+			assertions: []traitAssertion{assertSuccessfulReturnCode},
 		},
 		{
 			name:  "summary with violations exits non-zero",
-			args:  []string{"-c", emptyConfigPath, "check", "--summary", "-"},
+			args:  []string{"-c", cfg, "check", "--summary", "-"},
 			stdin: testSBOM,
-			wantInOutput: []string{
-				"Non-compliant",
+			assertions: []traitAssertion{
+				assertInOutput("Non-compliant"),
+				assertFailingReturnCode,
 			},
-			wantFail: true,
 		},
 		{
 			name:  "summary dry-run with violations exits zero",
-			args:  []string{"-c", emptyConfigPath, "check", "--summary", "--dry-run", "-"},
+			args:  []string{"-c", cfg, "check", "--summary", "--dry-run", "-"},
 			stdin: testSBOM,
-			wantInOutput: []string{
-				"Non-compliant",
+			assertions: []traitAssertion{
+				assertInOutput("Non-compliant"),
+				assertSuccessfulReturnCode,
 			},
-			wantFail: false,
 		},
 		{
-			name:     "json output with violations exits non-zero",
-			args:     []string{"-c", emptyConfigPath, "-o", "json", "check", "-"},
-			stdin:    testSBOM,
-			wantFail: true,
+			name:       "json output with violations exits non-zero",
+			args:       []string{"-c", cfg, "-o", "json", "check", "-"},
+			stdin:      testSBOM,
+			assertions: []traitAssertion{assertJSONReport, assertFailingReturnCode},
 		},
 		{
-			name:     "json dry-run with violations exits zero",
-			args:     []string{"-c", emptyConfigPath, "-o", "json", "check", "--dry-run", "-"},
-			stdin:    testSBOM,
-			wantFail: false,
+			name:       "json dry-run with violations exits zero",
+			args:       []string{"-c", cfg, "-o", "json", "check", "--dry-run", "-"},
+			stdin:      testSBOM,
+			assertions: []traitAssertion{assertJSONReport, assertSuccessfulReturnCode},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command(grantTmpPath, tt.args...)
-			if tt.stdin != "" {
-				cmd.Stdin = strings.NewReader(tt.stdin)
+			stdout, stderr, rc := runGrant(t, tt.stdin, tt.args...)
+			for _, assert := range tt.assertions {
+				assert(t, stdout, stderr, rc)
 			}
-			output, err := cmd.CombinedOutput()
-			got := string(output)
-
-			assertCommandResult(t, got, err, tt.wantFail, tt.wantInOutput, tt.wantAbsent)
 		})
 	}
 }
 
-// TestCheckCmdDeniedPackageDisplayed is a regression test for issue #454: when a
-// package is denied, a non-zero exit code must be accompanied by the denied
-// package appearing in the output. The table must never claim "No denied packages
-// found." while exiting non-zero. Both the table and JSON renderers are checked.
 func TestCheckCmdDeniedPackageDisplayed(t *testing.T) {
+	// allow MIT and do not require a license, so the license-less duplicate is
+	// allowed while the BSD entry is denied.
+	config := writeConfig(t, "allow:\n  - MIT\nrequire-license: false\n")
+
 	tests := []struct {
-		name         string
-		args         []string
-		wantInOutput []string
-		wantAbsent   []string
+		name       string
+		args       []string
+		assertions []traitAssertion
 	}{
 		{
 			name: "table output shows the denied package",
-			args: []string{"-c", allowListConfig, "check", "-"},
-			wantInOutput: []string{
-				"dup-pkg",
-				"1 denied",
+			args: []string{"-c", config, "check", "-"},
+			assertions: []traitAssertion{
+				assertInOutput("dup-pkg"),
+				assertInOutput("1 denied"),
+				assertNotInOutput("No denied packages found."),
+				assertFailingReturnCode,
 			},
-			wantAbsent: []string{"No denied packages found."},
 		},
 		{
 			name: "json output marks the package denied",
-			args: []string{"-c", allowListConfig, "-o", "json", "check", "-"},
-			wantInOutput: []string{
-				"dup-pkg",
-				`"decision": "deny"`,
-				`"denied": 1`,
-				`"status": "noncompliant"`,
+			args: []string{"-c", config, "-o", "json", "check", "-"},
+			assertions: []traitAssertion{
+				assertJSONReport,
+				assertInOutput("dup-pkg"),
+				assertInOutput(`"decision": "deny"`),
+				assertInOutput(`"denied": 1`),
+				assertInOutput(`"status": "noncompliant"`),
+				assertFailingReturnCode,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command(grantTmpPath, tt.args...)
-			cmd.Stdin = strings.NewReader(dupComponentSBOM)
-			output, err := cmd.CombinedOutput()
-			got := string(output)
-
-			// A denial must always produce a non-zero exit code.
-			assertCommandResult(t, got, err, true, tt.wantInOutput, tt.wantAbsent)
+			stdout, stderr, rc := runGrant(t, dupComponentSBOM, tt.args...)
+			for _, assert := range tt.assertions {
+				assert(t, stdout, stderr, rc)
+			}
 		})
 	}
 }
@@ -189,97 +150,83 @@ func TestCheckCmdDeniedPackageDisplayed(t *testing.T) {
 // file), while table format continues to render on the terminal.
 func TestCheckCmdOutputFile(t *testing.T) {
 	tests := []struct {
-		name         string
-		globalFlags  []string // flags placed before "check"
-		checkFlags   []string // flags placed after "check"
-		wantFail     bool
-		wantInOutput []string // strings that should appear in combined output
-		wantAbsent   []string // strings that should NOT appear in combined output
-		wantInFile   []string // strings that should appear in the output file
+		name        string
+		globalFlags []string // flags placed before "check"
+		checkFlags  []string // flags placed after "check"
+		assertions  []traitAssertion
+		wantInFile  []string // strings that should appear in the output file
 	}{
 		{
 			name:        "json format writes to file only",
 			globalFlags: []string{"-o", "json"},
-			wantFail:    true,
-			wantAbsent:  []string{"findings"},
+			assertions:  []traitAssertion{assertNotInOutput("findings"), assertFailingReturnCode},
 			wantInFile:  []string{"findings", "test-pkg"},
 		},
 		{
 			name:        "json format dry-run writes to file only",
 			globalFlags: []string{"-o", "json"},
 			checkFlags:  []string{"--dry-run"},
-			wantFail:    false,
-			wantAbsent:  []string{"findings"},
+			assertions:  []traitAssertion{assertNotInOutput("findings"), assertSuccessfulReturnCode},
 			wantInFile:  []string{"findings", "test-pkg"},
 		},
 		{
-			name:         "table format shows table and writes file",
-			globalFlags:  []string{"-o", "table"},
-			wantFail:     true,
-			wantInOutput: []string{"test-pkg"},
-			wantAbsent:   []string{"findings"},
-			wantInFile:   []string{"findings"},
+			name:        "table format shows table and writes file",
+			globalFlags: []string{"-o", "table"},
+			assertions:  []traitAssertion{assertInOutput("test-pkg"), assertNotInOutput("findings"), assertFailingReturnCode},
+			wantInFile:  []string{"findings"},
 		},
 		{
-			name:         "table format dry-run shows table and writes file",
-			globalFlags:  []string{"-o", "table"},
-			checkFlags:   []string{"--dry-run"},
-			wantFail:     false,
-			wantInOutput: []string{"test-pkg"},
-			wantAbsent:   []string{"findings"},
-			wantInFile:   []string{"findings"},
+			name:        "table format dry-run shows table and writes file",
+			globalFlags: []string{"-o", "table"},
+			checkFlags:  []string{"--dry-run"},
+			assertions:  []traitAssertion{assertInOutput("test-pkg"), assertNotInOutput("findings"), assertSuccessfulReturnCode},
+			wantInFile:  []string{"findings"},
 		},
 		{
 			name:        "json format with summary writes to file only",
 			globalFlags: []string{"-o", "json"},
 			checkFlags:  []string{"--summary"},
-			wantFail:    true,
-			wantAbsent:  []string{"findings"},
+			assertions:  []traitAssertion{assertNotInOutput("findings"), assertFailingReturnCode},
 			wantInFile:  []string{"findings"},
 		},
 		{
-			name:         "table format with summary shows summary and writes file",
-			globalFlags:  []string{"-o", "table"},
-			checkFlags:   []string{"--summary"},
-			wantFail:     true,
-			wantInOutput: []string{"Non-compliant"},
-			wantAbsent:   []string{"findings"},
-			wantInFile:   []string{"findings"},
+			name:        "table format with summary shows summary and writes file",
+			globalFlags: []string{"-o", "table"},
+			checkFlags:  []string{"--summary"},
+			assertions:  []traitAssertion{assertInOutput("Non-compliant"), assertNotInOutput("findings"), assertFailingReturnCode},
+			wantInFile:  []string{"findings"},
 		},
 		{
 			name:        "json format with unlicensed writes to file only",
 			globalFlags: []string{"-o", "json"},
 			checkFlags:  []string{"--unlicensed"},
-			wantFail:    true,
-			wantAbsent:  []string{"findings"},
+			assertions:  []traitAssertion{assertNotInOutput("findings"), assertFailingReturnCode},
 			wantInFile:  []string{"findings"},
 		},
 		{
-			name:         "table format with unlicensed shows table and writes file",
-			globalFlags:  []string{"-o", "table"},
-			checkFlags:   []string{"--unlicensed"},
-			wantFail:     true,
-			wantInOutput: []string{"packages without licenses"},
-			wantAbsent:   []string{"findings"},
-			wantInFile:   []string{"findings"},
+			name:        "table format with unlicensed shows table and writes file",
+			globalFlags: []string{"-o", "table"},
+			checkFlags:  []string{"--unlicensed"},
+			assertions:  []traitAssertion{assertInOutput("packages without licenses"), assertNotInOutput("findings"), assertFailingReturnCode},
+			wantInFile:  []string{"findings"},
 		},
 	}
+	cfg := emptyConfig(t)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			outFile := filepath.Join(t.TempDir(), "out.json")
 
-			args := append([]string{"-c", emptyConfigPath}, tt.globalFlags...)
+			args := append([]string{"-c", cfg}, tt.globalFlags...)
 			args = append(args, "--output-file", outFile)
 			args = append(args, "check")
 			args = append(args, tt.checkFlags...)
 			args = append(args, "-")
 
-			cmd := exec.Command(grantTmpPath, args...)
-			cmd.Stdin = strings.NewReader(testSBOM)
-			output, err := cmd.CombinedOutput()
-			got := string(output)
-
-			assertCommandResult(t, got, err, tt.wantFail, tt.wantInOutput, tt.wantAbsent)
+			stdout, stderr, rc := runGrant(t, testSBOM, args...)
+			for _, assert := range tt.assertions {
+				assert(t, stdout, stderr, rc)
+			}
 
 			fileBytes, err := os.ReadFile(outFile)
 			if err != nil {
@@ -296,78 +243,55 @@ func TestCheckCmdOutputFile(t *testing.T) {
 }
 
 func TestCheckCmdStdin(t *testing.T) {
+	emptyComponentsSBOM := `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`
+
 	tests := []struct {
-		name         string
-		args         []string
-		stdin        string
-		wantFail     bool
-		wantInOutput []string
-		wantAbsent   []string
+		name       string
+		args       []string
+		stdin      string
+		assertions []traitAssertion
 	}{
 		{
-			name:     "no args and no stdin shows helpful error",
-			args:     []string{"check"},
-			wantFail: true,
-			wantInOutput: []string{
-				"no target specified and no input available on stdin",
+			name:  "no args and no stdin shows helpful error",
+			args:  []string{"check"},
+			stdin: "",
+			assertions: []traitAssertion{
+				assertInOutput("no target specified and no input available on stdin"),
+				assertFailingReturnCode,
 			},
 		},
 		{
 			name:  "piped stdin with no args reads from stdin",
 			args:  []string{"check"},
-			stdin: `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`,
-			wantAbsent: []string{
-				"no target specified",
-				"requires at least 1 arg",
+			stdin: emptyComponentsSBOM,
+			assertions: []traitAssertion{
+				assertNotInOutput("no target specified"),
+				assertNotInOutput("requires at least 1 arg"),
 			},
 		},
 		{
 			name:  "explicit args are used even when stdin is available",
 			args:  []string{"check", "../../grant/testdata/mit-license.txt"},
 			stdin: "this should be ignored",
-			wantAbsent: []string{
-				"no target specified",
+			assertions: []traitAssertion{
+				assertNotInOutput("no target specified"),
 			},
 		},
 		{
 			name:  "explicit dash reads from stdin",
 			args:  []string{"check", "-"},
-			stdin: `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`,
-			wantAbsent: []string{
-				"no target specified",
-				"requires at least 1 arg",
+			stdin: emptyComponentsSBOM,
+			assertions: []traitAssertion{
+				assertNotInOutput("no target specified"),
+				assertNotInOutput("requires at least 1 arg"),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command(grantTmpPath, tt.args...)
-			if tt.stdin != "" {
-				cmd.Stdin = strings.NewReader(tt.stdin)
-			}
-			output, err := cmd.CombinedOutput()
-			got := string(output)
-
-			if tt.wantFail {
-				if err == nil {
-					t.Fatalf("got exit 0, want non-zero exit code")
-				}
-			} else {
-				// Allow exit status 1 (policy violations) but not other errors
-				if err != nil && !strings.Contains(err.Error(), "exit status 1") {
-					t.Fatalf("got unexpected error: %v\noutput: %s", err, got)
-				}
-			}
-
-			for _, want := range tt.wantInOutput {
-				if !strings.Contains(got, want) {
-					t.Errorf("output does not contain %q\ngot: %s", want, got)
-				}
-			}
-			for _, absent := range tt.wantAbsent {
-				if strings.Contains(got, absent) {
-					t.Errorf("output unexpectedly contains %q\ngot: %s", absent, got)
-				}
+			stdout, stderr, rc := runGrant(t, tt.stdin, tt.args...)
+			for _, assert := range tt.assertions {
+				assert(t, stdout, stderr, rc)
 			}
 		})
 	}
