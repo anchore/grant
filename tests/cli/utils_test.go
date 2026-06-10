@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 // grantBinaryEnvKey is the absolute path to a prebuilt grant binary. When set
@@ -17,8 +19,11 @@ import (
 // syft/grype CLI suites, which build lazily rather than via a TestMain.
 const grantBinaryEnvKey = "GRANT_BINARY_LOCATION"
 
-// grantBinaryLocation returns the path to the grant binary under test, building
-// it on first use.
+// commandTimeout bounds a single grant invocation so a hung process cannot wedge
+// the suite.
+const commandTimeout = 60 * time.Second
+
+// grantBinaryLocation returns the path to the grant binary under test
 func grantBinaryLocation(tb testing.TB) string {
 	tb.Helper()
 	if loc := os.Getenv(grantBinaryEnvKey); loc != "" {
@@ -37,27 +42,20 @@ func buildGrant(tb testing.TB, loc string) {
 	cmd.Dir = repoRoot(tb)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		tb.Fatalf("failed to build grant: %v", err)
-	}
+	require.NoError(tb, cmd.Run(), "failed to build grant")
 }
 
 func repoRoot(tb testing.TB) string {
 	tb.Helper()
 	root, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
-	if err != nil {
-		tb.Fatalf("unable to find repo root: %v", err)
-	}
+	require.NoError(tb, err, "unable to find repo root")
 	absRoot, err := filepath.Abs(strings.TrimSpace(string(root)))
-	if err != nil {
-		tb.Fatalf("unable to resolve repo root: %v", err)
-	}
+	require.NoError(tb, err, "unable to resolve repo root")
 	return absRoot
 }
 
 // runGrant invokes the grant binary under test with the given stdin and
-// arguments, returning stdout, stderr, and the process exit code separately. A
-// timeout aborts a hung process so a bad build cannot wedge the suite.
+// arguments, returning stdout, stderr, and the process exit code separately
 func runGrant(t testing.TB, stdin string, args ...string) (stdout, stderr string, exitCode int) {
 	t.Helper()
 
@@ -70,9 +68,7 @@ func runGrant(t testing.TB, stdin string, args ...string) (stdout, stderr string
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
 
-	if err := cmd.Start(); err != nil {
-		t.Fatalf("failed to start grant: %v", err)
-	}
+	require.NoError(t, cmd.Start(), "failed to start grant")
 
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
@@ -88,9 +84,9 @@ func runGrant(t testing.TB, stdin string, args ...string) (stdout, stderr string
 		default:
 			t.Fatalf("failed to run grant: %v\nstderr: %s", err, errBuf.String())
 		}
-	case <-time.After(60 * time.Second):
+	case <-time.After(commandTimeout):
 		_ = cmd.Process.Kill()
-		t.Fatalf("grant timed out after 60s (args: %v)", args)
+		t.Fatalf("grant timed out after %s (args: %v)", commandTimeout, args)
 	}
 
 	return outBuf.String(), errBuf.String(), cmd.ProcessState.ExitCode()
@@ -100,9 +96,7 @@ func runGrant(t testing.TB, stdin string, args ...string) (stdout, stderr string
 func writeConfig(t testing.TB, content string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "grant.yaml")
-	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
-		t.Fatalf("failed to write config: %v", err)
-	}
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o600), "failed to write config")
 	return path
 }
 

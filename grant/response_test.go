@@ -1,6 +1,11 @@
 package grant
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
 
 // makePkg is a small helper for building a Package with a single named license.
 func makePkg(name, version, licenseID string) Package {
@@ -21,21 +26,19 @@ func TestConvertEvaluationToTarget(t *testing.T) {
 	})
 
 	evalResult, err := c.Evaluate(policy)
-	if err != nil {
-		t.Fatalf("Evaluate() unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	// The duplicate collapses to one denied package; nothing is double-counted.
-	wantSummary := EvaluationSummary{TotalPackages: 2, AllowedPackages: 1, DeniedPackages: 1, IgnoredPackages: 0}
-	if evalResult.Summary != wantSummary {
-		t.Errorf("summary = %+v, want %+v", evalResult.Summary, wantSummary)
-	}
+	// Three entries were cataloged (acme + the two dup-pkg entries) but only two
+	// unique packages are evaluated.
+	wantSummary := EvaluationSummary{CatalogedPackages: 3, TotalPackages: 2, AllowedPackages: 1, DeniedPackages: 1, IgnoredPackages: 0}
+	assert.Equal(t, wantSummary, evalResult.Summary)
 
 	target := ConvertEvaluationToTarget(evalResult, policy)
 
-	if target.Summary.Packages.Unlicensed != 0 {
-		t.Errorf("unlicensed count = %d, want 0 (the license-less duplicate is not a separate package)", target.Summary.Packages.Unlicensed)
-	}
+	assert.Equal(t, 3, target.Summary.Packages.Cataloged, "cataloged should report the pre-merge package count")
+	assert.Equal(t, 2, target.Summary.Packages.Total, "total should report the merged, unique package count")
+	assert.Zero(t, target.Summary.Packages.Unlicensed, "the license-less duplicate is not a separate unlicensed package")
 
 	deniedFindings := 0
 	deniedNames := make(map[string]bool)
@@ -46,16 +49,10 @@ func TestConvertEvaluationToTarget(t *testing.T) {
 		}
 	}
 
-	if deniedFindings != target.Summary.Packages.Denied {
-		t.Errorf("denied findings (%d) must match summary denied count (%d); the presenter renders findings, the exit code follows the summary",
-			deniedFindings, target.Summary.Packages.Denied)
-	}
-	if !deniedNames["dup-pkg"] {
-		t.Errorf("dup-pkg must appear as a denied finding, got findings %+v", target.Findings.Packages)
-	}
-	if target.Status != StatusNonCompliant {
-		t.Errorf("a non-empty denied set must be noncompliant, got status %q", target.Status)
-	}
+	assert.Equal(t, target.Summary.Packages.Denied, deniedFindings,
+		"denied findings must match the summary denied count; the presenter renders findings, the exit code follows the summary")
+	assert.True(t, deniedNames["dup-pkg"], "dup-pkg must appear as a denied finding")
+	assert.Equal(t, StatusNonCompliant, target.Status, "a non-empty denied set must be noncompliant")
 }
 
 func TestBuildEvaluationFindingsAllAllowedStaysAllowed(t *testing.T) {
@@ -67,10 +64,6 @@ func TestBuildEvaluationFindingsAllAllowedStaysAllowed(t *testing.T) {
 	}
 
 	findings := buildEvaluationFindings(evalResult)
-	if len(findings.Packages) != 1 {
-		t.Fatalf("expected one finding, got %d", len(findings.Packages))
-	}
-	if findings.Packages[0].Decision != DecisionAllow {
-		t.Errorf("expected allow decision, got %q", findings.Packages[0].Decision)
-	}
+	require.Len(t, findings.Packages, 1)
+	assert.Equal(t, DecisionAllow, findings.Packages[0].Decision)
 }

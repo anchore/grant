@@ -37,6 +37,9 @@ type PackageResult struct {
 
 // EvaluationSummary provides high-level statistics about the evaluation
 type EvaluationSummary struct {
+	// CatalogedPackages is the number of packages the SBOM(s) cataloged
+	CatalogedPackages int `json:"cataloged_packages"`
+	// TotalPackages is the count after grant has merged some of the cataloged SBOM packages
 	TotalPackages   int `json:"total_packages"`
 	AllowedPackages int `json:"allowed_packages"`
 	DeniedPackages  int `json:"denied_packages"`
@@ -74,13 +77,24 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 
 	// Calculate summary
 	result.Summary = EvaluationSummary{
-		TotalPackages:   len(result.AllowedPackages) + len(result.DeniedPackages) + len(result.IgnoredPackages),
-		AllowedPackages: len(result.AllowedPackages),
-		DeniedPackages:  len(result.DeniedPackages),
-		IgnoredPackages: len(result.IgnoredPackages),
+		CatalogedPackages: c.catalogedPackageCount(),
+		TotalPackages:     len(result.AllowedPackages) + len(result.DeniedPackages) + len(result.IgnoredPackages),
+		AllowedPackages:   len(result.AllowedPackages),
+		DeniedPackages:    len(result.DeniedPackages),
+		IgnoredPackages:   len(result.IgnoredPackages),
 	}
 
 	return result, nil
+}
+
+// catalogedPackageCount returns the number of packages
+// cataloged across a case's SBOMs, before duplicate entries are merged.
+func (c *Case) catalogedPackageCount() int {
+	count := 0
+	for _, sb := range c.SBOMS {
+		count += sb.Artifacts.Packages.PackageCount()
+	}
+	return count
 }
 
 // packageKey identifies a package for deduplication. Name, version, and type

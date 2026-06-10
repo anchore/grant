@@ -181,11 +181,18 @@ func (p *ProgressDisplay) UpdateCatalogedContents(packages int, licenses int, fi
 	p.SetSubSteps(2, subSteps)
 }
 
+func formatPackageCount(total, cataloged int) string {
+	if cataloged > total {
+		return fmt.Sprintf("[%d packages, %d cataloged]", total, cataloged)
+	}
+	return fmt.Sprintf("[%d packages]", total)
+}
+
 // DisplaySummaryTree displays the summary in tree format
-func DisplaySummaryTree(total int, denied int, allowed int, ignored int, unlicensed int) {
+func DisplaySummaryTree(total int, cataloged int, denied int, allowed int, ignored int, unlicensed int) {
 	fmt.Printf(" %s Scanned for license compliance     %s\n",
 		color.Green.Sprint("✔"),
-		color.Gray.Sprintf("[%d packages]", total))
+		color.Gray.Sprint(formatPackageCount(total, cataloged)))
 
 	if denied > 0 || allowed > 0 || ignored > 0 || unlicensed > 0 {
 		var parts []string

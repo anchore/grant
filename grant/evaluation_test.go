@@ -3,6 +3,9 @@ package grant
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
@@ -183,16 +186,17 @@ func TestCase_Evaluate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := createCaseFromPackages(tt.packages)
+			tt.expectedResult.Summary.CatalogedPackages = len(tt.packages)
 
 			result, err := c.Evaluate(tt.policy)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Case.Evaluate() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				require.Error(t, err)
 				return
 			}
+			require.NoError(t, err)
 
-			if !evaluationResultsEqual(*result, tt.expectedResult) {
-				t.Errorf("Case.Evaluate() got = %+v, want %+v", *result, tt.expectedResult)
-			}
+			assert.True(t, evaluationResultsEqual(*result, tt.expectedResult),
+				"got = %+v, want %+v", *result, tt.expectedResult)
 		})
 	}
 }
@@ -284,15 +288,13 @@ func TestCase_Evaluate_DuplicateCatalogedPackage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := createCaseFromPackages(tt.packages)
+			tt.expectedResult.Summary.CatalogedPackages = len(tt.packages)
 
 			result, err := c.Evaluate(tt.policy)
-			if err != nil {
-				t.Fatalf("Case.Evaluate() unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
-			if !evaluationResultsEqual(*result, tt.expectedResult) {
-				t.Errorf("Case.Evaluate() got = %+v, want %+v", *result, tt.expectedResult)
-			}
+			assert.True(t, evaluationResultsEqual(*result, tt.expectedResult),
+				"got = %+v, want %+v", *result, tt.expectedResult)
 		})
 	}
 }
@@ -315,18 +317,12 @@ func TestCase_Evaluate_MergesDuplicateLocations(t *testing.T) {
 
 	c := createCaseFromPackages(packages)
 	result, err := c.Evaluate(&Policy{Allow: []string{"MIT"}, RequireLicense: false})
-	if err != nil {
-		t.Fatalf("Evaluate() unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if len(result.DeniedPackages) != 1 {
-		t.Fatalf("expected the duplicate to collapse to one denied package, got %d: %+v", len(result.DeniedPackages), result.DeniedPackages)
-	}
+	require.Len(t, result.DeniedPackages, 1, "expected the duplicate to collapse to one denied package")
 
-	got := result.DeniedPackages[0].Package.Locations
-	if !sameStringSet(got, []string{distInfoPath, lockPath}) {
-		t.Errorf("merged package must retain locations from every source, got %+v", got)
-	}
+	assert.ElementsMatch(t, []string{distInfoPath, lockPath}, result.DeniedPackages[0].Package.Locations,
+		"merged package must retain locations from every source")
 }
 
 func TestCase_Evaluate_NilPolicy(t *testing.T) {
@@ -467,47 +463,21 @@ func TestMergeDuplicatePackages(t *testing.T) {
 		byKey[packageKey(p.Name, p.Version, p.Type)] = p
 	}
 
-	if len(byKey) != 3 {
-		t.Fatalf("expected 3 distinct packages (python@1.0.0, python@2.0.0, npm@1.0.0), got %d: %+v", len(byKey), merged)
-	}
+	require.Len(t, byKey, 3, "expected 3 distinct packages: python@1.0.0, python@2.0.0, npm@1.0.0")
 
 	v1 := byKey[packageKey("dup-pkg", "1.0.0", "python")]
-	if v1 == nil {
-		t.Fatal("missing merged dup-pkg@1.0.0 (python)")
-	}
+	require.NotNil(t, v1, "missing merged dup-pkg@1.0.0 (python)")
+
 	// licenses are unioned across all three entries
-	if !licenseSlicesEqual(v1.Licenses, []License{{SPDXExpression: "MIT"}, {SPDXExpression: "BSD-3-Clause"}}) {
-		t.Errorf("dup-pkg@1.0.0 should union its licenses, got %+v", v1.Licenses)
-	}
+	assert.ElementsMatch(t, []License{{SPDXExpression: "MIT"}, {SPDXExpression: "BSD-3-Clause"}}, v1.Licenses,
+		"dup-pkg@1.0.0 should union its licenses")
 	// locations are unioned and de-duplicated (the repeated dist-info path appears once)
-	if !sameStringSet(v1.Locations, []string{"/site-packages/dup-pkg-1.0.0.dist-info/METADATA", "/poetry.lock"}) {
-		t.Errorf("dup-pkg@1.0.0 should union locations without duplicates, got %+v", v1.Locations)
-	}
+	assert.ElementsMatch(t, []string{"/site-packages/dup-pkg-1.0.0.dist-info/METADATA", "/poetry.lock"}, v1.Locations,
+		"dup-pkg@1.0.0 should union locations without duplicates")
 
 	// a different version and a different type stay separate
-	if byKey[packageKey("dup-pkg", "2.0.0", "python")] == nil {
-		t.Error("dup-pkg@2.0.0 (python) should be kept as a distinct version")
-	}
-	if byKey[packageKey("dup-pkg", "1.0.0", "npm")] == nil {
-		t.Error("dup-pkg@1.0.0 (npm) should not merge with the python package of the same name@version")
-	}
-}
-
-// sameStringSet reports whether a and b contain the same elements, ignoring order.
-func sameStringSet(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	seen := make(map[string]bool, len(a))
-	for _, s := range a {
-		seen[s] = true
-	}
-	for _, s := range b {
-		if !seen[s] {
-			return false
-		}
-	}
-	return true
+	assert.Contains(t, byKey, packageKey("dup-pkg", "2.0.0", "python"), "distinct version should be kept separate")
+	assert.Contains(t, byKey, packageKey("dup-pkg", "1.0.0", "npm"), "distinct type should be kept separate from the python package of the same name@version")
 }
 
 // Helper function to create a Case from packages for testing

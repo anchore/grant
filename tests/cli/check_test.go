@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -223,20 +221,14 @@ func TestCheckCmdOutputFile(t *testing.T) {
 			args = append(args, tt.checkFlags...)
 			args = append(args, "-")
 
-			stdout, stderr, rc := runGrant(t, testSBOM, args...)
-			for _, assert := range tt.assertions {
-				assert(t, stdout, stderr, rc)
+			assertions := tt.assertions
+			for _, want := range tt.wantInFile {
+				assertions = append(assertions, assertFileOutput(outFile, assertInOutput(want)))
 			}
 
-			fileBytes, err := os.ReadFile(outFile)
-			if err != nil {
-				t.Fatalf("failed to read output file: %v", err)
-			}
-			fileContent := string(fileBytes)
-			for _, want := range tt.wantInFile {
-				if !strings.Contains(fileContent, want) {
-					t.Errorf("output file does not contain %q\ngot: %s", want, fileContent)
-				}
+			stdout, stderr, rc := runGrant(t, testSBOM, args...)
+			for _, assert := range assertions {
+				assert(t, stdout, stderr, rc)
 			}
 		})
 	}
