@@ -1,52 +1,44 @@
 package cli
 
-import (
-	"os/exec"
-	"testing"
+import "testing"
 
-	"github.com/stretchr/testify/assert"
-)
-
-// Note main_test.go is used to set up and teardown the tests. This is the entry point for testing and
-// responsible for building the most recent version of the grant binary.
+// main_test.go builds the grant binary that these tests invoke via runGrant.
 func Test_VersionCommand(t *testing.T) {
 	tests := []struct {
-		name             string
-		command          string
-		expectedInOutput []string
+		name       string
+		args       []string
+		assertions []traitAssertion
 	}{
 		{
-			name:             "text output",
-			command:          "--version",
-			expectedInOutput: []string{"grant version"},
+			name: "text output",
+			args: []string{"--version"},
+			assertions: []traitAssertion{
+				assertInOutput("grant version"),
+				assertSuccessfulReturnCode,
+			},
 		},
 		{
-			name:    "long form",
-			command: "version",
-			expectedInOutput: []string{
-				"Application:",
-				"Version:",
-				"BuildDate:",
-				"GitCommit:",
-				"GitDescription:",
-				"Platform:",
-				"GoVersion:",
-				"Compiler:",
+			name: "long form",
+			args: []string{"version"},
+			assertions: []traitAssertion{
+				assertInOutput("Application:"),
+				assertInOutput("Version:"),
+				assertInOutput("BuildDate:"),
+				assertInOutput("GitCommit:"),
+				assertInOutput("GitDescription:"),
+				assertInOutput("Platform:"),
+				assertInOutput("GoVersion:"),
+				assertInOutput("Compiler:"),
+				assertSuccessfulReturnCode,
 			},
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			// check if the command is available
-			cmd := exec.Command(grantTmpPath, test.command)
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				t.Fatalf("command failed: %v: cmd output: %s", err, string(output))
-			}
-
-			for _, expected := range test.expectedInOutput {
-				assert.Contains(t, string(output), expected, "expected output: %s not found in command output: %s", expected, string(output))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stdout, stderr, rc := runGrant(t, "", tt.args...)
+			for _, assert := range tt.assertions {
+				assert(t, stdout, stderr, rc)
 			}
 		})
 	}

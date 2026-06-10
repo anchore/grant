@@ -145,6 +145,7 @@ func (o *Output) outputTargetTable(target grant.TargetResult) error {
 	// Always show the final compliance summary tree
 	DisplaySummaryTree(
 		target.Evaluation.Summary.Packages.Total,
+		target.Evaluation.Summary.Packages.Cataloged,
 		target.Evaluation.Summary.Packages.Denied,
 		target.Evaluation.Summary.Packages.Allowed,
 		target.Evaluation.Summary.Packages.Ignored,
@@ -176,7 +177,7 @@ func (o *Output) outputListTargetTable(target grant.TargetResult) error {
 		"├──",
 		color.Green.Sprint("✔"),
 		"Packages",
-		fmt.Sprintf("[%d packages]", target.Evaluation.Summary.Packages.Total))
+		formatPackageCount(target.Evaluation.Summary.Packages.Total, target.Evaluation.Summary.Packages.Cataloged))
 
 	fmt.Printf("   %s %s %-30s %s\n",
 		"├──",

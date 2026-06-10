@@ -75,7 +75,10 @@ type EvaluationSummaryJSON struct {
 }
 
 // PackageSummary contains package statistics
+// Cataloged is the number of packages the SBOM cataloged before duplicate
+// entries were merged; Total is the merged, unique packages that were evaluated.
 type PackageSummary struct {
+	Cataloged  int `json:"cataloged"`
 	Total      int `json:"total"`
 	Allowed    int `json:"allowed"`
 	Denied     int `json:"denied"`
@@ -166,6 +169,7 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 		Status: status,
 		Summary: EvaluationSummaryJSON{
 			Packages: PackageSummary{
+				Cataloged:  evalResult.Summary.CatalogedPackages,
 				Total:      evalResult.Summary.TotalPackages,
 				Allowed:    evalResult.Summary.AllowedPackages,
 				Denied:     evalResult.Summary.DeniedPackages,
@@ -229,7 +233,9 @@ func calculateLicenseStatistics(evalResult *EvaluationResult) licenseStatistics 
 	}
 }
 
-// buildEvaluationFindings creates findings from evaluation results with deduplication
+// buildEvaluationFindings creates findings from evaluation results, keyed by
+// name@version. Evaluate already collapses each cataloged package to a single
+// category, so a package appears in exactly one of the result buckets here.
 func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	findings := EvaluationFindings{
 		Packages: []PackageFinding{},
@@ -240,7 +246,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	// Add allowed packages
 	for _, pkg := range evalResult.AllowedPackages {
 		finding := packageToFinding(pkg.Package, DecisionAllow)
-		key := pkg.Package.Name + "@" + pkg.Package.Version
+		key := packageKey(finding.Name, finding.Version, finding.Type)
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
 		}
@@ -249,7 +255,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	// Add denied packages
 	for _, pkg := range evalResult.DeniedPackages {
 		finding := packageToFindingWithDeniedLicenses(pkg.Package, DecisionDeny, pkg.DeniedLicenses)
-		key := pkg.Package.Name + "@" + pkg.Package.Version
+		key := packageKey(finding.Name, finding.Version, finding.Type)
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
 		}
@@ -258,7 +264,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	// Add ignored packages
 	for _, pkg := range evalResult.IgnoredPackages {
 		finding := packageToFinding(pkg.Package, DecisionIgnore)
-		key := pkg.Package.Name + "@" + pkg.Package.Version
+		key := packageKey(finding.Name, finding.Version, finding.Type)
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
 		}
