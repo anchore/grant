@@ -126,8 +126,8 @@ github.com/anchore/go-collections v0.1.0 h1:vh2LE/j6HLKC27pENkas+J+h4BK4nOte9b7p
 github.com/anchore/go-collections v0.1.0/go.mod h1:1aiktV46ATCkuVg0O573ZrH56BUawTECPETbZyBcqT8=
 github.com/anchore/go-homedir v0.1.0 h1:WP+lNLOz2og8hzCkY7IccyFNInVKsrjogzV19G5G8p0=
 github.com/anchore/go-homedir v0.1.0/go.mod h1:9B0DGhbmMAJVGGEbrlb+PkORM5eDFCEOtZ3xQ22qaLA=
-github.com/anchore/go-logger v0.1.0 h1:3pE9Sli4SE1I/mtV+2pZXzim+aWj83BRaneVXeMgD3A=
-github.com/anchore/go-logger v0.1.0/go.mod h1:0l63X5VyHqfWQwsNaTmkgXErsfohze3NAFCXFdhSjdQ=
+github.com/anchore/go-logger v0.1.1 h1:HPBNmQVBdYliwaFVUL7oJ3UvSlaoXAMj/ZagAIYaCpA=
+github.com/anchore/go-logger v0.1.1/go.mod h1:ekWuh5BkZVwyXnyEd4fwL29N4pNLssgRsqh2+kFN/b8=
 github.com/anchore/go-lzo v0.1.0 h1:NgAacnzqPeGH49Ky19QKLBZEuFRqtTG9cdaucc3Vncs=
 github.com/anchore/go-lzo v0.1.0/go.mod h1:3kLx0bve2oN1iDwgM1U5zGku1Tfbdb0No5qp1eL1fIk=
 github.com/anchore/go-macholibre v0.1.0 h1:qHbdusBZNcZM/uuKf1Psa9xxAFSoyRTps8GW9gpJgsg=
