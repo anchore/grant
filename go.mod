@@ -3,7 +3,7 @@ module github.com/anchore/grant
 go 1.26.3
 
 require (
-	github.com/anchore/clio v0.1.0
+	github.com/anchore/clio v0.1.1
 	github.com/anchore/go-collections v0.1.0
 	github.com/anchore/go-logger v0.1.1
 	github.com/anchore/stereoscope v0.2.1
@@ -50,8 +50,8 @@ require (
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
-	github.com/anchore/fangs v0.1.0 // indirect
-	github.com/anchore/go-homedir v0.1.0 // indirect
+	github.com/anchore/fangs v0.1.1 // indirect
+	github.com/anchore/go-homedir v0.1.1 // indirect
 	github.com/anchore/go-lzo v0.1.0 // indirect
 	github.com/anchore/go-macholibre v0.1.0 // indirect
 	github.com/anchore/go-rpmdb v0.1.0 // indirect
