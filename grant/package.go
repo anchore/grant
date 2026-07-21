@@ -1,6 +1,10 @@
 package grant
 
-import syftPkg "github.com/anchore/syft/syft/pkg"
+import (
+	"strings"
+
+	syftPkg "github.com/anchore/syft/syft/pkg"
+)
 
 // PackageID is a unique identifier for a package that is tracked by grant
 // It's usually provided by the SBOM; It's calculated if an SBOM is generated
@@ -25,10 +29,37 @@ func ConvertSyftPackage(p syftPkg.Package) *Package {
 	}
 
 	return &Package{
-		Name:      p.Name,
+		Name:      packageNameFromSyft(p),
 		Version:   p.Version,
 		Type:      string(p.Type),
 		Licenses:  ConvertSyftLicenses(p.Licenses),
 		Locations: packageLocations,
 	}
+}
+
+func packageNameFromSyft(p syftPkg.Package) string {
+	name := p.Name
+
+	switch metadata := p.Metadata.(type) {
+	case syftPkg.JavaArchive:
+		return packageNameFromJavaMetadata(name, metadata.PomProperties)
+	case *syftPkg.JavaArchive:
+		if metadata != nil {
+			return packageNameFromJavaMetadata(name, metadata.PomProperties)
+		}
+	}
+
+	return name
+}
+
+func packageNameFromJavaMetadata(name string, pomProperties *syftPkg.JavaPomProperties) string {
+	groupID := ""
+	if pomProperties != nil {
+		groupID = strings.TrimSpace(pomProperties.GroupID)
+	}
+	if groupID == "" || name == "" || name == groupID || strings.HasPrefix(name, groupID+".") {
+		return name
+	}
+
+	return groupID + "." + name
 }
