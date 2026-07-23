@@ -1,6 +1,7 @@
 package grant
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/github/go-spdx/v2/spdxexp"
@@ -75,8 +76,26 @@ func ConvertSyftLicenses(set syftPkg.LicenseSet) (licenses []License) {
 	return licenses
 }
 
+// safeExtractLicenses wraps spdxexp.ExtractLicenses so a malformed SPDX
+// expression cannot take down the whole scan. The upstream parser
+// (github.com/github/go-spdx) panics on some inputs, for example an expression
+// with a dangling opening parenthesis like "MIT AND (". SBOM license fields
+// flow through here unvalidated, so a single malformed value in an SBOM would
+// otherwise crash grant. syft guards its own call to this parser for
+// the same reason (see anchore/syft#1837); grant does the same here and lets the
+// existing error path fall back to treating the value as a non-SPDX license.
+func safeExtractLicenses(expression string) (extracted []string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			extracted = nil
+			err = fmt.Errorf("recovered from panic parsing SPDX expression %q: %v", expression, r)
+		}
+	}()
+	return spdxexp.ExtractLicenses(expression)
+}
+
 func handleSPDXLicense(license syftPkg.License, licenses []License, licenseLocations []string, checked map[string]bool) []License {
-	extractedLicenses, err := spdxexp.ExtractLicenses(license.SPDXExpression)
+	extractedLicenses, err := safeExtractLicenses(license.SPDXExpression)
 	if err != nil {
 		// log.Errorf("unable to extract licenses from SPDX expression: %s", license.SPDXExpression)
 		return addNonSPDXLicense(licenses, license, licenseLocations)
