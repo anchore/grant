@@ -542,6 +542,7 @@ func printFilteredPackageTable(packages []grant.PackageFinding) error {
 
 	// Set headers with uppercase to match grype style
 	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE", "RISK"})
+	internal.WrapWideColumns(t, "LICENSE")
 
 	// Add rows for matching packages
 	for _, pkg := range packages {
@@ -673,6 +674,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 
 	// Set headers
 	t.AppendHeader(table.Row{"LICENSE", "PACKAGES", "RISK"})
+	internal.WrapWideColumns(t, "LICENSE", "PACKAGES")
 
 	// Add rows
 	for _, lc := range licenseCounts {
@@ -910,6 +912,7 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 
 	// Set headers
 	t.AppendHeader(table.Row{"RISK CATEGORY", "LICENSES", "PACKAGES"})
+	internal.WrapWideColumns(t, "LICENSES", "PACKAGES")
 
 	// Add rows in order of risk severity
 	categoryOrder := []string{riskCategoryStrongCopyleft, riskCategoryWeakCopyleft, riskCategoryPermissive}
