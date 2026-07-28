@@ -244,6 +244,7 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 
 	// Set headers with uppercase to match grype style
 	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE", "RISK"})
+	WrapWideColumns(t, "LICENSE")
 
 	// Add rows for denied packages only
 	for _, pkg := range deniedPackages {
@@ -432,6 +433,7 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 
 	// Set headers
 	t.AppendHeader(table.Row{"LICENSE", "PACKAGES", "RISK"})
+	WrapWideColumns(t, "LICENSE", "PACKAGES")
 
 	// Add rows
 	for _, lc := range licenseCounts {
