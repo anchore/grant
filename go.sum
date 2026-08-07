@@ -144,8 +144,8 @@ github.com/anchore/packageurl-go v0.2.0 h1:CkrM4RMUwrEGAiE1OVlxaZNzWj0TuHRey7o4T
 github.com/anchore/packageurl-go v0.2.0/go.mod h1:2JCgOQMIsqZ7TmliXG4PnUthPJAKE3mWQbsW2XHjAOE=
 github.com/anchore/stereoscope v0.3.0 h1:6mGGRxm4zRKj/jNiSM7g6XGwWihrnkQRJj11hcULDqY=
 github.com/anchore/stereoscope v0.3.0/go.mod h1:QIBWxa5WCrjtBqXH0+RIuECATrffcbaNdMWquZ83+OI=
-github.com/anchore/syft v1.49.0 h1:eaVZWqcl0jIr1jc1MVzNw5QTHOX7CIy3ajh5YXLfNGk=
-github.com/anchore/syft v1.49.0/go.mod h1:GoYAbp7yMJqX3XYzPpWu0yAaIK92iYbVeARrUw4t0DQ=
+github.com/anchore/syft v1.50.0 h1:kSQ4oshw6dwHxcYhrH1jUZl/M05kiCfyPoGJgvXe61s=
+github.com/anchore/syft v1.50.0/go.mod h1:wxudLuDHN12O/Ihw9loABNg0u2r2qFh0Zx0p4PEvGQ8=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
@@ -544,8 +544,8 @@ github.com/gookit/assert v0.1.1/go.mod h1:jS5bmIVQZTIwk42uXl4lyj4iaaxx32tqH16CFj
 github.com/gookit/color v1.2.5/go.mod h1:AhIE+pS6D4Ql0SQWbBeXPHw7gY0/sjHoA4s/n1KB7xg=
 github.com/gookit/color v1.6.1 h1:KoTnDxJPRgrL0SoX0f8rCFg2zI0t4E3GZZBMo2nN8LU=
 github.com/gookit/color v1.6.1/go.mod h1:9ACFc7/1IpHGBW8RwuDm/0YEnhg3dwwXpoMsmtyHfjs=
-github.com/gpustack/gguf-parser-go v0.24.1 h1:nTYtL8HFK6ZhB90RKBu4oX2b3ZHpJLrMmKRfL9w9Cyc=
-github.com/gpustack/gguf-parser-go v0.24.1/go.mod h1:y4TwTtDqFWTK+xvprOjRUh+dowgU2TKCX37vRKvGiZ0=
+github.com/gpustack/gguf-parser-go v0.25.0 h1:1AMBhMKtI24nTtn588Bq53FqNiOvEw1x9Nb4HbRrThs=
+github.com/gpustack/gguf-parser-go v0.25.0/go.mod h1:y4TwTtDqFWTK+xvprOjRUh+dowgU2TKCX37vRKvGiZ0=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.72 h1:vTCWu1wbdYo7PEZFem/rlr01+Un+wwVmI7wiegFdRLk=
 github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.72/go.mod h1:Vn+BBgKQHVQYdVQ4NZDICE1Brb+JfaONyDHr3q07oQc=
