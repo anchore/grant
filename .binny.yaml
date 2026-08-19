@@ -21,7 +21,7 @@ tools:
   # used to render the changelog when running `make changelog` locally
   - name: glow
     version:
-      want: v2.1.2
+      want: v3.0.0
     method: github-release
     with:
       repo: charmbracelet/glow
