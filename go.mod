@@ -7,7 +7,7 @@ require (
 	github.com/anchore/go-collections v0.1.1
 	github.com/anchore/go-logger v0.1.1
 	github.com/anchore/stereoscope v0.3.0
-	github.com/anchore/syft v1.50.0
+	github.com/anchore/syft v1.51.0
 	github.com/github/go-spdx/v2 v2.7.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/gookit/color v1.6.1
@@ -116,7 +116,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deitch/magic v0.0.0-20230404182410-1ff89d7342da // indirect
-	github.com/diskfs/go-diskfs v1.9.3 // indirect
+	github.com/diskfs/go-diskfs v1.9.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v29.6.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.5 // indirect
@@ -135,7 +135,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
-	github.com/go-git/go-billy/v5 v5.9.0 // indirect
+	github.com/go-git/go-billy/v5 v5.9.1 // indirect
 	github.com/go-git/go-git/v5 v5.19.2 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -172,7 +172,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kastenhq/goversion v0.0.0-20230811215019-93b2f8823953 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/klauspost/compress v1.19.0 // indirect
+	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
@@ -245,7 +245,7 @@ require (
 	github.com/sylabs/squashfs v1.0.6 // indirect
 	github.com/tailscale/hujson v0.0.0-20260302212456-ecc657c15afd // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
-	github.com/ulikunitz/xz v0.5.15 // indirect
+	github.com/ulikunitz/xz v0.5.16 // indirect
 	github.com/vbatts/go-mtree v0.7.0 // indirect
 	github.com/vifraa/gopom v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
@@ -262,7 +262,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
