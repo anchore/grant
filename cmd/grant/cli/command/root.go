@@ -234,7 +234,7 @@ func filterGrantJSONByLicenses(result *grant.RunResponse, licenseFilters []strin
 
 			if hasMatchingLicense {
 				// Use package name + version as deduplication key
-				packageKey := pkg.Name + "@" + pkg.Version
+				packageKey := pkg.Coordinate() + "@" + pkg.Version
 				packageMap[packageKey] = pkg
 			}
 		}

@@ -599,10 +599,10 @@ func formatLicenses(licenses []grant.LicenseDetail) string {
 
 // printAggregatedLicenseTable prints licenses grouped by license name with package counts
 func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
-	// First, deduplicate packages by name@version
+	// First, deduplicate packages by qualified name@version
 	uniquePackages := make(map[string]grant.PackageFinding)
 	for _, pkg := range packages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.Coordinate() + "@" + pkg.Version
 		uniquePackages[packageKey] = pkg
 	}
 
@@ -610,7 +610,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 	licensePackages := make(map[string]map[string]bool)
 
 	for _, pkg := range uniquePackages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.Coordinate() + "@" + pkg.Version
 
 		if len(pkg.Licenses) == 0 {
 			// Package with no licenses
@@ -711,9 +711,9 @@ func filterResultByPackage(result *grant.RunResponse, packageName string) *grant
 	for _, target := range result.Run.Targets {
 		matchedPackages := []grant.PackageFinding{}
 
-		// Filter packages by name
+		// Filter packages by name, accepting either the bare name or the group-qualified form
 		for _, pkg := range target.Evaluation.Findings.Packages {
-			if pkg.Name == packageName {
+			if pkg.Name == packageName || pkg.Coordinate() == packageName {
 				matchedPackages = append(matchedPackages, pkg)
 			}
 		}
@@ -867,7 +867,7 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 
 	// Process each package
 	for _, pkg := range target.Evaluation.Findings.Packages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.Coordinate() + "@" + pkg.Version
 
 		for _, license := range pkg.Licenses {
 			licenseKey := license.ID
@@ -983,6 +983,9 @@ func displayPackageDetails(result *grant.RunResponse, packageName string) error 
 		}
 
 		fmt.Printf("Name:     %s\n", pkg.Name)
+		if pkg.Group != "" {
+			fmt.Printf("Group:    %s\n", pkg.Group)
+		}
 		fmt.Printf("Version:  %s\n", pkg.Version)
 		fmt.Printf("Type:     %s\n", pkg.Type)
 		fmt.Printf("ID:       %s\n", pkg.ID)

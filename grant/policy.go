@@ -85,6 +85,20 @@ func (p *Policy) IsPackageIgnored(packageName string) bool {
 	return false
 }
 
+// isPackageIgnored checks a package against ignore-packages, accepting either its bare name or its
+// group-qualified coordinate so a pattern can target one group without affecting the other.
+func (p *Policy) isPackageIgnored(pkg Package) bool {
+	if p.IsPackageIgnored(pkg.Name) {
+		return true
+	}
+
+	if coordinate := pkg.Coordinate(); coordinate != pkg.Name {
+		return p.IsPackageIgnored(coordinate)
+	}
+
+	return false
+}
+
 // LoadPolicy loads a policy from YAML bytes
 func LoadPolicy(data []byte) (*Policy, error) {
 	var policy Policy
