@@ -358,10 +358,10 @@ func (o *Output) OutputQuiet(result *grant.RunResponse) error {
 
 // printAggregatedLicenseTable prints licenses grouped by license name with package counts
 func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) error {
-	// First, deduplicate packages by name@version
+	// First, deduplicate packages by qualified name@version
 	uniquePackages := make(map[string]grant.PackageFinding)
 	for _, pkg := range packages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 		uniquePackages[packageKey] = pkg
 	}
 
@@ -369,7 +369,7 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 	licensePackages := make(map[string]map[string]bool)
 
 	for _, pkg := range uniquePackages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 
 		if len(pkg.Licenses) == 0 {
 			// Package with no licenses

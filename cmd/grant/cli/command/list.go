@@ -599,10 +599,10 @@ func formatLicenses(licenses []grant.LicenseDetail) string {
 
 // printAggregatedLicenseTable prints licenses grouped by license name with package counts
 func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
-	// First, deduplicate packages by name@version
+	// First, deduplicate packages by qualified name@version
 	uniquePackages := make(map[string]grant.PackageFinding)
 	for _, pkg := range packages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 		uniquePackages[packageKey] = pkg
 	}
 
@@ -610,7 +610,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 	licensePackages := make(map[string]map[string]bool)
 
 	for _, pkg := range uniquePackages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 
 		if len(pkg.Licenses) == 0 {
 			// Package with no licenses
@@ -711,9 +711,9 @@ func filterResultByPackage(result *grant.RunResponse, packageName string) *grant
 	for _, target := range result.Run.Targets {
 		matchedPackages := []grant.PackageFinding{}
 
-		// Filter packages by name
+		// Filter packages by name, accepting either the bare name or the group-qualified form
 		for _, pkg := range target.Evaluation.Findings.Packages {
-			if pkg.Name == packageName {
+			if pkg.Name == packageName || pkg.QualifiedName() == packageName {
 				matchedPackages = append(matchedPackages, pkg)
 			}
 		}
@@ -867,7 +867,7 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 
 	// Process each package
 	for _, pkg := range target.Evaluation.Findings.Packages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 
 		for _, license := range pkg.Licenses {
 			licenseKey := license.ID
@@ -983,48 +983,55 @@ func displayPackageDetails(result *grant.RunResponse, packageName string) error 
 		}
 
 		fmt.Printf("Name:     %s\n", pkg.Name)
+		if pkg.Group != "" {
+			fmt.Printf("Group:    %s\n", pkg.Group)
+		}
 		fmt.Printf("Version:  %s\n", pkg.Version)
 		fmt.Printf("Type:     %s\n", pkg.Type)
 		fmt.Printf("ID:       %s\n", pkg.ID)
 
-		// Display licenses with new formatting
-		if len(pkg.Licenses) == 0 {
-			fmt.Printf("Licenses: (no licenses found)\n")
-		} else {
-			fmt.Printf("Licenses (%d):\n", len(pkg.Licenses))
-
-			for _, license := range pkg.Licenses {
-				// Use license ID or name as display name
-				licenseName := license.ID
-				if licenseName == "" {
-					licenseName = license.Name
-				}
-				if licenseName == "" {
-					licenseName = "(unknown)"
-				}
-
-				fmt.Println()
-				// Format with bullet point and make license name clickable if we have a reference
-				if license.Reference != "" {
-					// Make it blue and underlined to indicate it's clickable
-					fmt.Printf("• \x1b]8;;%s\x1b\\\x1b[34;4m%s\x1b[0m\x1b]8;;\x1b\\\n", license.Reference, licenseName)
-				} else {
-					fmt.Printf("• %s\n", licenseName)
-				}
-
-				// Format OSI Approved status with warning if false
-				osiStatus := fmt.Sprintf("OSI Approved: %t", license.IsOsiApproved)
-				if !license.IsOsiApproved {
-					osiStatus = color.Yellow.Sprintf("⚠️  OSI Approved: false")
-				}
-
-				fmt.Printf("  %s | Deprecated: %t\n", osiStatus, license.IsDeprecatedLicenseID)
-				if len(license.Evidence) > 0 {
-					fmt.Printf("  Evidence: %v\n", license.Evidence)
-				}
-			}
-		}
+		displayPackageLicenses(pkg.Licenses)
 	}
 
 	return nil
+}
+
+func displayPackageLicenses(licenses []grant.LicenseDetail) {
+	if len(licenses) == 0 {
+		fmt.Printf("Licenses: (no licenses found)\n")
+		return
+	}
+
+	fmt.Printf("Licenses (%d):\n", len(licenses))
+
+	for _, license := range licenses {
+		// Use license ID or name as display name
+		licenseName := license.ID
+		if licenseName == "" {
+			licenseName = license.Name
+		}
+		if licenseName == "" {
+			licenseName = "(unknown)"
+		}
+
+		fmt.Println()
+		// Format with bullet point and make license name clickable if we have a reference
+		if license.Reference != "" {
+			// Make it blue and underlined to indicate it's clickable
+			fmt.Printf("• \x1b]8;;%s\x1b\\\x1b[34;4m%s\x1b[0m\x1b]8;;\x1b\\\n", license.Reference, licenseName)
+		} else {
+			fmt.Printf("• %s\n", licenseName)
+		}
+
+		// Format OSI Approved status with warning if false
+		osiStatus := fmt.Sprintf("OSI Approved: %t", license.IsOsiApproved)
+		if !license.IsOsiApproved {
+			osiStatus = color.Yellow.Sprintf("⚠️  OSI Approved: false")
+		}
+
+		fmt.Printf("  %s | Deprecated: %t\n", osiStatus, license.IsDeprecatedLicenseID)
+		if len(license.Evidence) > 0 {
+			fmt.Printf("  Evidence: %v\n", license.Evidence)
+		}
+	}
 }
