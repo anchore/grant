@@ -111,9 +111,9 @@ type PackageFinding struct {
 	Locations []string        `json:"locations"`
 }
 
-// Coordinate is the fully qualified identity of the package, used to tell apart two findings that
+// QualifiedName is the fully qualified identity of the package, used to tell apart two findings that
 // share a name under different groups. Name alone remains the matching identity.
-func (f PackageFinding) Coordinate() string {
+func (f PackageFinding) QualifiedName() string {
 	return qualifyName(f.Group, f.Name)
 }
 

@@ -163,9 +163,9 @@ func TestConvertSyftPackage_MavenGroup(t *testing.T) {
 	}
 }
 
-func TestPackageCoordinate(t *testing.T) {
-	assert.Equal(t, "org.slf4j:slf4j-api", Package{Group: "org.slf4j", Name: "slf4j-api"}.Coordinate())
-	assert.Equal(t, "requests", Package{Name: "requests"}.Coordinate())
+func TestPackageQualifiedName(t *testing.T) {
+	assert.Equal(t, "org.slf4j:slf4j-api", Package{Group: "org.slf4j", Name: "slf4j-api"}.QualifiedName())
+	assert.Equal(t, "requests", Package{Name: "requests"}.QualifiedName())
 }
 
 func TestMergeDuplicatePackages_KeepsDistinctGroupsSeparate(t *testing.T) {
@@ -179,7 +179,7 @@ func TestMergeDuplicatePackages_KeepsDistinctGroupsSeparate(t *testing.T) {
 	assert.Len(t, merged, 2, "same artifact id under different groups must not be merged")
 }
 
-func TestPolicyIsPackageIgnored_MatchesNameOrCoordinate(t *testing.T) {
+func TestPolicyIsPackageIgnored_MatchesNameOrQualifiedName(t *testing.T) {
 	pkg := Package{Name: "core", Group: "com.foo", Version: "1.0.0", Type: "java-archive"}
 
 	assert.True(t, (&Policy{IgnorePackages: []string{"core"}}).isPackageIgnored(pkg),

@@ -98,7 +98,7 @@ func (c *Case) catalogedPackageCount() int {
 }
 
 // packageKey identifies a package for deduplication. The qualified name (see
-// Package.Coordinate), version, and type together distinguish a real package
+// Package.QualifiedName), version, and type together distinguish a real package
 func packageKey(group, name, version, pkgType string) string {
 	return qualifyName(group, name) + "@" + version + "@" + pkgType
 }

@@ -27,9 +27,9 @@ type Package struct {
 	Locations []string  `json:"locations" yaml:"locations"`
 }
 
-// Coordinate is the fully qualified identity of a package, used to tell apart two packages that
+// QualifiedName is the fully qualified identity of a package, used to tell apart two packages that
 // share a name under different groups. Name alone remains the matching identity.
-func (p Package) Coordinate() string {
+func (p Package) QualifiedName() string {
 	return qualifyName(p.Group, p.Name)
 }
 

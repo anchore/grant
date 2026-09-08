@@ -86,14 +86,14 @@ func (p *Policy) IsPackageIgnored(packageName string) bool {
 }
 
 // isPackageIgnored checks a package against ignore-packages, accepting either its bare name or its
-// group-qualified coordinate so a pattern can target one group without affecting the other.
+// group-qualified name so a pattern can target one group without affecting the other.
 func (p *Policy) isPackageIgnored(pkg Package) bool {
 	if p.IsPackageIgnored(pkg.Name) {
 		return true
 	}
 
-	if coordinate := pkg.Coordinate(); coordinate != pkg.Name {
-		return p.IsPackageIgnored(coordinate)
+	if qualified := pkg.QualifiedName(); qualified != pkg.Name {
+		return p.IsPackageIgnored(qualified)
 	}
 
 	return false
