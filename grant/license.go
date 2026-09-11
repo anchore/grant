@@ -113,6 +113,15 @@ func handleSPDXLicense(license syftPkg.License, licenses []License, licenseLocat
 		// we have what seems to be a valid SPDX license ID, let's try and get more info about it
 		spdxLicense, err := spdxlicense.GetLicenseByID(extractedLicense)
 		if err != nil {
+			// The parser returns "<license> WITH <exception>" as a single atom, but the
+			// SPDX license list is indexed by license ID alone, so the lookup above can
+			// only fail for these. Retry with the license the exception applies to; the
+			// full expression is still what ends up on the resulting License.
+			if base, ok := licenseFromExceptionExpression(extractedLicense); ok {
+				spdxLicense, err = spdxlicense.GetLicenseByID(base)
+			}
+		}
+		if err != nil {
 			log.Errorf("unable to get license by ID: %s; no matching spdx id found", extractedLicense)
 			// if we can't find a matching SPDX license, just add the license as-is
 			// TODO: best matching against the spdx list index
@@ -134,6 +143,22 @@ func handleSPDXLicense(license syftPkg.License, licenses []License, licenseLocat
 		})
 	}
 	return licenses
+}
+
+// licenseFromExceptionExpression returns the license an SPDX "WITH" expression
+// applies to, for example "Apache-2.0" from "Apache-2.0 WITH LLVM-exception".
+func licenseFromExceptionExpression(expression string) (string, bool) {
+	parts := strings.SplitN(expression, " WITH ", 2)
+	if len(parts) != 2 {
+		return "", false
+	}
+
+	license := strings.TrimRight(strings.TrimSpace(parts[0]), "+")
+	if license == "" || strings.TrimSpace(parts[1]) == "" {
+		return "", false
+	}
+
+	return license, true
 }
 
 func addNonSPDXLicense(licenses []License, license syftPkg.License, locations []string) []License {
