@@ -213,7 +213,7 @@ func TestSearchLicenseFiles_Symlinks(t *testing.T) {
 		minCount int
 	}{
 		{
-			name: "skips symlink to directory",
+			name: "follows symlink to directory",
 			setup: func(t *testing.T, dir string) {
 				// Mimics snap package layout (e.g. libncursesw6 -> libtinfo6/)
 				subDir := filepath.Join(dir, "libtinfo6")
@@ -223,6 +223,32 @@ func TestSearchLicenseFiles_Symlinks(t *testing.T) {
 
 				mitLicense := readTestLicense(t, "mit-license.txt")
 				require.NoError(t, os.WriteFile(filepath.Join(dir, "LICENSE"), []byte(mitLicense), 0644))
+			},
+			minCount: 1,
+		},
+		{
+			name: "finds license only reachable through a symlinked directory",
+			setup: func(t *testing.T, dir string) {
+				// the license lives outside the scanned tree and is only reachable
+				// through a directory symlink inside it
+				outside := t.TempDir()
+				mitLicense := readTestLicense(t, "mit-license.txt")
+				require.NoError(t, os.WriteFile(filepath.Join(outside, "LICENSE"), []byte(mitLicense), 0644))
+				require.NoError(t, os.Symlink(outside, filepath.Join(dir, "vendored")))
+			},
+			minCount: 1,
+		},
+		{
+			name: "terminates on symlink cycles",
+			setup: func(t *testing.T, dir string) {
+				// a/ contains a symlink back to its own parent, so following
+				// directory symlinks naively would never terminate
+				subDir := filepath.Join(dir, "a")
+				require.NoError(t, os.MkdirAll(subDir, 0755))
+				require.NoError(t, os.Symlink(dir, filepath.Join(subDir, "loop")))
+
+				mitLicense := readTestLicense(t, "mit-license.txt")
+				require.NoError(t, os.WriteFile(filepath.Join(subDir, "LICENSE"), []byte(mitLicense), 0644))
 			},
 			minCount: 1,
 		},

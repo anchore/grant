@@ -386,84 +386,127 @@ var skipDirectories = map[string]bool{
 	"temp":          true,
 }
 
-// skipSymlink reports whether d is a symlink that should be skipped.
-// This includes symlinks to directories and broken symlinks whose targets
-// no longer exist. Symlinks to regular files are not skipped.
+// symlinkTarget classifies a directory entry that is a symlink. It reports
+// whether the entry is a symlink at all, and if so whether its target is a
+// directory. Broken symlinks report ok=false so callers can skip them.
 // WalkDir uses lstat semantics, so symlinks appear as non-directory entries
 // even when they point to directories.
-func skipSymlink(path string, d os.DirEntry) bool {
+func symlinkTarget(path string, d os.DirEntry) (isSymlink, isDir, ok bool) {
 	if d.Type()&os.ModeSymlink == 0 {
-		return false
+		return false, false, true
 	}
 	fi, err := os.Stat(path)
-	return err != nil || fi.IsDir()
+	if err != nil {
+		// broken symlink: the target no longer exists
+		return true, false, false
+	}
+	return true, fi.IsDir(), true
 }
 
-// searchLicenseFiles searches for license files recursively in the given directory
+// searchLicenseFiles searches for license files recursively in the given directory.
+// Symlinked directories are resolved and searched as well; each resolved directory
+// is only searched once so that symlink cycles (e.g. a -> b -> a) terminate.
 func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
 	patterns := licensepatterns.Patterns
 	visited := make(map[string]bool)
+	searchedDirs := make(map[string]bool)
 	var foundLicenses []License
 
-	// check all directories in scan target for potential licenses
-	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+	// directories still to search; symlinked directories found during a walk are queued here
+	queue := []string{root}
+
+	for len(queue) > 0 {
+		dir := queue[0]
+		queue = queue[1:]
+
+		// resolve to a canonical path so that a directory reachable through several
+		// symlinks is only searched once, which also terminates symlink cycles
+		resolvedDir, err := filepath.EvalSymlinks(dir)
 		if err != nil {
-			return nil // Continue walking even if there's an error with a specific directory
+			continue
 		}
-
-		// this returns false for a symlink to a directory
-		// current implementations of walk dir never descends into a symlinked dir
-		if d.IsDir() {
-			dirName := d.Name()
-			if skipDirectories[dirName] {
-				return filepath.SkipDir
-			}
-			return nil
+		if searchedDirs[resolvedDir] {
+			continue
 		}
+		searchedDirs[resolvedDir] = true
 
-		// TODO: grant's local license analysis (outside of the syft SBOM)
-		// does not follow/resolve directory symlinks. This should be improved.
-		// For now we need to skip these since WalkDir uses lstat semantics.
-		// If we do not skip symlinked dirs then they would get passed to the license classifier.
-		// This can cause errors as seen in: https://github.com/anchore/grant/issues/70
-		// Regular file symlink targets are allowed and work as expected
-		if skipSymlink(path, d) {
-			return nil
-		}
-
-		// skip if we've already processed this file
-		if visited[path] {
-			return nil
-		}
-
-		// look for file in license patterns
-		filename := filepath.Base(path)
-		for _, pattern := range patterns {
-			matched, err := filepath.Match(pattern, filename)
+		// walk the resolved path: WalkDir applies lstat semantics to its root as well,
+		// so walking a symlinked directory by its link path would not descend into it
+		err = filepath.WalkDir(resolvedDir, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
-				continue
+				return nil // Continue walking even if there's an error with a specific directory
 			}
-			if matched {
-				visited[path] = true
 
-				licenses, err := ch.handleLicenseFile(path)
+			// this returns false for a symlink to a directory
+			// current implementations of walk dir never descends into a symlinked dir
+			if d.IsDir() {
+				dirName := d.Name()
+				if skipDirectories[dirName] {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+
+			// WalkDir uses lstat semantics and never descends into symlinked dirs, so
+			// queue them for their own walk instead. Passing them to the license
+			// classifier directly causes errors: https://github.com/anchore/grant/issues/70
+			// Regular file symlink targets are allowed and work as expected.
+			isSymlink, isDir, ok := symlinkTarget(path, d)
+			if isSymlink {
+				if !ok {
+					return nil // broken symlink
+				}
+				if isDir {
+					if !skipDirectories[d.Name()] {
+						queue = append(queue, path)
+					}
+					return nil
+				}
+			}
+
+			// skip if we've already processed this file
+			if visited[path] {
+				return nil
+			}
+
+			// look for file in license patterns
+			filename := filepath.Base(path)
+			for _, pattern := range patterns {
+				matched, err := filepath.Match(pattern, filename)
 				if err != nil {
 					continue
 				}
+				if matched {
+					// a file reachable through a symlinked directory can also be reachable
+					// directly, so dedupe on the resolved path
+					key := path
+					if resolvedPath, err := filepath.EvalSymlinks(path); err == nil {
+						key = resolvedPath
+					}
+					if visited[key] {
+						break
+					}
+					visited[key] = true
 
-				if len(licenses) > 0 {
-					foundLicenses = append(foundLicenses, licenses...)
+					licenses, err := ch.handleLicenseFile(path)
+					if err != nil {
+						continue
+					}
+
+					if len(licenses) > 0 {
+						foundLicenses = append(foundLicenses, licenses...)
+					}
+					break // Found a match, no need to check other patterns for this file
 				}
-				break // Found a match, no need to check other patterns for this file
 			}
+
+			return nil
+		})
+		if err != nil {
+			return foundLicenses, err
 		}
-
-		return nil
-	})
-
-	if err != nil {
-		return foundLicenses, err
 	}
+
 	return foundLicenses, nil
 }
 
