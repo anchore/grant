@@ -471,6 +471,7 @@ func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 
 	// Use uppercase headers to match grype style
 	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE STATUS"})
+	internal.WrapWideColumns(t, "LICENSE STATUS")
 
 	// Add rows for packages without licenses
 	for _, pkg := range packages {
