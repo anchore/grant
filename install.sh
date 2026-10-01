@@ -10,26 +10,20 @@ INSTALL_SH_BASE_URL=https://get.anchore.io/${PROJECT_NAME}
 LEGACY_INSTALL_SH_BASE_URL=https://raw.githubusercontent.com/${OWNER}/${PROJECT_NAME}
 PROGRAM_ARGS=$@
 
+# signature verification options
+
+# the location to the cosign binary (allowed to be overridden by the user)
+COSIGN_BINARY=${COSIGN_BINARY:-cosign}
+VERIFY_SIGN=false
+# this is the earliest tag in the repo where cosign sign-blob was introduced in the release process (see the goreleaser config)
+VERIFY_SIGN_SUPPORTED_VERSION=v0.2.1
+# this is the earliest tag in the repo where the -v flag was introduced to this install.sh script
+VERIFY_SIGN_FLAG_VERSION=v0.6.9
+# releases at or after this version are signed with a sigstore bundle (.sigstore.json); earlier releases ship a separate .sig and .pem
+VERIFY_SIGN_BUNDLE_VERSION=v0.6.9
+
 # do not change the name of this parameter (this must always be backwards compatible)
 DOWNLOAD_TAG_INSTALL_SCRIPT=${DOWNLOAD_TAG_INSTALL_SCRIPT:-true}
-
-#
-# usage [script-name]
-#
-usage() (
-  this=$1
-  cat <<EOF
-$this: download go binaries for ${OWNER}/${PROJECT_NAME}
-
-Usage: $this [-b] dir [-d] [tag]
-  -b  the installation directory (defaults to ./bin)
-  -d  turns on debug logging
-  -dd turns on trace logging
-  [tag] the specific release to use (if missing, then the latest will be used)
-EOF
-  exit 2
-)
-
 
 # ------------------------------------------------------------------------
 # https://github.com/client9/shlib - portable posix shell functions
@@ -43,7 +37,8 @@ is_command() (
 )
 
 echo_stderr() (
-  echo "$@" 1>&2
+  IFS=" "
+  printf "%b\n" "$*" 1>&2
 )
 
 _logp=2
@@ -83,12 +78,12 @@ init_colors
 
 log_tag() (
   case $1 in
-    0) echo "${RED}${BOLD}[error]${RESET}" ;;
-    1) echo "${RED}[warn]${RESET}" ;;
-    2) echo "[info]${RESET}" ;;
-    3) echo "${BLUE}[debug]${RESET}" ;;
-    4) echo "${PURPLE}[trace]${RESET}" ;;
-    *) echo "[$1]" ;;
+    0) printf "%b" "${RED}${BOLD}[error]${RESET}" ;;
+    1) printf "%b" "${RED}[warn]${RESET}" ;;
+    2) printf "%b" "[info]${RESET}" ;;
+    3) printf "%b" "${BLUE}[debug]${RESET}" ;;
+    4) printf "%b" "${PURPLE}[trace]${RESET}" ;;
+    *) printf "[%s]" "$1" ;;
   esac
 )
 
@@ -271,21 +266,21 @@ hash_sha256() (
 )
 
 hash_sha256_verify() (
-  TARGET=$1
+  target=$1
   checksums=$2
   if [ -z "$checksums" ]; then
-    log_err "hash_sha256_verify checksum file not specified in arg2"
+    log_err "hash_sha256_verify checksum file not specified as argument"
     return 1
   fi
-  BASENAME=${TARGET##*/}
-  want=$(grep "${BASENAME}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
+  target_basename=${target##*/}
+  want=$(grep "${target_basename}" "${checksums}" 2>/dev/null | tr '\t' ' ' | cut -d ' ' -f 1)
   if [ -z "$want" ]; then
-    log_err "hash_sha256_verify unable to find checksum for '${TARGET}' in '${checksums}'"
+    log_err "hash_sha256_verify unable to find checksum for '${target}' in '${checksums}'"
     return 1
   fi
-  got=$(hash_sha256 "$TARGET")
+  got=$(hash_sha256 "$target")
   if [ "$want" != "$got" ]; then
-    log_err "hash_sha256_verify checksum for '$TARGET' did not verify ${want} vs $got"
+    log_err "hash_sha256_verify checksum for '$target' did not verify ${want} vs $got"
     return 1
   fi
 )
@@ -359,28 +354,69 @@ github_release_tag() (
   echo "$tag"
 )
 
+# github_release_asset_url [release-url-prefix] [name] [version] [output-dir] [filename]
+#
+# outputs the url to the release asset
+#
+github_release_asset_url() (
+  download_url="$1"
+  name="$2"
+  version="$3"
+  filename="$4"
+
+  complete_filename="${name}_${version}_${filename}"
+  complete_url="${download_url}/${complete_filename}"
+
+  echo "${complete_url}"
+)
+
+# download_github_release_checksums_files [release-url-prefix] [name] [version] [output-dir] [filename]
+#
+# outputs path to the downloaded checksums related file
+#
+download_github_release_checksums_files() (
+  download_url="$1"
+  name="$2"
+  version="$3"
+  output_dir="$4"
+  filename="$5"
+
+  log_trace "download_github_release_checksums_files(url=${download_url}, name=${name}, version=${version}, output_dir=${output_dir}, filename=${filename})"
+
+  complete_filename="${name}_${version}_${filename}"
+  complete_url=$(github_release_asset_url "${download_url}" "${name}" "${version}" "${filename}")
+  output_path="${output_dir}/${complete_filename}"
+
+  http_download "${output_path}" "${complete_url}" "" || return 1
+  asset_file_exists "${output_path}" || return 1
+
+  log_trace "download_github_release_checksums_files() returned '${output_path}' for file '${complete_filename}'"
+
+  echo "${output_path}"
+)
+
 # download_github_release_checksums [release-url-prefix] [name] [version] [output-dir]
 #
 # outputs path to the downloaded checksums file
 #
 download_github_release_checksums() (
-  download_url="$1"
-  name="$2"
-  version="$3"
-  output_dir="$4"
+  download_github_release_checksums_files "$@" "checksums.txt"
+)
 
-  log_trace "download_github_release_checksums(url=${download_url}, name=${name}, version=${version}, output_dir=${output_dir})"
+# github_release_checksums_sig_url [release-url-prefix] [name] [version]
+#
+# outputs the url to the release checksums signature file
+#
+github_release_checksums_sig_url() (
+  github_release_asset_url "$@" "checksums.txt.sig"
+)
 
-  checksum_filename=${name}_${version}_checksums.txt
-  checksum_url=${download_url}/${checksum_filename}
-  output_path="${output_dir}/${checksum_filename}"
-
-  http_download "${output_path}" "${checksum_url}" ""
-  asset_file_exists "${output_path}"
-
-  log_trace "download_github_release_checksums() returned '${output_path}'"
-
-  echo "${output_path}"
+# github_release_checksums_cert_url [release-url-prefix] [name] [version]
+#
+# outputs the url to the release checksums certificate file
+#
+github_release_checksums_cert_url() (
+  github_release_asset_url "$@" "checksums.txt.pem"
 )
 
 # search_for_asset [checksums-file-path] [name] [os] [arch] [format]
@@ -536,7 +572,10 @@ download_and_install_asset() (
   format="$8"
   binary="$9"
 
-  asset_filepath=$(download_asset "${download_url}" "${download_path}" "${name}" "${os}" "${arch}" "${version}" "${format}")
+  if ! asset_filepath=$(download_asset "${download_url}" "${download_path}" "${name}" "${os}" "${arch}" "${version}" "${format}"); then
+      log_err "could not download asset for os='${os}' arch='${arch}' format='${format}'"
+      return 1
+  fi
 
   # don't continue if we couldn't download an asset
   if [ -z "${asset_filepath}" ]; then
@@ -546,6 +585,39 @@ download_and_install_asset() (
 
   install_asset "${asset_filepath}" "${install_path}" "${binary}"
 )
+
+# verify_sign [checksums-file-path] [verification-material-flags...]
+#
+# attempts verify the signature of the checksums file from the release workflow in Github Actions run against the main branch.
+# the verification material is either "--bundle <path>" or (for older releases) "--certificate <ref> --signature <ref>".
+#
+verify_sign() {
+  checksums_file=$1
+  shift
+
+  log_trace "verifying artifact ${checksums_file}"
+
+  log_file=$(mktemp)
+
+  ${COSIGN_BINARY} \
+    verify-blob "$checksums_file" \
+      "$@" \
+      --certificate-identity "https://github.com/${OWNER}/${REPO}/.github/workflows/release.yaml@refs/heads/main" \
+      --certificate-oidc-issuer "https://token.actions.githubusercontent.com" > "${log_file}" 2>&1
+
+  if [ $? -ne 0 ]; then
+    log_err "$(cat "${log_file}")"
+    # cosign older than v2.4.2 can't read the bundle's verification material and reports a missing cert
+    if [ "$1" = "--bundle" ] && grep -q "bundle does not contain cert" "${log_file}"; then
+      log_err "note: releases >= ${VERIFY_SIGN_BUNDLE_VERSION} are verified with a sigstore bundle, which requires cosign v2.5.0 or newer (check '${COSIGN_BINARY} version')"
+    fi
+    rm -f "${log_file}"
+    return 1
+  fi
+
+  rm -f "${log_file}"
+}
+
 
 # download_asset [release-url-prefix] [download-path] [name] [os] [arch] [version] [format] [binary]
 #
@@ -562,7 +634,10 @@ download_asset() (
 
   log_trace "download_asset(url=${download_url}, destination=${destination}, name=${name}, os=${os}, arch=${arch}, version=${version}, format=${format})"
 
-  checksums_filepath=$(download_github_release_checksums "${download_url}" "${name}" "${version}" "${destination}")
+  if ! checksums_filepath=$(download_github_release_checksums "${download_url}" "${name}" "${version}" "${destination}"); then
+    log_err "unable to download checksums file"
+    return 1
+  fi
 
   log_trace "checksums content:\n$(cat ${checksums_filepath})"
 
@@ -573,11 +648,43 @@ download_asset() (
       return 1
   fi
 
+  if [ "$VERIFY_SIGN" = true ]; then
+    if compare_semver "${version}" "${VERIFY_SIGN_BUNDLE_VERSION}"; then
+      if ! checksums_bundle_filepath=$(download_github_release_checksums_files "${download_url}" "${name}" "${version}" "${destination}" "checksums.txt.sigstore.json"); then
+        log_err "unable to download checksums signature bundle"
+        return 1
+      fi
+      log_trace "checksums bundle: ${checksums_bundle_filepath}"
+
+      set -- --bundle "${checksums_bundle_filepath}"
+    else
+      checksum_sig_file_url=$(github_release_checksums_sig_url "${download_url}" "${name}" "${version}")
+      log_trace "checksums signature url: ${checksum_sig_file_url}"
+
+      checksums_cert_file_url=$(github_release_checksums_cert_url "${download_url}" "${name}" "${version}")
+      log_trace "checksums certificate url: ${checksums_cert_file_url}"
+
+      set -- --certificate "${checksums_cert_file_url}" --signature "${checksum_sig_file_url}"
+    fi
+
+    if ! verify_sign "${checksums_filepath}" "$@"; then
+      log_err "signature verification failed"
+      return 1
+    fi
+    log_info "signature verification succeeded"
+  fi
+
   asset_url="${download_url}/${asset_filename}"
   asset_filepath="${destination}/${asset_filename}"
-  http_download "${asset_filepath}" "${asset_url}" ""
+  if ! http_download "${asset_filepath}" "${asset_url}" ""; then
+    log_err "unable to download asset '${asset_url}'"
+    return 1
+  fi
 
-  hash_sha256_verify "${asset_filepath}" "${checksums_filepath}"
+  # this is what ties the asset to the (optionally signature verified) checksums file, so a mismatch must stop the install
+  if ! hash_sha256_verify "${asset_filepath}" "${checksums_filepath}"; then
+    return 1
+  fi
 
   log_trace "download_asset_by_checksums_file() returned '${asset_filepath}'"
 
@@ -610,6 +717,79 @@ install_asset() (
   install "${archive_dir}/${binary}" "${destination}/"
 )
 
+# compare two semver strings. Returns 0 if version1 >= version2, 1 otherwise.
+# Note: pre-release (-) and metadata (+) are not supported.
+compare_semver() {
+    # remove leading 'v' if present
+    version1=${1#v}
+    version2=${2#v}
+
+    IFS=. read -r major1 minor1 patch1 <<EOF
+$version1
+EOF
+    IFS=. read -r major2 minor2 patch2 <<EOF
+$version2
+EOF
+
+    if [ "$major1" -gt "$major2" ]; then
+        return 0
+    elif [ "$major1" -lt "$major2" ]; then
+        return 1
+    fi
+
+    if [ "$minor1" -gt "$minor2" ]; then
+        return 0
+    elif [ "$minor1" -lt "$minor2" ]; then
+        return 1
+    fi
+
+    if [ "$patch1" -gt "$patch2" ]; then
+        return 0
+    elif [ "$patch1" -lt "$patch2" ]; then
+        return 1
+    fi
+
+    # versions are equal
+    return 0
+}
+
+prep_signature_verification() {
+  version="$1"
+
+  if [ "$VERIFY_SIGN" != true ]; then
+    return 0
+  fi
+
+  # is there any cryptographic material produced at release that we can use for signature verification?
+  if ! compare_semver "$version" "$VERIFY_SIGN_SUPPORTED_VERSION"; then
+    log_err "${PROJECT_NAME} release '$version' does not support signature verification"
+    log_err "you can still install ${PROJECT_NAME} by removing the -v flag or using a release that supports signature verification (>= '$VERIFY_SIGN_SUPPORTED_VERSION')"
+    log_err "aborting installation"
+    return 1
+  else
+    log_trace "${PROJECT_NAME} release '$version' supports signature verification (>= '$VERIFY_SIGN_SUPPORTED_VERSION')"
+  fi
+
+  # will invoking an earlier version of this script work (considering the -v flag)?
+  if ! compare_semver "$version" "$VERIFY_SIGN_FLAG_VERSION"; then
+    # the -v argument did not always exist, so we cannot be guaranteed that invoking an earlier version of this script
+    # will work (error with "illegal option -v"). However, the user requested signature verification, so we will
+    # attempt to install the application with this version of the script (keeping signature verification).
+    DOWNLOAD_TAG_INSTALL_SCRIPT=false
+    log_debug "provided version install script does not support -v flag (>= '$VERIFY_SIGN_FLAG_VERSION'), using current script for installation"
+  else
+    log_trace "provided version install script supports -v flag (>= '$VERIFY_SIGN_FLAG_VERSION')"
+  fi
+
+  # check to see if the cosign binary is installed
+  if is_command "${COSIGN_BINARY}"; then
+    log_trace "${COSIGN_BINARY} binary is installed"
+  else
+    log_err "signature verification is requested but ${COSIGN_BINARY} binary is not installed (see https://docs.sigstore.dev/system_config/installation/ to install it)"
+    return 1
+  fi
+}
+
 main() (
   # parse arguments
 
@@ -617,7 +797,7 @@ main() (
   install_dir=${install_dir:-./bin}
 
   # note: never change the program flags or arguments (this must always be backwards compatible)
-  while getopts "b:dh?x" arg; do
+  while getopts "b:dvh?x" arg; do
     case "$arg" in
       b) install_dir="$OPTARG" ;;
       d)
@@ -629,25 +809,37 @@ main() (
           log_set_priority $log_trace_priority
         fi
         ;;
-      h | \?) usage "$0" ;;
+      v) VERIFY_SIGN=true;;
+      h | \?)
+        cat <<EOF
+Download and install a released binary for ${OWNER}/${REPO} from the github releases page
+
+Usage: $0 [-v] [-b DIR] [-d] [TAG]
+  -b DIR  the installation directory (defaults to ./bin)
+  -d      turns on debug logging
+  -dd     turns on trace logging
+  -v      verify checksum signature (requires cosign binary to be installed).
+  TAG     the specific release to use (if missing, then the latest will be used)
+EOF
+        exit 0
+      ;;
       x) set -x ;;
     esac
   done
   shift $((OPTIND - 1))
+
   set +u
   tag=$1
 
   if [ -z "${tag}" ]; then
-    log_debug "checking github for the current release tag"
+    log_info "checking github for the current release tag"
     tag=""
   else
-    log_debug "checking github for release tag='${tag}'"
+    log_info "checking github for release tag='${tag}'"
   fi
   set -u
 
-  tag=$(get_release_tag "${OWNER}" "${REPO}" "${tag}")
-
-  if [ "$?" != "0" ]; then
+  if ! tag=$(get_release_tag "${OWNER}" "${REPO}" "${tag}"); then
       log_err "unable to find tag='${tag}'"
       log_err "do not specify a version or select a valid version from https://github.com/${OWNER}/${REPO}/releases"
       return 1
@@ -661,6 +853,10 @@ main() (
   format=$(get_format_name "${os}" "${arch}" "tar.gz")
   binary=$(get_binary_name "${os}" "${arch}" "${PROJECT_NAME}")
   download_url="${GITHUB_DOWNLOAD_PREFIX}/${tag}"
+
+  if ! prep_signature_verification "$version"; then
+      return 1
+  fi
 
   # we always use the install.sh script that is associated with the tagged release. Why? the latest install.sh is not
   # guaranteed to be able to install every version of the application. We use the DOWNLOAD_TAG_INSTALL_SCRIPT env var
@@ -683,10 +879,8 @@ main() (
 
   log_debug "downloading files into ${download_dir}"
 
-  download_and_install_asset "${download_url}" "${download_dir}" "${install_dir}" "${PROJECT_NAME}" "${os}" "${arch}" "${version}" "${format}" "${binary}"
-
   # don't continue if we couldn't install the asset
-  if [ "$?" != "0" ]; then
+  if ! download_and_install_asset "${download_url}" "${download_dir}" "${install_dir}" "${PROJECT_NAME}" "${os}" "${arch}" "${version}" "${format}" "${binary}"; then
       log_err "failed to install ${PROJECT_NAME}"
       return 1
   fi
@@ -700,5 +894,6 @@ set +u
 if [ -z "${TEST_INSTALL_SH}" ]; then
   set -u
   main "$@"
+  exit $?
 fi
 set -u

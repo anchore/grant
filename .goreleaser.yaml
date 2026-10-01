@@ -89,16 +89,14 @@ sboms:
       - "--output"
       - "json=$document"
 
+# keyless signing of the checksums file via cosign + Github Actions OIDC.
+# the signature, certificate, and transparency log proof all land in a single sigstore bundle.
 signs:
   - cmd: .tool/cosign
-    signature: "${artifact}.sig"
-    certificate: "${artifact}.pem"
+    signature: "${artifact}.sigstore.json"
     args:
       - "sign-blob"
-      - "--use-signing-config=false"
-      - "--oidc-issuer=https://token.actions.githubusercontent.com"
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
+      - "--bundle=${signature}"
       - "${artifact}"
       - "--yes"
     artifacts: checksum
