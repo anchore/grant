@@ -39,7 +39,7 @@ tools:
   # used to generate the project demo GIF
   - name: vhs
     version:
-      want: v0.12.0
+      want: v0.12.1
     method: github-release
     with:
       repo: charmbracelet/vhs
