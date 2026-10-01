@@ -375,8 +375,8 @@ download_github_release_checksums() (
   checksum_url=${download_url}/${checksum_filename}
   output_path="${output_dir}/${checksum_filename}"
 
-  http_download "${output_path}" "${checksum_url}" ""
-  asset_file_exists "${output_path}"
+  http_download "${output_path}" "${checksum_url}" "" || return 1
+  asset_file_exists "${output_path}" || return 1
 
   log_trace "download_github_release_checksums() returned '${output_path}'"
 
@@ -562,7 +562,10 @@ download_asset() (
 
   log_trace "download_asset(url=${download_url}, destination=${destination}, name=${name}, os=${os}, arch=${arch}, version=${version}, format=${format})"
 
-  checksums_filepath=$(download_github_release_checksums "${download_url}" "${name}" "${version}" "${destination}")
+  if ! checksums_filepath=$(download_github_release_checksums "${download_url}" "${name}" "${version}" "${destination}"); then
+    log_err "unable to download checksums file"
+    return 1
+  fi
 
   log_trace "checksums content:\n$(cat ${checksums_filepath})"
 
@@ -575,9 +578,15 @@ download_asset() (
 
   asset_url="${download_url}/${asset_filename}"
   asset_filepath="${destination}/${asset_filename}"
-  http_download "${asset_filepath}" "${asset_url}" ""
+  if ! http_download "${asset_filepath}" "${asset_url}" ""; then
+    log_err "unable to download asset '${asset_url}'"
+    return 1
+  fi
 
-  hash_sha256_verify "${asset_filepath}" "${checksums_filepath}"
+  # this is what ties the asset to the checksums file, so a mismatch must stop the install
+  if ! hash_sha256_verify "${asset_filepath}" "${checksums_filepath}"; then
+    return 1
+  fi
 
   log_trace "download_asset_by_checksums_file() returned '${asset_filepath}'"
 
