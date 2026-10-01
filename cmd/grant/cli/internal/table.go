@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/gookit/color"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -67,13 +68,13 @@ func LicenseCell(width int, parts []LicensePart, more int) string {
 
 	plain := make([]string, len(parts))
 	for i, p := range parts {
-		plain[i] = p.Text
+		plain[i] = SanitizeText(p.Text)
 	}
 	stack := width > 0 && text.StringWidthWithoutEscSequences(joinLicenses(plain, more > 0)) > width
 
 	rendered := make([]string, len(parts))
 	for i, p := range parts {
-		s := p.Text
+		s := plain[i]
 		// ponytail: a link is never split since that breaks it, so an SPDX ID longer
 		// than the column overflows. The longest is ~40 chars, past the 20 floor only
 		// on very narrow terminals.
@@ -112,6 +113,18 @@ func style(p LicensePart, s string) string {
 		lines[i] = line
 	}
 	return strings.Join(lines, "\n")
+}
+
+// SanitizeText drops control characters (including ESC) from text that came
+// from an SBOM, so a package or license name cannot inject terminal escape
+// sequences (window titles, clipboard writes, fake links) into the output.
+func SanitizeText(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, s)
 }
 
 // colorize adapts a gookit color, which honors NO_COLOR and friends.

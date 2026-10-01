@@ -247,8 +247,8 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 		}
 
 		t.AppendRow(table.Row{
-			pkg.Name,
-			version,
+			SanitizeText(pkg.Name),
+			SanitizeText(version),
 			problematicLicenses,
 			risk,
 		})

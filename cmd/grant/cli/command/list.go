@@ -545,8 +545,8 @@ func printFilteredPackageTable(packages []grant.PackageFinding) error {
 		}
 
 		t.AppendRow(table.Row{
-			pkg.Name,
-			version,
+			internal.SanitizeText(pkg.Name),
+			internal.SanitizeText(version),
 			licenses,
 			risk,
 		})

@@ -88,3 +88,13 @@ func TestLicenseCellRendersIntactLinks(t *testing.T) {
 		assert.Contains(t, text.StripEscape(out), id)
 	}
 }
+
+func TestSanitizeText(t *testing.T) {
+	assert.Equal(t, "evil]0;pwnedname", SanitizeText("evil\x1b]0;pwned\x07name"))
+	assert.Equal(t, "GPL-2.0-only", SanitizeText("GPL-2.0-only"))
+	assert.Equal(t, "ab", SanitizeText("a\u009bb"), "C1 CSI is dropped too")
+
+	// license text is sanitized before the cell adds its own escapes
+	cell := LicenseCell(0, []LicensePart{{Text: "MIT\x1b]52;c;aGk=\x07"}}, 0)
+	assert.Equal(t, "MIT]52;c;aGk=", cell)
+}

@@ -483,8 +483,8 @@ func printPackageTableUnlicensed(packages []grant.PackageFinding) error {
 		problematicLicenses := color.Red.Sprint("(no licenses found)")
 
 		t.AppendRow(table.Row{
-			pkg.Name,
-			version,
+			internal.SanitizeText(pkg.Name),
+			internal.SanitizeText(version),
 			problematicLicenses,
 		})
 	}
