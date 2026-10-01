@@ -1,6 +1,13 @@
 package internal
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestWrappedColumnWidth(t *testing.T) {
 	tests := []struct {
@@ -15,11 +22,69 @@ func TestWrappedColumnWidth(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if got := wrappedColumnWidth(tt.terminalWidth); got != tt.want {
-				t.Errorf("wrappedColumnWidth(%d) = %d, want %d", tt.terminalWidth, got, tt.want)
+			assert.Equal(t, tt.want, wrappedColumnWidth(tt.terminalWidth))
+		})
+	}
+}
+
+func TestLicenseCell(t *testing.T) {
+	rpm := "ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2"
+
+	tests := []struct {
+		name  string
+		width int
+		parts []string
+		more  int
+		want  string
+	}{
+		{name: "no limit joins on one line", width: 0, parts: []string{"MIT", "Apache-2.0"}, more: 3, want: "MIT, Apache-2.0 (+3 more)"},
+		{name: "fits joins on one line", width: 40, parts: []string{"MIT", "Apache-2.0"}, more: 3, want: "MIT, Apache-2.0 (+3 more)"},
+		{name: "too wide puts each license on its own line", width: 20, parts: []string{"MIT", "Apache-2.0"}, more: 3, want: "MIT\nApache-2.0\n(+3 more)"},
+		{name: "long expression soft wraps on words", width: 30, parts: []string{rpm}, want: text.WrapSoft(rpm, 30)},
+		{name: "no limit leaves a long expression alone", width: 0, parts: []string{rpm}, want: rpm},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var parts []LicensePart
+			for _, p := range tt.parts {
+				parts = append(parts, LicensePart{Text: p})
+			}
+			got := LicenseCell(tt.width, parts, tt.more)
+			assert.Equal(t, tt.want, text.StripEscape(got))
+			for _, line := range strings.Split(got, "\n") {
+				if tt.width > 0 {
+					assert.LessOrEqual(t, text.StringWidthWithoutEscSequences(line), tt.width, "line %q", line)
+				}
+				// no license or note is split mid-word
+				assert.False(t, strings.HasPrefix(text.StripEscape(line), "-"), "line %q", line)
 			}
 		})
+	}
+}
+
+// TestLicenseCellRendersIntactLinks renders through go-pretty, since splitting a
+// hyperlink across lines is what broke in the first place.
+func TestLicenseCellRendersIntactLinks(t *testing.T) {
+	parts := []LicensePart{
+		ClickableLicense("LGPL-2.1-or-later"),
+		ClickableLicense("Apache-2.0"),
+	}
+	cell := LicenseCell(20, parts, 3)
+
+	tw := table.NewWriter()
+	tw.AppendHeader(table.Row{"NAME", "LICENSE", "RISK"})
+	tw.AppendRow(table.Row{"multi", cell, "High"})
+	out := tw.Render()
+
+	for _, line := range strings.Split(out, "\n") {
+		opens := strings.Count(line, "\033]8;;https://")
+		closes := strings.Count(line, "\033]8;;\033\\")
+		assert.Equal(t, opens, closes, "unbalanced hyperlink on line %q", line)
+		assert.NotContains(t, line, "\033[8m", "conceal escape leaked into line %q", line)
+	}
+	for _, id := range []string{"LGPL-2.1-or-later", "Apache-2.0", "(+3 more)"} {
+		assert.Contains(t, text.StripEscape(out), id)
 	}
 }

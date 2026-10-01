@@ -22,16 +22,6 @@ const (
 	riskCategoryPermissive     = "Permissive"
 )
 
-// formatClickableLicense formats a license name as a clickable blue link if SPDX reference is available
-func formatClickableLicense(licenseName string) string {
-	if spdxLicense, err := spdxlicense.GetLicenseByID(licenseName); err == nil && spdxLicense.Reference != "" {
-		// Make it blue and clickable (no underline for table display)
-		return fmt.Sprintf("\033]8;;%s\033\\\033[34m%s\033[0m\033]8;;\033\\", spdxLicense.Reference, licenseName)
-	}
-	// Return the license name as-is if no SPDX reference available
-	return licenseName
-}
-
 // getHighestRisk returns the highest risk category from a list of licenses
 func getHighestRisk(licenses []grant.LicenseDetail) spdxlicense.RiskCategory {
 	highestRisk := spdxlicense.RiskCategoryUncategorized
@@ -542,12 +532,12 @@ func printFilteredPackageTable(packages []grant.PackageFinding) error {
 
 	// Set headers with uppercase to match grype style
 	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE", "RISK"})
-	internal.WrapWideColumns(t, "LICENSE")
+	width := internal.LicenseColumnWidth()
 
 	// Add rows for matching packages
 	for _, pkg := range packages {
 		// Format the licenses for this package
-		licenses := formatLicenses(pkg.Licenses)
+		licenses := formatLicenses(pkg.Licenses, width)
 		risk := formatRisk(pkg.Licenses)
 		version := pkg.Version
 		if version == "" {
@@ -567,12 +557,12 @@ func printFilteredPackageTable(packages []grant.PackageFinding) error {
 }
 
 // formatLicenses formats licenses for display
-func formatLicenses(licenses []grant.LicenseDetail) string {
+func formatLicenses(licenses []grant.LicenseDetail, width int) string {
 	if len(licenses) == 0 {
 		return "(no licenses found)"
 	}
 
-	var licenseStrs []string
+	var licenseParts []internal.LicensePart
 	for _, license := range licenses {
 		licenseStr := license.ID
 		if license.Name != "" && license.ID == "" {
@@ -587,15 +577,15 @@ func formatLicenses(licenses []grant.LicenseDetail) string {
 			licenseStr = "sha256:" + licenseStr[7:15] + "..."
 		}
 
-		licenseStrs = append(licenseStrs, formatClickableLicense(licenseStr))
+		licenseParts = append(licenseParts, internal.ClickableLicense(licenseStr))
 	}
 
 	// Show max 2 licenses before showing (+n more)
-	if len(licenseStrs) > 2 {
-		return strings.Join(licenseStrs[:2], ", ") + fmt.Sprintf(" (+%d more)", len(licenseStrs)-2)
+	if len(licenseParts) > 2 {
+		return internal.LicenseCell(width, licenseParts[:2], len(licenseParts)-2)
 	}
 
-	return strings.Join(licenseStrs, ", ")
+	return internal.LicenseCell(width, licenseParts, 0)
 }
 
 // printAggregatedLicenseTable prints licenses grouped by license name with package counts
@@ -674,7 +664,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 
 	// Set headers
 	t.AppendHeader(table.Row{"LICENSE", "PACKAGES", "RISK"})
-	internal.WrapWideColumns(t, "LICENSE", "PACKAGES")
+	width := internal.LicenseColumnWidth()
 
 	// Add rows
 	for _, lc := range licenseCounts {
@@ -690,7 +680,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 				riskStr = color.Green.Sprint("Low")
 			}
 		}
-		t.AppendRow(table.Row{formatClickableLicense(lc.license), lc.count, riskStr})
+		t.AppendRow(table.Row{internal.LicenseCell(width, []internal.LicensePart{internal.ClickableLicense(lc.license)}, 0), lc.count, riskStr})
 	}
 
 	t.Render()
@@ -912,7 +902,6 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 
 	// Set headers
 	t.AppendHeader(table.Row{"RISK CATEGORY", "LICENSES", "PACKAGES"})
-	internal.WrapWideColumns(t, "LICENSES", "PACKAGES")
 
 	// Add rows in order of risk severity
 	categoryOrder := []string{riskCategoryStrongCopyleft, riskCategoryWeakCopyleft, riskCategoryPermissive}
