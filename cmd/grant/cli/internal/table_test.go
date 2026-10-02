@@ -1,13 +1,23 @@
 package internal
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/gookit/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/stretchr/testify/assert"
 )
+
+// escapes matches the SGR and OSC 8 sequences license cells emit. text.StripEscape
+// is not used since it mis-parses OSC 8 and can swallow text across lines.
+var escapes = regexp.MustCompile("\x1b\\[[0-9;]*m|\x1b\\]8;;[^\x1b]*\x1b\\\\")
+
+func stripEscapes(s string) string {
+	return escapes.ReplaceAllString(s, "")
+}
 
 func TestWrappedColumnWidth(t *testing.T) {
 	tests := []struct {
@@ -52,40 +62,51 @@ func TestLicenseCell(t *testing.T) {
 				parts = append(parts, LicensePart{Text: p})
 			}
 			got := LicenseCell(tt.width, parts, tt.more)
-			assert.Equal(t, tt.want, text.StripEscape(got))
+			assert.Equal(t, tt.want, stripEscapes(got))
 			for _, line := range strings.Split(got, "\n") {
 				if tt.width > 0 {
 					assert.LessOrEqual(t, text.StringWidthWithoutEscSequences(line), tt.width, "line %q", line)
 				}
 				// no license or note is split mid-word
-				assert.False(t, strings.HasPrefix(text.StripEscape(line), "-"), "line %q", line)
+				assert.False(t, strings.HasPrefix(stripEscapes(line), "-"), "line %q", line)
 			}
 		})
 	}
 }
 
 // TestLicenseCellRendersIntactLinks renders through go-pretty, since splitting a
-// hyperlink across lines is what broke in the first place.
+// hyperlink across lines is what broke in the first place. It runs with gookit
+// color on and off (NO_COLOR), since that changes which parts carry escapes.
 func TestLicenseCellRendersIntactLinks(t *testing.T) {
-	parts := []LicensePart{
-		ClickableLicense("LGPL-2.1-or-later"),
-		ClickableLicense("Apache-2.0"),
-	}
-	cell := LicenseCell(20, parts, 3)
+	for _, enabled := range []bool{true, false} {
+		t.Run(map[bool]string{true: "color", false: "no color"}[enabled], func(t *testing.T) {
+			prev := color.Enable
+			color.Enable = enabled
+			t.Cleanup(func() { color.Enable = prev })
 
-	tw := table.NewWriter()
-	tw.AppendHeader(table.Row{"NAME", "LICENSE", "RISK"})
-	tw.AppendRow(table.Row{"multi", cell, "High"})
-	out := tw.Render()
+			parts := []LicensePart{
+				ClickableLicense("LGPL-2.1-or-later"),
+				ClickableLicense("Apache-2.0"),
+			}
+			cell := LicenseCell(20, parts, 3)
 
-	for _, line := range strings.Split(out, "\n") {
-		opens := strings.Count(line, "\033]8;;https://")
-		closes := strings.Count(line, "\033]8;;\033\\")
-		assert.Equal(t, opens, closes, "unbalanced hyperlink on line %q", line)
-		assert.NotContains(t, line, "\033[8m", "conceal escape leaked into line %q", line)
-	}
-	for _, id := range []string{"LGPL-2.1-or-later", "Apache-2.0", "(+3 more)"} {
-		assert.Contains(t, text.StripEscape(out), id)
+			tw := table.NewWriter()
+			tw.AppendHeader(table.Row{"NAME", "LICENSE", "RISK"})
+			tw.AppendRow(table.Row{"multi", cell, "High"})
+			out := tw.Render()
+
+			for _, line := range strings.Split(out, "\n") {
+				opens := strings.Count(line, "\033]8;;https://")
+				closes := strings.Count(line, "\033]8;;\033\\")
+				assert.Equal(t, opens, closes, "unbalanced hyperlink on line %q", line)
+				assert.NotContains(t, line, "\033[8m", "conceal escape leaked into line %q", line)
+			}
+			plain := stripEscapes(out)
+			assert.NotContains(t, plain, "\x1b", "unexpected escape left after stripping")
+			for _, id := range []string{"LGPL-2.1-or-later", "Apache-2.0", "(+3 more)"} {
+				assert.Contains(t, plain, id)
+			}
+		})
 	}
 }
 
