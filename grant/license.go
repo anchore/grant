@@ -13,8 +13,8 @@ import (
 
 type LicenseID string
 
-// License is a grant license. Either SPDXExpression or Name will be set.
-// If SPDXExpression is set, Name will be empty.
+// License is a grant license. SPDXExpression is set when the license resolved
+// against the SPDX license list, otherwise Name holds the raw license value.
 // Locations are the relative paths for a license that show evidence of its detection.
 type License struct {
 	ID LicenseID `json:"id"`
@@ -27,8 +27,9 @@ type License struct {
 	// Locations are the paths for a package that show evidence of the license
 	Locations []string `json:"location"`
 
-	// These fields are lifted from the SPDX license list.
-	// internal/spdxlicnse/license.go
+	// These fields (and Name, when SPDXExpression is set) are lifted from the SPDX
+	// license list, see internal/spdxlicense/license.go. For an expression with an
+	// exception, e.g. "Apache-2.0 WITH LLVM-exception", they describe the base license.
 	Reference             string   `json:"reference"`
 	IsDeprecatedLicenseID bool     `json:"isDeprecatedLicenseId"`
 	DetailsURL            string   `json:"detailsUrl"`
