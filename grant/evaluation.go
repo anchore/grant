@@ -97,10 +97,10 @@ func (c *Case) catalogedPackageCount() int {
 	return count
 }
 
-// packageKey identifies a package for deduplication. Name, version, and type
-// together distinguish a real package
-func packageKey(name, version, pkgType string) string {
-	return name + "@" + version + "@" + pkgType
+// packageKey identifies a package for deduplication. The qualified name (see
+// Package.QualifiedName), version, and type together distinguish a real package
+func packageKey(group, name, version, pkgType string) string {
+	return qualifyName(group, name) + "@" + version + "@" + pkgType
 }
 
 // mergeDuplicatePackages collapses every cataloged entry for a given package
@@ -113,7 +113,7 @@ func mergeDuplicatePackages(licensePackages map[string][]*Package, packagesNoLic
 	seenLocations := make(map[string]map[string]bool)
 
 	add := func(pkg Package) {
-		key := packageKey(pkg.Name, pkg.Version, pkg.Type)
+		key := packageKey(pkg.Group, pkg.Name, pkg.Version, pkg.Type)
 		current, ok := merged[key]
 		if !ok {
 			clone := pkg
@@ -165,7 +165,7 @@ func mergeDuplicatePackages(licensePackages map[string][]*Package, packagesNoLic
 // evaluatePackage evaluates a single package with licenses against the policy
 func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 	// Check if package should be ignored
-	if policy.IsPackageIgnored(pkg.Name) {
+	if policy.isPackageIgnored(*pkg) {
 		return PackageResult{
 			Package: *pkg,
 			Reason:  reasonPackageIgnored,
@@ -229,7 +229,7 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 // evaluatePackageNoLicense evaluates a package that has no licenses
 func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageResult {
 	// Check if package should be ignored
-	if policy.IsPackageIgnored(pkg.Name) {
+	if policy.isPackageIgnored(*pkg) {
 		return PackageResult{
 			Package: *pkg,
 			Reason:  reasonPackageIgnored,

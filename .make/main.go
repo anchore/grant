@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	. "github.com/anchore/go-make"
+	"github.com/anchore/go-make/file"
 	"github.com/anchore/go-make/lang"
 	"github.com/anchore/go-make/run"
 	"github.com/anchore/go-make/tasks/golint"
@@ -29,17 +30,13 @@ func main() {
 			// exclude integration tests under tests/ (run separately)
 			gotest.ExcludeGlob("**/tests/**"),
 			gotest.CoverageThreshold(8),
-			// TODO: re-enable race detection once google/licenseclassifier/v2 fixes its data race
-			// in ClassifyLicenses (see backend/backend.go:96-100). Currently triggers a false-positive
-			// race report under TestHandleDir_SBOMLicenseScan in CI. go-make defaults Race=true in CI;
-			// override here.
-			func(c *gotest.Config) { c.Race = false },
 		),
 		gotest.FixtureTasks().RunOn("unit"),
 
 		staticAnalysisTask(),
 		licenseValidationTask(),
 		cliTestTask(),
+		installTestTasks(),
 
 		generateTasks(),
 		demoTask(),
@@ -55,6 +52,43 @@ func cliTestTask() Task {
 		Description: "run CLI tests against the grant binary",
 		Run: func() {
 			Run("go test -count=1 -timeout=15m ./tests/cli/...")
+		},
+	}
+}
+
+// installTestTasks drives the install.sh test suite under tests/install (unit tests plus acceptance
+// tests against real releases in docker, or locally on mac).
+func installTestTasks() Task {
+	return Task{
+		Tasks: []Task{
+			{
+				Name:        "install-test",
+				Description: "run install.sh unit and acceptance tests",
+				Run: func() {
+					file.InDir("tests/install", func() { Run("make") })
+				},
+			},
+			{
+				Name:        "install-test-cache-save",
+				Description: "save install.sh test image cache",
+				Run: func() {
+					file.InDir("tests/install", func() { Run("make save") })
+				},
+			},
+			{
+				Name:        "install-test-cache-load",
+				Description: "load install.sh test image cache",
+				Run: func() {
+					file.InDir("tests/install", func() { Run("make load") })
+				},
+			},
+			{
+				Name:        "install-test-ci-mac",
+				Description: "run install.sh unit and acceptance tests on mac (CI)",
+				Run: func() {
+					file.InDir("tests/install", func() { Run("make ci-test-mac") })
+				},
+			},
 		},
 	}
 }

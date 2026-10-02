@@ -460,12 +460,12 @@ func TestMergeDuplicatePackages(t *testing.T) {
 
 	byKey := make(map[string]*Package)
 	for _, p := range merged {
-		byKey[packageKey(p.Name, p.Version, p.Type)] = p
+		byKey[packageKey(p.Group, p.Name, p.Version, p.Type)] = p
 	}
 
 	require.Len(t, byKey, 3, "expected 3 distinct packages: python@1.0.0, python@2.0.0, npm@1.0.0")
 
-	v1 := byKey[packageKey("dup-pkg", "1.0.0", "python")]
+	v1 := byKey[packageKey("", "dup-pkg", "1.0.0", "python")]
 	require.NotNil(t, v1, "missing merged dup-pkg@1.0.0 (python)")
 
 	// licenses are unioned across all three entries
@@ -476,8 +476,8 @@ func TestMergeDuplicatePackages(t *testing.T) {
 		"dup-pkg@1.0.0 should union locations without duplicates")
 
 	// a different version and a different type stay separate
-	assert.Contains(t, byKey, packageKey("dup-pkg", "2.0.0", "python"), "distinct version should be kept separate")
-	assert.Contains(t, byKey, packageKey("dup-pkg", "1.0.0", "npm"), "distinct type should be kept separate from the python package of the same name@version")
+	assert.Contains(t, byKey, packageKey("", "dup-pkg", "2.0.0", "python"), "distinct version should be kept separate")
+	assert.Contains(t, byKey, packageKey("", "dup-pkg", "1.0.0", "npm"), "distinct type should be kept separate from the python package of the same name@version")
 }
 
 // Helper function to create a Case from packages for testing

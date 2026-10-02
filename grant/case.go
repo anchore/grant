@@ -5,14 +5,14 @@ import (
 	"context"
 	"fmt"
 	"io"
-	golog "log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
-	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	classifier "github.com/google/licenseclassifier/v2"
+	"github.com/google/licenseclassifier/v2/assets"
 	_ "modernc.org/sqlite" // sqlite used for rpmDB compatibility in syft
 
 	"github.com/anchore/go-collections"
@@ -118,12 +118,16 @@ func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string
 	}
 }
 
-// TODO: we definitely only want ONE backend for all of Grant
+// TODO: we definitely only want ONE classifier for all of Grant
 type CaseHandler struct {
-	Backend      *backend.ClassifierBackend
-	Config       CaseConfig
-	backendMutex sync.Mutex
-	activeOps    sync.WaitGroup // Tracks active backend operations to prevent premature closure
+	Config CaseConfig
+
+	// classifier is the google license classifier, used directly rather than through
+	// its tools/identify_license backend. That backend races closing its task channel
+	// against a final send (panic: send on closed channel), and never resets its
+	// results, so every call returned the matches of all previous calls too.
+	classifier   *classifier.Classifier
+	classifierMu sync.Mutex
 }
 
 type CaseConfig struct {
@@ -136,23 +140,18 @@ func NewCaseHandler() (*CaseHandler, error) {
 }
 
 func NewCaseHandlerWithConfig(config CaseConfig) (*CaseHandler, error) {
-	be, err := backend.New()
+	c, err := assets.DefaultClassifier()
 	if err != nil {
 		return &CaseHandler{}, err
 	}
 	return &CaseHandler{
-		Backend: be,
-		Config:  config,
+		Config:     config,
+		classifier: c,
 	}, nil
 }
 
-func (ch *CaseHandler) Close() {
-	// Wait for all active backend operations to complete before closing
-	// This prevents the "send on closed channel" panic when goroutines
-	// spawned by ClassifyLicensesWithContext are still running
-	ch.activeOps.Wait()
-	ch.Backend.Close()
-}
+// Close is a no-op, kept so callers can keep deferring it.
+func (ch *CaseHandler) Close() {}
 
 // A valid userRequest can be:
 // - a container image -> (ubuntu:latest)
@@ -272,35 +271,17 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 
 func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 	// alright we couldn't get an SBOM, let's see if the bytes are just a LICENSE (google license classifier)
-
-	// Track this operation to prevent premature backend closure
-	ch.activeOps.Add(1)
-	defer ch.activeOps.Done()
-
-	// google license classifier is noisy, so we'll silence it for now
-	golog.SetOutput(io.Discard)
-
-	ch.backendMutex.Lock()
-	errs := ch.Backend.ClassifyLicensesWithContext(
-		context.Background(),
-		1000,
-		[]string{path},
-		false,
-	)
-	if errs != nil {
-		ch.backendMutex.Unlock()
-		for _, err := range errs {
-			log.Errorf("unable to classify license: %+v", err)
-		}
-		return nil, fmt.Errorf("unable to classify license: %+v", errs)
+	contents, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, fmt.Errorf("unable to classify license: unable to read %q: %w", path, err)
 	}
 
-	classifierResults := ch.Backend.GetResults()
-	ch.backendMutex.Unlock()
+	// match is not documented as safe for concurrent use, and handleDir classifies concurrently
+	ch.classifierMu.Lock()
+	classifierResults := ch.classifier.Match(contents)
+	ch.classifierMu.Unlock()
 
-	// re-enable logging for the rest of the application
-	golog.SetOutput(os.Stdout)
-	if len(classifierResults) == 0 {
+	if len(classifierResults.Matches) == 0 {
 		return nil, fmt.Errorf("no classifierResults from license classifier")
 	}
 
@@ -386,85 +367,139 @@ var skipDirectories = map[string]bool{
 	"temp":          true,
 }
 
-// skipSymlink reports whether d is a symlink that should be skipped.
-// This includes symlinks to directories and broken symlinks whose targets
-// no longer exist. Symlinks to regular files are not skipped.
-// WalkDir uses lstat semantics, so symlinks appear as non-directory entries
-// even when they point to directories.
-func skipSymlink(path string, d os.DirEntry) bool {
-	if d.Type()&os.ModeSymlink == 0 {
-		return false
+// searchLicenseFiles searches for license files recursively in the given directory.
+// The scan root is treated like a filesystem root: symlinks below it are resolved within
+// it (absolute targets are rebased under it and ".." cannot climb above it), matching how
+// syft's directory resolver treats the same scan target. Links can never escape the root.
+func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
+	files, err := findLicenseFiles(root)
+
+	var foundLicenses []License
+	for _, file := range files {
+		licenses, err := ch.handleLicenseFile(file)
+		if err != nil {
+			continue
+		}
+		foundLicenses = append(foundLicenses, licenses...)
 	}
-	fi, err := os.Stat(path)
-	return err != nil || fi.IsDir()
+	return foundLicenses, err
 }
 
-// searchLicenseFiles searches for license files recursively in the given directory
-func (ch *CaseHandler) searchLicenseFiles(root string) ([]License, error) {
-	patterns := licensepatterns.Patterns
-	visited := make(map[string]bool)
-	var foundLicenses []License
+// licenseFileFinder holds the state of a single findLicenseFiles call
+type licenseFileFinder struct {
+	root         string          // resolved scan root
+	searchedDirs map[string]bool // resolved dirs already walked, which also terminates symlink cycles
+	visited      map[string]bool // resolved files already matched
+	queue        []string        // resolved symlinked dirs still to walk
+	files        []string
+}
 
-	// check all directories in scan target for potential licenses
-	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return nil // Continue walking even if there's an error with a specific directory
-		}
-
-		// this returns false for a symlink to a directory
-		// current implementations of walk dir never descends into a symlinked dir
-		if d.IsDir() {
-			dirName := d.Name()
-			if skipDirectories[dirName] {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-
-		// TODO: grant's local license analysis (outside of the syft SBOM)
-		// does not follow/resolve directory symlinks. This should be improved.
-		// For now we need to skip these since WalkDir uses lstat semantics.
-		// If we do not skip symlinked dirs then they would get passed to the license classifier.
-		// This can cause errors as seen in: https://github.com/anchore/grant/issues/70
-		// Regular file symlink targets are allowed and work as expected
-		if skipSymlink(path, d) {
-			return nil
-		}
-
-		// skip if we've already processed this file
-		if visited[path] {
-			return nil
-		}
-
-		// look for file in license patterns
-		filename := filepath.Base(path)
-		for _, pattern := range patterns {
-			matched, err := filepath.Match(pattern, filename)
-			if err != nil {
-				continue
-			}
-			if matched {
-				visited[path] = true
-
-				licenses, err := ch.handleLicenseFile(path)
-				if err != nil {
-					continue
-				}
-
-				if len(licenses) > 0 {
-					foundLicenses = append(foundLicenses, licenses...)
-				}
-				break // Found a match, no need to check other patterns for this file
-			}
-		}
-
-		return nil
-	})
-
+// findLicenseFiles returns the resolved paths of license files under root, each at most once.
+func findLicenseFiles(root string) ([]string, error) {
+	absRoot, err := filepath.Abs(root)
 	if err != nil {
-		return foundLicenses, err
+		return nil, err
 	}
-	return foundLicenses, nil
+	resolvedRoot, err := filepath.EvalSymlinks(absRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	f := &licenseFileFinder{
+		root:         resolvedRoot,
+		searchedDirs: make(map[string]bool),
+		visited:      make(map[string]bool),
+		queue:        []string{resolvedRoot},
+	}
+
+	// WalkDir uses lstat semantics and never descends into symlinked dirs, so their resolved
+	// targets are queued for their own walk. Every queued path is under the root and free of
+	// symlinks, so paths seen during a walk are canonical and can be used as dedupe keys directly.
+	for len(f.queue) > 0 {
+		walkRoot := f.queue[0]
+		f.queue = f.queue[1:]
+
+		err := filepath.WalkDir(walkRoot, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return nil // Continue walking even if there's an error with a specific directory
+			}
+			return f.visit(walkRoot, path, d)
+		})
+		if err != nil {
+			return f.files, err
+		}
+	}
+	return f.files, nil
+}
+
+func (f *licenseFileFinder) visit(walkRoot, path string, d os.DirEntry) error {
+	if d.IsDir() {
+		// the walk root was already vetted by name (it's the scan root or a queued link)
+		if path != walkRoot && skipDirectories[d.Name()] {
+			return filepath.SkipDir
+		}
+		if f.searchedDirs[path] {
+			return filepath.SkipDir
+		}
+		f.searchedDirs[path] = true
+		return nil
+	}
+
+	target := path
+	if d.Type()&os.ModeSymlink != 0 {
+		var fi os.FileInfo
+		var ok bool
+		if target, fi, ok = f.resolveLink(path); !ok {
+			return nil
+		}
+		if fi.IsDir() {
+			// passing dirs to the license classifier causes errors: https://github.com/anchore/grant/issues/70
+			if !skipDirectories[d.Name()] && !f.searchedDirs[target] {
+				f.queue = append(f.queue, target)
+			}
+			return nil
+		}
+		if !fi.Mode().IsRegular() {
+			return nil
+		}
+	} else if !d.Type().IsRegular() {
+		// never hand FIFOs, devices or sockets to the classifier, reading them can block forever
+		return nil
+	}
+
+	// match against the entry's own name, so a LICENSE symlink is classified via its target
+	if !f.visited[target] && isLicenseFileName(d.Name()) {
+		f.visited[target] = true
+		f.files = append(f.files, target)
+	}
+	return nil
+}
+
+// resolveLink resolves the symlink at path within the scan root. Broken links and
+// symlink loops report ok=false.
+func (f *licenseFileFinder) resolveLink(path string) (string, os.FileInfo, bool) {
+	rel, err := filepath.Rel(f.root, path)
+	if err != nil {
+		return "", nil, false
+	}
+	target, err := securejoin.SecureJoin(f.root, rel)
+	if err != nil {
+		return "", nil, false
+	}
+	fi, err := os.Stat(target)
+	if err != nil {
+		return "", nil, false
+	}
+	return target, fi, true
+}
+
+func isLicenseFileName(name string) bool {
+	for _, pattern := range licensepatterns.Patterns {
+		if matched, err := filepath.Match(pattern, name); err == nil && matched {
+			return true
+		}
+	}
+	return false
 }
 
 func (ch *CaseHandler) handleContainer(image string) (c Case, err error) {
@@ -488,9 +523,9 @@ func getReadSeeker(path string) (io.ReadSeeker, error) {
 	return file, nil
 }
 
-func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
+func grantLicenseFromClassifierResults(r classifier.Results) []License {
 	licenses := make([]License, 0)
-	for _, license := range r {
+	for _, license := range r.Matches {
 		// TODO: sometimes the license classifier gives us more information than just the name.
 		// How do we want to handle this or include it in the grant.License?
 		if license.MatchType == "License" {

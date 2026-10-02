@@ -48,13 +48,26 @@ builds:
           env:
             - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
+  - id: windows-build
+    dir: ./cmd/grant
+    binary: grant
+    goos: [windows]
+    goarch: [amd64, arm64]
+    mod_timestamp: *build-timestamp
+    ldflags: *build-ldflags
+
 archives:
   - id: linux-archives
-    builds:
+    ids:
       - linux-build
   - id: darwin-archives
-    builds:
+    ids:
       - darwin-build
+  - id: windows-archives
+    formats:
+      - zip
+    ids:
+      - windows-build
 
 nfpms:
   - license: "Apache 2.0"
@@ -89,16 +102,14 @@ sboms:
       - "--output"
       - "json=$document"
 
+# keyless signing of the checksums file via cosign + Github Actions OIDC.
+# the signature, certificate, and transparency log proof all land in a single sigstore bundle.
 signs:
   - cmd: .tool/cosign
-    signature: "${artifact}.sig"
-    certificate: "${artifact}.pem"
+    signature: "${artifact}.sigstore.json"
     args:
       - "sign-blob"
-      - "--use-signing-config=false"
-      - "--oidc-issuer=https://token.actions.githubusercontent.com"
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
+      - "--bundle=${signature}"
       - "${artifact}"
       - "--yes"
     artifacts: checksum

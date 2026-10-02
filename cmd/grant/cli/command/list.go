@@ -22,16 +22,6 @@ const (
 	riskCategoryPermissive     = "Permissive"
 )
 
-// formatClickableLicense formats a license name as a clickable blue link if SPDX reference is available
-func formatClickableLicense(licenseName string) string {
-	if spdxLicense, err := spdxlicense.GetLicenseByID(licenseName); err == nil && spdxLicense.Reference != "" {
-		// Make it blue and clickable (no underline for table display)
-		return fmt.Sprintf("\033]8;;%s\033\\\033[34m%s\033[0m\033]8;;\033\\", spdxLicense.Reference, licenseName)
-	}
-	// Return the license name as-is if no SPDX reference available
-	return licenseName
-}
-
 // getHighestRisk returns the highest risk category from a list of licenses
 func getHighestRisk(licenses []grant.LicenseDetail) spdxlicense.RiskCategory {
 	highestRisk := spdxlicense.RiskCategoryUncategorized
@@ -542,11 +532,12 @@ func printFilteredPackageTable(packages []grant.PackageFinding) error {
 
 	// Set headers with uppercase to match grype style
 	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE", "RISK"})
+	width := internal.LicenseColumnWidth()
 
 	// Add rows for matching packages
 	for _, pkg := range packages {
 		// Format the licenses for this package
-		licenses := formatLicenses(pkg.Licenses)
+		licenses := formatLicenses(pkg.Licenses, width)
 		risk := formatRisk(pkg.Licenses)
 		version := pkg.Version
 		if version == "" {
@@ -554,8 +545,8 @@ func printFilteredPackageTable(packages []grant.PackageFinding) error {
 		}
 
 		t.AppendRow(table.Row{
-			pkg.Name,
-			version,
+			internal.SanitizeText(pkg.Name),
+			internal.SanitizeText(version),
 			licenses,
 			risk,
 		})
@@ -566,12 +557,12 @@ func printFilteredPackageTable(packages []grant.PackageFinding) error {
 }
 
 // formatLicenses formats licenses for display
-func formatLicenses(licenses []grant.LicenseDetail) string {
+func formatLicenses(licenses []grant.LicenseDetail, width int) string {
 	if len(licenses) == 0 {
 		return "(no licenses found)"
 	}
 
-	var licenseStrs []string
+	var licenseParts []internal.LicensePart
 	for _, license := range licenses {
 		licenseStr := license.ID
 		if license.Name != "" && license.ID == "" {
@@ -586,23 +577,23 @@ func formatLicenses(licenses []grant.LicenseDetail) string {
 			licenseStr = "sha256:" + licenseStr[7:15] + "..."
 		}
 
-		licenseStrs = append(licenseStrs, formatClickableLicense(licenseStr))
+		licenseParts = append(licenseParts, internal.ClickableLicense(licenseStr))
 	}
 
 	// Show max 2 licenses before showing (+n more)
-	if len(licenseStrs) > 2 {
-		return strings.Join(licenseStrs[:2], ", ") + fmt.Sprintf(" (+%d more)", len(licenseStrs)-2)
+	if len(licenseParts) > 2 {
+		return internal.LicenseCell(width, licenseParts[:2], len(licenseParts)-2)
 	}
 
-	return strings.Join(licenseStrs, ", ")
+	return internal.LicenseCell(width, licenseParts, 0)
 }
 
 // printAggregatedLicenseTable prints licenses grouped by license name with package counts
 func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
-	// First, deduplicate packages by name@version
+	// First, deduplicate packages by qualified name@version
 	uniquePackages := make(map[string]grant.PackageFinding)
 	for _, pkg := range packages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 		uniquePackages[packageKey] = pkg
 	}
 
@@ -610,7 +601,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 	licensePackages := make(map[string]map[string]bool)
 
 	for _, pkg := range uniquePackages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 
 		if len(pkg.Licenses) == 0 {
 			// Package with no licenses
@@ -673,6 +664,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 
 	// Set headers
 	t.AppendHeader(table.Row{"LICENSE", "PACKAGES", "RISK"})
+	width := internal.LicenseColumnWidth()
 
 	// Add rows
 	for _, lc := range licenseCounts {
@@ -688,7 +680,7 @@ func printAggregatedLicenseTable(packages []grant.PackageFinding) error {
 				riskStr = color.Green.Sprint("Low")
 			}
 		}
-		t.AppendRow(table.Row{formatClickableLicense(lc.license), lc.count, riskStr})
+		t.AppendRow(table.Row{internal.LicenseCell(width, []internal.LicensePart{internal.ClickableLicense(lc.license)}, 0), lc.count, riskStr})
 	}
 
 	t.Render()
@@ -711,9 +703,9 @@ func filterResultByPackage(result *grant.RunResponse, packageName string) *grant
 	for _, target := range result.Run.Targets {
 		matchedPackages := []grant.PackageFinding{}
 
-		// Filter packages by name
+		// Filter packages by name, accepting either the bare name or the group-qualified form
 		for _, pkg := range target.Evaluation.Findings.Packages {
-			if pkg.Name == packageName {
+			if pkg.Name == packageName || pkg.QualifiedName() == packageName {
 				matchedPackages = append(matchedPackages, pkg)
 			}
 		}
@@ -867,7 +859,7 @@ func outputRiskGroupedTable(target grant.TargetResult) error {
 
 	// Process each package
 	for _, pkg := range target.Evaluation.Findings.Packages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 
 		for _, license := range pkg.Licenses {
 			licenseKey := license.ID
@@ -983,48 +975,55 @@ func displayPackageDetails(result *grant.RunResponse, packageName string) error 
 		}
 
 		fmt.Printf("Name:     %s\n", pkg.Name)
+		if pkg.Group != "" {
+			fmt.Printf("Group:    %s\n", pkg.Group)
+		}
 		fmt.Printf("Version:  %s\n", pkg.Version)
 		fmt.Printf("Type:     %s\n", pkg.Type)
 		fmt.Printf("ID:       %s\n", pkg.ID)
 
-		// Display licenses with new formatting
-		if len(pkg.Licenses) == 0 {
-			fmt.Printf("Licenses: (no licenses found)\n")
-		} else {
-			fmt.Printf("Licenses (%d):\n", len(pkg.Licenses))
-
-			for _, license := range pkg.Licenses {
-				// Use license ID or name as display name
-				licenseName := license.ID
-				if licenseName == "" {
-					licenseName = license.Name
-				}
-				if licenseName == "" {
-					licenseName = "(unknown)"
-				}
-
-				fmt.Println()
-				// Format with bullet point and make license name clickable if we have a reference
-				if license.Reference != "" {
-					// Make it blue and underlined to indicate it's clickable
-					fmt.Printf("• \x1b]8;;%s\x1b\\\x1b[34;4m%s\x1b[0m\x1b]8;;\x1b\\\n", license.Reference, licenseName)
-				} else {
-					fmt.Printf("• %s\n", licenseName)
-				}
-
-				// Format OSI Approved status with warning if false
-				osiStatus := fmt.Sprintf("OSI Approved: %t", license.IsOsiApproved)
-				if !license.IsOsiApproved {
-					osiStatus = color.Yellow.Sprintf("⚠️  OSI Approved: false")
-				}
-
-				fmt.Printf("  %s | Deprecated: %t\n", osiStatus, license.IsDeprecatedLicenseID)
-				if len(license.Evidence) > 0 {
-					fmt.Printf("  Evidence: %v\n", license.Evidence)
-				}
-			}
-		}
+		displayPackageLicenses(pkg.Licenses)
 	}
 
 	return nil
+}
+
+func displayPackageLicenses(licenses []grant.LicenseDetail) {
+	if len(licenses) == 0 {
+		fmt.Printf("Licenses: (no licenses found)\n")
+		return
+	}
+
+	fmt.Printf("Licenses (%d):\n", len(licenses))
+
+	for _, license := range licenses {
+		// Use license ID or name as display name
+		licenseName := license.ID
+		if licenseName == "" {
+			licenseName = license.Name
+		}
+		if licenseName == "" {
+			licenseName = "(unknown)"
+		}
+
+		fmt.Println()
+		// Format with bullet point and make license name clickable if we have a reference
+		if license.Reference != "" {
+			// Make it blue and underlined to indicate it's clickable
+			fmt.Printf("• \x1b]8;;%s\x1b\\\x1b[34;4m%s\x1b[0m\x1b]8;;\x1b\\\n", license.Reference, licenseName)
+		} else {
+			fmt.Printf("• %s\n", licenseName)
+		}
+
+		// Format OSI Approved status with warning if false
+		osiStatus := fmt.Sprintf("OSI Approved: %t", license.IsOsiApproved)
+		if !license.IsOsiApproved {
+			osiStatus = color.Yellow.Sprintf("⚠️  OSI Approved: false")
+		}
+
+		fmt.Printf("  %s | Deprecated: %t\n", osiStatus, license.IsDeprecatedLicenseID)
+		if len(license.Evidence) > 0 {
+			fmt.Printf("  Evidence: %v\n", license.Evidence)
+		}
+	}
 }
