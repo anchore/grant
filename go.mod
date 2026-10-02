@@ -5,7 +5,7 @@ go 1.26.8
 require (
 	github.com/anchore/clio v0.1.1
 	github.com/anchore/go-collections v0.1.1
-	github.com/anchore/go-logger v0.1.1
+	github.com/anchore/go-logger v0.2.0
 	github.com/anchore/packageurl-go v0.2.0
 	github.com/anchore/stereoscope v0.3.2
 	github.com/anchore/syft v1.52.0
