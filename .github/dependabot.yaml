@@ -1,13 +1,18 @@
+# Dependabot configuration
+
 version: 2
 
 updates:
 
   - package-ecosystem: gomod
-    directory: "/"
-    schedule:
-      interval: "daily"
+    directories:
+      - "/"
+      - "/.make"
     cooldown:
       default-days: 7
+    schedule:
+      interval: "weekly"
+      day: "friday"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
@@ -18,21 +23,14 @@ updates:
       - dependency-name: "github.com/knqyf263/go-deb-version"
 
   - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "daily"
+    directories:
+      - "/"
+      - "/.github/actions/*"
     cooldown:
       default-days: 7
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-
-  - package-ecosystem: "github-actions"
-    directory: "/.github/actions/bootstrap"
     schedule:
-      interval: "daily"
-    cooldown:
-      default-days: 7
+      interval: "weekly"
+      day: "friday"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"

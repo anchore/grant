@@ -75,7 +75,10 @@ type EvaluationSummaryJSON struct {
 }
 
 // PackageSummary contains package statistics
+// Cataloged is the number of packages the SBOM cataloged before duplicate
+// entries were merged; Total is the merged, unique packages that were evaluated.
 type PackageSummary struct {
+	Cataloged  int `json:"cataloged"`
 	Total      int `json:"total"`
 	Allowed    int `json:"allowed"`
 	Denied     int `json:"denied"`
@@ -100,11 +103,18 @@ type EvaluationFindings struct {
 type PackageFinding struct {
 	ID        string          `json:"id"`
 	Name      string          `json:"name"`
+	Group     string          `json:"group,omitempty"`
 	Type      string          `json:"type"`
 	Version   string          `json:"version"`
 	Decision  string          `json:"decision"` // allow | deny | ignore
 	Licenses  []LicenseDetail `json:"licenses"`
 	Locations []string        `json:"locations"`
+}
+
+// QualifiedName is the fully qualified identity of the package, used to tell apart two findings that
+// share a name under different groups. Name alone remains the matching identity.
+func (f PackageFinding) QualifiedName() string {
+	return qualifyName(f.Group, f.Name)
 }
 
 // LicenseDetail contains detailed license information
@@ -166,6 +176,7 @@ func ConvertEvaluationToTarget(evalResult *EvaluationResult, policy *Policy) Tar
 		Status: status,
 		Summary: EvaluationSummaryJSON{
 			Packages: PackageSummary{
+				Cataloged:  evalResult.Summary.CatalogedPackages,
 				Total:      evalResult.Summary.TotalPackages,
 				Allowed:    evalResult.Summary.AllowedPackages,
 				Denied:     evalResult.Summary.DeniedPackages,
@@ -229,7 +240,9 @@ func calculateLicenseStatistics(evalResult *EvaluationResult) licenseStatistics 
 	}
 }
 
-// buildEvaluationFindings creates findings from evaluation results with deduplication
+// buildEvaluationFindings creates findings from evaluation results, keyed by
+// packageKey. Evaluate already collapses each cataloged package to a single
+// category, so a package appears in exactly one of the result buckets here.
 func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	findings := EvaluationFindings{
 		Packages: []PackageFinding{},
@@ -240,7 +253,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	// Add allowed packages
 	for _, pkg := range evalResult.AllowedPackages {
 		finding := packageToFinding(pkg.Package, DecisionAllow)
-		key := pkg.Package.Name + "@" + pkg.Package.Version
+		key := packageKey(finding.Group, finding.Name, finding.Version, finding.Type)
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
 		}
@@ -249,7 +262,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	// Add denied packages
 	for _, pkg := range evalResult.DeniedPackages {
 		finding := packageToFindingWithDeniedLicenses(pkg.Package, DecisionDeny, pkg.DeniedLicenses)
-		key := pkg.Package.Name + "@" + pkg.Package.Version
+		key := packageKey(finding.Group, finding.Name, finding.Version, finding.Type)
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
 		}
@@ -258,7 +271,7 @@ func buildEvaluationFindings(evalResult *EvaluationResult) EvaluationFindings {
 	// Add ignored packages
 	for _, pkg := range evalResult.IgnoredPackages {
 		finding := packageToFinding(pkg.Package, DecisionIgnore)
-		key := pkg.Package.Name + "@" + pkg.Package.Version
+		key := packageKey(finding.Group, finding.Name, finding.Version, finding.Type)
 		if _, exists := packageMap[key]; !exists {
 			packageMap[key] = finding
 		}
@@ -319,6 +332,7 @@ func packageToFinding(pkg Package, decision string) PackageFinding {
 	return PackageFinding{
 		ID:        pkgID,
 		Name:      pkg.Name,
+		Group:     pkg.Group,
 		Type:      pkg.Type,
 		Version:   pkg.Version,
 		Decision:  decision,
@@ -370,6 +384,7 @@ func packageToFindingWithDeniedLicenses(pkg Package, decision string, deniedLice
 	return PackageFinding{
 		ID:        pkgID,
 		Name:      pkg.Name,
+		Group:     pkg.Group,
 		Type:      pkg.Type,
 		Version:   pkg.Version,
 		Decision:  decision,

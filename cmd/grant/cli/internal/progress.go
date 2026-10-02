@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	branch = "├──"
-	end    = "└──"
+	branch         = "├──"
+	end            = "└──"
+	analyzingValue = "[analyzing...]"
 )
 
 // ProgressDisplay manages the progress output for grant operations
@@ -137,7 +138,7 @@ func (p *ProgressDisplay) getStatusIcon(status StepStatus) string {
 }
 
 // getStatusColor returns the color function for a given status
-func (p *ProgressDisplay) getStatusColor(status StepStatus) func(a ...interface{}) string {
+func (p *ProgressDisplay) getStatusColor(status StepStatus) func(a ...any) string {
 	switch status {
 	case StatusComplete:
 		return color.Green.Sprint
@@ -161,9 +162,9 @@ func DisplayScanProgress(source string, sourceType string) *ProgressDisplay {
 
 	progress.AddStep("Cataloged contents")
 	progress.SetSubSteps(2, []SubStep{
-		{Icon: "✔", Title: "Packages", Value: "[analyzing...]"},
-		{Icon: "✔", Title: "Licenses", Value: "[analyzing...]"},
-		{Icon: "✔", Title: "File metadata", Value: "[analyzing...]"},
+		{Icon: "✔", Title: "Packages", Value: analyzingValue},
+		{Icon: "✔", Title: "Licenses", Value: analyzingValue},
+		{Icon: "✔", Title: "File metadata", Value: analyzingValue},
 	})
 	progress.CompleteStep(2)
 
@@ -180,11 +181,18 @@ func (p *ProgressDisplay) UpdateCatalogedContents(packages int, licenses int, fi
 	p.SetSubSteps(2, subSteps)
 }
 
+func formatPackageCount(total, cataloged int) string {
+	if cataloged > total {
+		return fmt.Sprintf("[%d packages, %d cataloged]", total, cataloged)
+	}
+	return fmt.Sprintf("[%d packages]", total)
+}
+
 // DisplaySummaryTree displays the summary in tree format
-func DisplaySummaryTree(total int, denied int, allowed int, ignored int, unlicensed int) {
+func DisplaySummaryTree(total int, cataloged int, denied int, allowed int, ignored int, unlicensed int) {
 	fmt.Printf(" %s Scanned for license compliance     %s\n",
 		color.Green.Sprint("✔"),
-		color.Gray.Sprintf("[%d packages]", total))
+		color.Gray.Sprint(formatPackageCount(total, cataloged)))
 
 	if denied > 0 || allowed > 0 || ignored > 0 || unlicensed > 0 {
 		var parts []string

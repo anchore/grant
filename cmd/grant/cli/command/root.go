@@ -24,6 +24,7 @@ const (
 	formatTable    = "table"
 	unknownLicense = "(unknown)"
 	noVersion      = "(no version)"
+	cmdName        = "grant"
 )
 
 // GlobalConfig holds configuration that applies to all commands
@@ -163,7 +164,7 @@ func isGrantJSONInput(target string) (*grant.RunResponse, bool) {
 	}
 
 	// Check if it has the expected grant JSON structure
-	if result.Tool == "grant" && result.Version != "" && len(result.Run.Targets) > 0 {
+	if result.Tool == cmdName && result.Version != "" && len(result.Run.Targets) > 0 {
 		return &result, true
 	}
 
@@ -233,7 +234,7 @@ func filterGrantJSONByLicenses(result *grant.RunResponse, licenseFilters []strin
 
 			if hasMatchingLicense {
 				// Use package name + version as deduplication key
-				packageKey := pkg.Name + "@" + pkg.Version
+				packageKey := pkg.QualifiedName() + "@" + pkg.Version
 				packageMap[packageKey] = pkg
 			}
 		}

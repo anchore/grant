@@ -87,7 +87,7 @@ func runConfig(cmd *cobra.Command, args []string) error {
 func generateConfig() (string, error) {
 	// Create a default configuration with common examples
 	config := FullConfig{
-		Format: "table",
+		Format: formatTable,
 		Allow: []string{
 			"MIT",
 			"Apache-2.0",

@@ -18,7 +18,7 @@ const (
 )
 
 var FuncMap = template.FuncMap{
-	"ToLower": func(format string, args ...interface{}) string {
+	"ToLower": func(format string, args ...any) string {
 		return strings.ToLower(fmt.Sprintf(format, args...))
 	},
 }

@@ -14,16 +14,6 @@ import (
 	"github.com/anchore/grant/internal/spdxlicense"
 )
 
-// formatClickableLicense formats a license name as a clickable blue link if SPDX reference is available
-func formatClickableLicense(licenseName string) string {
-	if spdxLicense, err := spdxlicense.GetLicenseByID(licenseName); err == nil && spdxLicense.Reference != "" {
-		// Make it blue and clickable (no underline for table display)
-		return fmt.Sprintf("\033]8;;%s\033\\\033[34m%s\033[0m\033]8;;\033\\", spdxLicense.Reference, licenseName)
-	}
-	// Return the license name as-is if no SPDX reference available
-	return licenseName
-}
-
 // getHighestRisk returns the highest risk category from a list of licenses
 func getHighestRisk(licenses []grant.LicenseDetail) spdxlicense.RiskCategory {
 	highestRisk := spdxlicense.RiskCategoryUncategorized
@@ -145,6 +135,7 @@ func (o *Output) outputTargetTable(target grant.TargetResult) error {
 	// Always show the final compliance summary tree
 	DisplaySummaryTree(
 		target.Evaluation.Summary.Packages.Total,
+		target.Evaluation.Summary.Packages.Cataloged,
 		target.Evaluation.Summary.Packages.Denied,
 		target.Evaluation.Summary.Packages.Allowed,
 		target.Evaluation.Summary.Packages.Ignored,
@@ -176,7 +167,7 @@ func (o *Output) outputListTargetTable(target grant.TargetResult) error {
 		"├──",
 		color.Green.Sprint("✔"),
 		"Packages",
-		fmt.Sprintf("[%d packages]", target.Evaluation.Summary.Packages.Total))
+		formatPackageCount(target.Evaluation.Summary.Packages.Total, target.Evaluation.Summary.Packages.Cataloged))
 
 	fmt.Printf("   %s %s %-30s %s\n",
 		"├──",
@@ -243,11 +234,12 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 
 	// Set headers with uppercase to match grype style
 	t.AppendHeader(table.Row{"NAME", "VERSION", "LICENSE", "RISK"})
+	width := LicenseColumnWidth()
 
 	// Add rows for denied packages only
 	for _, pkg := range deniedPackages {
 		// Only show the licenses that caused the denial
-		problematicLicenses := o.formatProblematicLicenses(pkg.Licenses)
+		problematicLicenses := o.formatProblematicLicenses(pkg.Licenses, width)
 		risk := formatRisk(pkg.Licenses)
 		version := pkg.Version
 		if version == "" {
@@ -255,8 +247,8 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 		}
 
 		t.AppendRow(table.Row{
-			pkg.Name,
-			version,
+			SanitizeText(pkg.Name),
+			SanitizeText(version),
 			problematicLicenses,
 			risk,
 		})
@@ -268,12 +260,13 @@ func (o *Output) printPackageTable(packages []grant.PackageFinding) error {
 }
 
 // formatProblematicLicenses formats only the problematic licenses for denied packages
-func (o *Output) formatProblematicLicenses(licenses []grant.LicenseDetail) string {
+func (o *Output) formatProblematicLicenses(licenses []grant.LicenseDetail, width int) string {
 	if len(licenses) == 0 {
 		return color.Red.Sprint("(no licenses found)")
 	}
 
-	var problematic []string
+	red := colorize(color.Red)
+	var problematic []LicensePart
 	for _, license := range licenses {
 		licenseStr := license.ID
 		if license.Name != "" && license.ID == "" {
@@ -285,30 +278,20 @@ func (o *Output) formatProblematicLicenses(licenses []grant.LicenseDetail) strin
 			licenseStr = "sha256:" + licenseStr[7:15] + "..."
 		}
 
-		// Format problematic licenses in red with hyperlinks
+		// Format problematic licenses in red, with hyperlinks when there is an SPDX reference
 		if licenseStr == "" || licenseStr == "(none)" {
-			problematic = append(problematic, color.Red.Sprint("(unknown)"))
+			problematic = append(problematic, LicensePart{Text: "(unknown)", Color: red})
 		} else {
-			// Check if we have an SPDX reference for the license
-			if spdxLicense, err := spdxlicense.GetLicenseByID(licenseStr); err == nil && spdxLicense.Reference != "" {
-				// Make it red and clickable
-				problematic = append(problematic, fmt.Sprintf("\033]8;;%s\033\\\033[31m%s\033[0m\033]8;;\033\\", spdxLicense.Reference, licenseStr))
-			} else {
-				problematic = append(problematic, color.Red.Sprint(licenseStr))
-			}
+			problematic = append(problematic, spdxPart(licenseStr, sgr("31"), red))
 		}
-	}
-
-	if len(problematic) == 0 {
-		return color.Red.Sprint("(no licenses found)")
 	}
 
 	// Show max 2 licenses before showing (+n more)
 	if len(problematic) > 2 {
-		return strings.Join(problematic[:2], ", ") + color.Gray.Sprintf(" (+%d more)", len(problematic)-2)
+		return LicenseCell(width, problematic[:2], len(problematic)-2)
 	}
 
-	return strings.Join(problematic, ", ")
+	return LicenseCell(width, problematic, 0)
 }
 
 // OutputSummaryOnly outputs just the summary information
@@ -357,10 +340,10 @@ func (o *Output) OutputQuiet(result *grant.RunResponse) error {
 
 // printAggregatedLicenseTable prints licenses grouped by license name with package counts
 func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) error {
-	// First, deduplicate packages by name@version
+	// First, deduplicate packages by qualified name@version
 	uniquePackages := make(map[string]grant.PackageFinding)
 	for _, pkg := range packages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 		uniquePackages[packageKey] = pkg
 	}
 
@@ -368,7 +351,7 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 	licensePackages := make(map[string]map[string]bool)
 
 	for _, pkg := range uniquePackages {
-		packageKey := pkg.Name + "@" + pkg.Version
+		packageKey := pkg.QualifiedName() + "@" + pkg.Version
 
 		if len(pkg.Licenses) == 0 {
 			// Package with no licenses
@@ -431,6 +414,7 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 
 	// Set headers
 	t.AppendHeader(table.Row{"LICENSE", "PACKAGES", "RISK"})
+	width := LicenseColumnWidth()
 
 	// Add rows
 	for _, lc := range licenseCounts {
@@ -446,7 +430,7 @@ func (o *Output) printAggregatedLicenseTable(packages []grant.PackageFinding) er
 				riskStr = color.Green.Sprint("Low")
 			}
 		}
-		t.AppendRow(table.Row{formatClickableLicense(lc.license), lc.count, riskStr})
+		t.AppendRow(table.Row{LicenseCell(width, []LicensePart{ClickableLicense(lc.license)}, 0), lc.count, riskStr})
 	}
 
 	t.Render()
