@@ -456,7 +456,7 @@ func TestMergeDuplicatePackages(t *testing.T) {
 	}
 	packagesNoLicenses := []Package{lockEntry}
 
-	merged := mergeDuplicatePackages(licensePackages, packagesNoLicenses)
+	merged, _ := mergeDuplicatePackages(licensePackages, packagesNoLicenses, nil)
 
 	byKey := make(map[string]*Package)
 	for _, p := range merged {
@@ -504,7 +504,9 @@ func createCaseFromPackages(packages []Package) *Case {
 		for _, license := range grantPkg.Licenses {
 			var syftLicense pkg.License
 			if license.SPDXExpression != "" {
+				// syft keeps the declared text in Value next to the parsed expression
 				syftLicense = pkg.License{
+					Value:          license.SPDXExpression,
 					SPDXExpression: license.SPDXExpression,
 				}
 			} else {
@@ -651,4 +653,159 @@ func licenseSlicesEqual(a, b []License) bool {
 	}
 
 	return true
+}
+
+// TestCase_Evaluate_SPDXExpressionOperators covers the SPDX 2.3 Annex D operator semantics: OR is a
+// choice between licenses (D.4.2), AND requires all of them (D.4.3), and "+" / "-or-later" mean
+// that version or any later one (D.3). Separate license declarations on one package still AND.
+func TestCase_Evaluate_SPDXExpressionOperators(t *testing.T) {
+	tests := []struct {
+		name         string
+		declarations [][]string // one inner slice per cataloged entry of the same package
+		policy       *Policy
+		wantAllowed  bool
+		wantDenied   []string // denied license strings, order independent
+	}{
+		{
+			name:         "OR passes when one alternative is allowed",
+			declarations: [][]string{{"MIT OR GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"MIT"}},
+			wantAllowed:  true,
+		},
+		{
+			name:         "OR fails when no alternative is allowed",
+			declarations: [][]string{{"MIT OR GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"Apache-2.0"}},
+			wantDenied:   []string{"MIT", "GPL-3.0-only"},
+		},
+		{
+			name:         "AND still requires every license",
+			declarations: [][]string{{"MIT AND GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"MIT"}},
+			wantDenied:   []string{"GPL-3.0-only"},
+		},
+		{
+			// the package from #500
+			name:         "OR chain with a WITH alternative passes on MIT",
+			declarations: [][]string{{"Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT"}},
+			policy:       &Policy{Allow: []string{"MIT"}},
+			wantAllowed:  true,
+		},
+		{
+			name:         "glob inside an OR resolves per alternative",
+			declarations: [][]string{{"(MIT OR BSD-3-Clause) AND GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"BSD-*", "GPL-3.0-only"}},
+			wantAllowed:  true,
+		},
+		{
+			name:         "regex style pattern inside an OR resolves per alternative",
+			declarations: [][]string{{"GPL-3.0-only OR BSD-2-Clause"}},
+			policy:       &Policy{Allow: []string{"BSD.*"}},
+			wantAllowed:  true,
+		},
+		{
+			name:         "AND of ORs fails when one conjunct has no allowed alternative",
+			declarations: [][]string{{"(MIT OR BSD-3-Clause) AND GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"MIT"}},
+			// the OR passed, so only the conjunct that failed is denied
+			wantDenied: []string{"GPL-3.0-only"},
+		},
+		{
+			name:         "a passing OR is not blamed for an unknown alternative",
+			declarations: [][]string{{"(LicenseRef-x OR MIT) AND GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"MIT"}, RequireKnownLicense: true},
+			wantDenied:   []string{"GPL-3.0-only"},
+		},
+		{
+			name:         "WITH requires the exception to be allowed",
+			declarations: [][]string{{"Apache-2.0 WITH LLVM-exception"}},
+			policy:       &Policy{Allow: []string{"Apache-2.0"}},
+		},
+		{
+			name:         "or-later is satisfied by an allowed later version",
+			declarations: [][]string{{"GPL-2.0-or-later"}},
+			policy:       &Policy{Allow: []string{"GPL-3.0-only"}},
+			wantAllowed:  true,
+		},
+		{
+			name:         "plus operator is satisfied by an allowed later version",
+			declarations: [][]string{{"LGPL-2.1+ OR GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"LGPL-3.0-only"}},
+			wantAllowed:  true,
+		},
+		{
+			name:         "only is not satisfied by a later version",
+			declarations: [][]string{{"GPL-2.0-only"}},
+			policy:       &Policy{Allow: []string{"GPL-3.0-only"}},
+			wantDenied:   []string{"GPL-2.0-only"},
+		},
+		{
+			name:         "separate declarations AND together",
+			declarations: [][]string{{"MIT", "GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"MIT"}},
+			wantDenied:   []string{"GPL-3.0-only"},
+		},
+		{
+			name:         "a duplicate catalog entry adds a declaration that must also pass",
+			declarations: [][]string{{"MIT OR GPL-3.0-only"}, {"GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"MIT"}},
+			wantDenied:   []string{"GPL-3.0-only"},
+		},
+		{
+			// both expressions share every atom, so they must not collapse into one
+			name:         "a stricter expression over the same atoms is not dropped",
+			declarations: [][]string{{"MIT OR GPL-3.0-only", "MIT AND GPL-3.0-only"}},
+			policy:       &Policy{Allow: []string{"MIT"}},
+			wantDenied:   []string{"GPL-3.0-only"},
+		},
+		{
+			name:         "require-known-license passes when a known alternative is allowed",
+			declarations: [][]string{{"MIT OR LicenseRef-custom"}},
+			policy:       &Policy{Allow: []string{"MIT"}, RequireKnownLicense: true},
+			wantAllowed:  true,
+		},
+		{
+			name:         "require-known-license denies when only the unknown alternative is allowed",
+			declarations: [][]string{{"GPL-3.0-only OR LicenseRef-custom"}},
+			policy:       &Policy{Allow: []string{"LicenseRef-*"}, RequireKnownLicense: true},
+			wantAllowed:  false,
+		},
+		{
+			name:         "malformed expression stays strict",
+			declarations: [][]string{{"MIT OR ("}},
+			policy:       &Policy{Allow: []string{"MIT"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var packages []Package
+			for _, declaration := range tt.declarations {
+				p := Package{Name: "pkg", Version: "1.0.0"}
+				for _, expression := range declaration {
+					p.Licenses = append(p.Licenses, License{SPDXExpression: expression})
+				}
+				packages = append(packages, p)
+			}
+
+			result, err := createCaseFromPackages(packages).Evaluate(tt.policy)
+			require.NoError(t, err)
+			require.Equal(t, 1, result.Summary.TotalPackages)
+
+			if tt.wantAllowed {
+				require.Len(t, result.AllowedPackages, 1, "expected allowed, got %+v", result.DeniedPackages)
+				assert.Empty(t, result.AllowedPackages[0].DeniedLicenses, "a passing package lists no denied licenses")
+				return
+			}
+
+			require.Len(t, result.DeniedPackages, 1, "expected denied, got %+v", result.AllowedPackages)
+			if tt.wantDenied != nil {
+				var denied []string
+				for _, l := range result.DeniedPackages[0].DeniedLicenses {
+					denied = append(denied, l.String())
+				}
+				assert.ElementsMatch(t, tt.wantDenied, denied)
+			}
+		})
+	}
 }

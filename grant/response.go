@@ -202,31 +202,36 @@ func calculateLicenseStatistics(evalResult *EvaluationResult) licenseStatistics 
 	unrecognizedLicenses := make(map[string]bool)
 	unlicensedCount := 0
 
-	// Process allowed packages
+	// allowed and denied counts come from the evaluation's per-license decisions, not every license a
+	// package declares, so an OR alternative a package did not need is counted as neither
 	for _, pkg := range evalResult.AllowedPackages {
 		for _, license := range pkg.Package.Licenses {
-			licenseStr := license.String()
-			uniqueLicenses[licenseStr] = true
-			allowedLicenses[licenseStr] = true
+			uniqueLicenses[license.String()] = true
+		}
+		for _, license := range pkg.AllowedLicenses {
+			allowedLicenses[license.String()] = true
 		}
 		if len(pkg.Package.Licenses) == 0 {
 			unlicensedCount++
 		}
 	}
 
-	// Process denied packages
 	for _, pkg := range evalResult.DeniedPackages {
 		if len(pkg.Package.Licenses) == 0 {
 			unlicensedCount++
-		} else {
-			for _, license := range pkg.Package.Licenses {
-				licenseStr := license.String()
-				uniqueLicenses[licenseStr] = true
-				deniedLicenses[licenseStr] = true
-
-				if license.Name != "" && license.SPDXExpression == "" {
-					unrecognizedLicenses[licenseStr] = true
-				}
+			continue
+		}
+		for _, license := range pkg.Package.Licenses {
+			uniqueLicenses[license.String()] = true
+		}
+		for _, license := range pkg.AllowedLicenses {
+			allowedLicenses[license.String()] = true
+		}
+		for _, license := range pkg.DeniedLicenses {
+			licenseStr := license.String()
+			deniedLicenses[licenseStr] = true
+			if license.Name != "" && license.SPDXExpression == "" {
+				unrecognizedLicenses[licenseStr] = true
 			}
 		}
 	}
@@ -353,7 +358,7 @@ func packageToFindingWithDeniedLicenses(pkg Package, decision string, deniedLice
 		// Find which licenses from the package are in the denied list
 		for _, license := range pkg.Licenses {
 			for _, denied := range deniedLicenses {
-				if license.String() == denied.String() {
+				if license.key() == denied.key() {
 					detail := LicenseDetail{
 						ID:                    license.String(),
 						Name:                  license.Name,
