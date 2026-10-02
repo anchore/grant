@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/github/go-spdx/v2/spdxexp"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,7 +27,8 @@ type Policy struct {
 	RequireKnownLicense bool `yaml:"require-known-license,omitempty"`
 }
 
-// IsLicensePermitted checks if a license is permitted by the policy
+// IsLicensePermitted checks if a license string matches an allow entry, literally or as a glob. It
+// does not apply SPDX expression operators or version ranges, which policy evaluation adds on top.
 func (p *Policy) IsLicensePermitted(license string) bool {
 	for _, permitted := range p.Allow {
 		// Direct match
@@ -44,6 +46,122 @@ func (p *Policy) IsLicensePermitted(license string) bool {
 	}
 
 	return false
+}
+
+// licenseMatcher answers allow decisions for one evaluation. On top of IsLicensePermitted it applies
+// SPDX ranges on the declared side (SPDX 2.3 Annex D.3): a declared "GPL-2.0-or-later" or "GPL-2.0+"
+// is allowed by "allow: [GPL-3.0-only]". go-spdx Satisfies does the range comparison, one license at
+// a time (see license_expression.go for why it never sees a whole expression). Its v2.7.0 behavior,
+// pinned in license_expression_test.go:
+//
+//   - "-only" is exact: "GPL-2.0-only" is not allowed by "GPL-3.0-only"
+//   - ranges stay within one license family: "LGPL-2.0-or-later" is not allowed by "GPL-3.0-only"
+//   - a range covers its own base version: "GPL-2.0-or-later" is allowed by "GPL-2.0-only"
+//   - deprecated IDs equal their "-only" form both ways: "GPL-2.0" and "GPL-2.0-only"
+//   - "X WITH E" is not allowed by an entry for X alone. It needs a literal entry with the same
+//     exception, or a glob matching the whole leaf text ("Apache-*" matches "Apache-2.0 WITH
+//     LLVM-exception"). Ranges and deprecated IDs still apply with the exception attached:
+//     "GPL-2.0-or-later WITH Classpath-exception-2.0" is allowed by "GPL-3.0-only WITH Classpath-exception-2.0"
+//   - go-spdx's range table has holes: "GFDL-1.1-invariants-or-later" is not allowed by
+//     "GFDL-1.3-invariants-only", and "MPL-1.1+" does not reach "MPL-2.0-no-copyleft-exception"
+//   - it also groups some unrelated licenses as versions of one family: "Brian-Gladman-2-Clause+" is
+//     allowed by "Brian-Gladman-3-Clause"
+//
+// Satisfies is only asked about declared licenses whose shape can match something other than
+// themselves (see rangeCandidate). Anything else is compared literally, so go-spdx's range table
+// never decides a plain ID, and a contradictory "GPL-2.0-only+" stays exact.
+//
+// Allow entries are only used as range targets when they are literal, canonical SPDX IDs that are
+// not ranges themselves. So globs, wrong case ("mit"), and ranges ("GPL-2.0-or-later", "GPL-2.0+",
+// with or without an exception) in the allow list keep matching literally, and allowing "GPL-2.0-or-later" never lets a plain
+// "GPL-3.0-only" package through.
+//
+// Not safe for concurrent use.
+type licenseMatcher struct {
+	policy *Policy
+	// targets are the allow entries usable as range targets
+	targets []string
+	// ranges caches range lookups by declared license (go-spdx rebuilds its range table every call)
+	ranges map[string]bool
+}
+
+func newLicenseMatcher(policy *Policy) *licenseMatcher {
+	m := &licenseMatcher{policy: policy, ranges: make(map[string]bool)}
+	for _, permitted := range policy.Allow {
+		// a range with an exception attached ("GPL-2.0-or-later WITH E") is still a range
+		base, _, _ := strings.Cut(permitted, " WITH ")
+		if strings.HasSuffix(base, "+") || strings.HasSuffix(base, "-or-later") {
+			continue
+		}
+		// parsing with go-spdx (not grant's index) keeps the targets to IDs Satisfies accepts, and
+		// requiring the canonical spelling keeps case-folding out of the allow list
+		if extracted, err := safeExtractLicenses(permitted); err == nil && len(extracted) == 1 && extracted[0] == permitted {
+			m.targets = append(m.targets, permitted)
+		}
+	}
+	return m
+}
+
+// allowed judges one license on its own
+func (m *licenseMatcher) allowed(license License) bool {
+	if m.policy.IsLicensePermitted(license.String()) {
+		return true
+	}
+	return license.IsSPDX() && m.inRange(license.SPDXExpression, license.IsDeprecatedLicenseID)
+}
+
+// leafAllowed judges one leaf of a declared expression: license is what the leaf flattened into, and
+// atom is the normalized SPDX atom, which still carries a "+" range the license dropped
+func (m *licenseMatcher) leafAllowed(license License, atom string) bool {
+	if m.policy.RequireKnownLicense && !license.IsSPDX() {
+		return false
+	}
+	if m.allowed(license) {
+		return true
+	}
+	// LicenseRefs have no ranges and were already matched literally above
+	if atom == "" || strings.Contains(atom, "LicenseRef-") {
+		return false
+	}
+	// the flattened license drops a "+" ("Apache-2.0+" flattens to "Apache-2.0"), so that range is
+	// only reachable through the atom
+	return (atom != license.String() && m.policy.IsLicensePermitted(atom)) || m.inRange(atom, license.IsDeprecatedLicenseID)
+}
+
+// rangeCandidate reports whether a declared license can be allowed by an allow entry other than
+// itself: a well formed range ("X+", "X-or-later"), or an ID with a deprecated alias ("GPL-2.0" and
+// "GPL-2.0-only" are the same license). A "+" on an ID that already states its range
+// ("GPL-2.0-only+") contradicts itself, so it is not a range.
+func rangeCandidate(license string, deprecated bool) bool {
+	base, _, _ := strings.Cut(license, " WITH ")
+	if id, ok := strings.CutSuffix(base, "+"); ok {
+		return !strings.HasSuffix(id, "-only") && !strings.HasSuffix(id, "-or-later")
+	}
+	return deprecated || strings.HasSuffix(base, "-or-later") || strings.HasSuffix(base, "-only")
+}
+
+func (m *licenseMatcher) inRange(license string, deprecated bool) bool {
+	if len(m.targets) == 0 || !rangeCandidate(license, deprecated) {
+		return false
+	}
+	if satisfied, ok := m.ranges[license]; ok {
+		return satisfied
+	}
+	satisfied := safeSatisfies(license, m.targets)
+	m.ranges[license] = satisfied
+	return satisfied
+}
+
+// safeSatisfies wraps spdxexp.Satisfies the same way safeExtractLicenses wraps parsing: the parser
+// panics on some inputs, and any failure must resolve to the stricter answer (not satisfied).
+func safeSatisfies(license string, allowed []string) (satisfied bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			satisfied = false
+		}
+	}()
+	satisfied, err := spdxexp.Satisfies(license, allowed)
+	return err == nil && satisfied
 }
 
 // convertRegexToGlob converts common regex patterns to shell glob patterns
