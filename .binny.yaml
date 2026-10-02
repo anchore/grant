@@ -8,7 +8,7 @@ tools:
   # supported version 2"). v2.13.2 is built with go1.27.
   - name: golangci-lint
     version:
-      want: v2.13.2
+      want: v2.14.0
     method: github-release
     with:
       repo: golangci/golangci-lint
