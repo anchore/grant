@@ -233,3 +233,35 @@ func stringSlicesEqual(a, b []string) bool {
 	}
 	return true
 }
+
+// TestPolicy_PatternSyntax pins the pattern contract documented on Policy for both allow and ignore-packages.
+// These cases differ between path.Match and filepath.Match on windows, so the windows CI runner catches a regression.
+func TestPolicy_PatternSyntax(t *testing.T) {
+	tests := []struct {
+		name    string
+		pattern string
+		input   string
+		want    bool
+	}{
+		{"star matches within a segment", "github.com/*/pinned", "github.com/org/pinned", true},
+		{"star does not cross separator", "github.com/*/pinned", "github.com/org/nested/pinned", false},
+		{"trailing star does not cross separator", "LicenseRef-*", "LicenseRef-a/b", false},
+		{"backslash escapes star", `a\*`, "a*", true},
+		{"escaped star is literal", `a\*`, "ab", false},
+		{"malformed pattern never matches", `foo[`, "foox", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			allow := &Policy{Allow: []string{tt.pattern}}
+			if got := allow.IsLicensePermitted(tt.input); got != tt.want {
+				t.Errorf("IsLicensePermitted(%q) with allow %q = %v, want %v", tt.input, tt.pattern, got, tt.want)
+			}
+
+			ignore := &Policy{IgnorePackages: []string{tt.pattern}}
+			if got := ignore.IsPackageIgnored(tt.input); got != tt.want {
+				t.Errorf("IsPackageIgnored(%q) with ignore %q = %v, want %v", tt.input, tt.pattern, got, tt.want)
+			}
+		})
+	}
+}

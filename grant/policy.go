@@ -3,13 +3,19 @@ package grant
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
-// Policy represents a simplified grant policy that can be decoded from YAML
+// Policy represents a simplified grant policy that can be decoded from YAML.
+//
+// Allow and IgnorePackages entries are glob patterns with path.Match syntax on every OS (never filepath.Match,
+// so results do not depend on the host): "*" matches within a single "/" segment, a backslash escapes the next character,
+// and a malformed pattern never matches. IgnorePackages additionally treats a trailing "/*" as matching any depth
+// ("github.com/org/*" matches "github.com/org/a/b").
 type Policy struct {
 	// Allow is a list of permitted licenses (supports glob patterns)
 	Allow []string `yaml:"allow,omitempty"`
@@ -37,8 +43,8 @@ func (p *Policy) IsLicensePermitted(license string) bool {
 		// Convert common regex-style patterns to glob patterns
 		pattern := convertRegexToGlob(permitted)
 
-		// Glob pattern match
-		if matched, err := filepath.Match(pattern, license); err == nil && matched {
+		// glob pattern match (see Policy for the syntax)
+		if matched, err := path.Match(pattern, license); err == nil && matched {
 			return true
 		}
 	}
@@ -68,8 +74,8 @@ func (p *Policy) IsPackageIgnored(packageName string) bool {
 			return true
 		}
 
-		// Glob pattern match - handle path-like patterns
-		if matched, err := filepath.Match(pattern, packageName); err == nil && matched {
+		// glob pattern match (see Policy for the syntax)
+		if matched, err := path.Match(pattern, packageName); err == nil && matched {
 			return true
 		}
 

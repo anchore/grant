@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/mitchellh/go-homedir"
 
@@ -53,9 +54,10 @@ func DefaultConfigLocations() []string {
 		}...)
 	}
 
-	// XDG_CONFIG_DIRS (defaults to /etc/xdg)
+	// XDG_CONFIG_DIRS (defaults to /etc/xdg, except on windows where there is no default)
 	configDirs := os.Getenv("XDG_CONFIG_DIRS")
-	if configDirs == "" {
+	if configDirs == "" && runtime.GOOS != "windows" {
+		// on windows "/etc/xdg" resolves to "\etc\xdg" at the drive root, which any local user can create
 		configDirs = "/etc/xdg"
 	}
 
