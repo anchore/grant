@@ -74,7 +74,16 @@ func GetLicenseByID(id string) (license SPDXLicense, err error) {
 
 	license, ok := index[strings.ToLower(id)]
 	if !ok {
-		return license, fmt.Errorf("SPDX license %s not found", id)
+		// the index is keyed by license ID alone, so "<license> WITH <exception>"
+		// resolves to the license the exception applies to. Exceptions only add
+		// permissions, so the base license's metadata (including risk) is an upper bound.
+		base, _, isException := strings.Cut(id, " WITH ")
+		if !isException {
+			return license, fmt.Errorf("SPDX license %s not found", id)
+		}
+		if license, ok = index[strings.ToLower(base)]; !ok {
+			return license, fmt.Errorf("SPDX license %s not found", id)
+		}
 	}
 
 	return license, nil
