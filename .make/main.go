@@ -30,11 +30,6 @@ func main() {
 			// exclude integration tests under tests/ (run separately)
 			gotest.ExcludeGlob("**/tests/**"),
 			gotest.CoverageThreshold(8),
-			// TODO: re-enable race detection once google/licenseclassifier/v2 fixes its data race
-			// in ClassifyLicenses (see backend/backend.go:96-100). Currently triggers a false-positive
-			// race report under TestHandleDir_SBOMLicenseScan in CI. go-make defaults Race=true in CI;
-			// override here.
-			func(c *gotest.Config) { c.Race = false },
 		),
 		gotest.FixtureTasks().RunOn("unit"),
 
