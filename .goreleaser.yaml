@@ -58,16 +58,15 @@ builds:
 
 archives:
   - id: linux-archives
-    builds:
+    ids:
       - linux-build
   - id: darwin-archives
-    builds:
+    ids:
       - darwin-build
-
   - id: windows-archives
     formats:
       - zip
-    builds:
+    ids:
       - windows-build
 
 nfpms:
