@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/google/licenseclassifier/v2/assets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
@@ -353,4 +355,59 @@ func TestSearchLicenseFiles_Symlinks(t *testing.T) {
 			assert.Len(t, licenses, tt.want)
 		})
 	}
+}
+
+// fullLicense writes a complete license text from the classifier's own assets to a
+// temp file. The testdata fixtures are short snippets the classifier does not match.
+func fullLicense(t *testing.T, asset string) string {
+	t.Helper()
+	b, err := assets.ReadLicenseFile(asset)
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "LICENSE")
+	require.NoError(t, os.WriteFile(path, b, 0o600))
+	return path
+}
+
+func TestHandleLicenseFile_ResultsAreIndependent(t *testing.T) {
+	ch, err := NewCaseHandler()
+	require.NoError(t, err)
+	defer ch.Close()
+
+	ids := func(path string) []string {
+		licenses, err := ch.handleLicenseFile(path)
+		require.NoError(t, err)
+		var out []string
+		for _, l := range licenses {
+			out = append(out, l.LicenseID)
+		}
+		return out
+	}
+
+	assert.Contains(t, ids(filepath.Join("testdata", "mit-license.txt")), "MIT")
+
+	// the old backend never reset its results, so this also returned MIT
+	apache := ids(fullLicense(t, "License/Apache-2.0/pristine.txt"))
+	assert.Contains(t, apache, "Apache-2.0")
+	assert.NotContains(t, apache, "MIT")
+}
+
+func TestHandleLicenseFile_Concurrent(t *testing.T) {
+	ch, err := NewCaseHandler()
+	require.NoError(t, err)
+	defer ch.Close()
+
+	// handleDir classifies concurrently; run with -race to check the classifier is guarded
+	files := []string{
+		filepath.Join("testdata", "mit-license.txt"),
+		fullLicense(t, "License/Apache-2.0/pristine.txt"),
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		f := files[i%len(files)]
+		wg.Go(func() {
+			_, err := ch.handleLicenseFile(f)
+			assert.NoError(t, err)
+		})
+	}
+	wg.Wait()
 }

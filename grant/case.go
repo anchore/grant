@@ -5,15 +5,14 @@ import (
 	"context"
 	"fmt"
 	"io"
-	golog "log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/google/licenseclassifier/v2/tools/identify_license/backend"
-	"github.com/google/licenseclassifier/v2/tools/identify_license/results"
+	classifier "github.com/google/licenseclassifier/v2"
+	"github.com/google/licenseclassifier/v2/assets"
 	_ "modernc.org/sqlite" // sqlite used for rpmDB compatibility in syft
 
 	"github.com/anchore/go-collections"
@@ -119,12 +118,16 @@ func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string
 	}
 }
 
-// TODO: we definitely only want ONE backend for all of Grant
+// TODO: we definitely only want ONE classifier for all of Grant
 type CaseHandler struct {
-	Backend      *backend.ClassifierBackend
-	Config       CaseConfig
-	backendMutex sync.Mutex
-	activeOps    sync.WaitGroup // Tracks active backend operations to prevent premature closure
+	Config CaseConfig
+
+	// classifier is the google license classifier, used directly rather than through
+	// its tools/identify_license backend. That backend races closing its task channel
+	// against a final send (panic: send on closed channel), and never resets its
+	// results, so every call returned the matches of all previous calls too.
+	classifier   *classifier.Classifier
+	classifierMu sync.Mutex
 }
 
 type CaseConfig struct {
@@ -137,23 +140,18 @@ func NewCaseHandler() (*CaseHandler, error) {
 }
 
 func NewCaseHandlerWithConfig(config CaseConfig) (*CaseHandler, error) {
-	be, err := backend.New()
+	c, err := assets.DefaultClassifier()
 	if err != nil {
 		return &CaseHandler{}, err
 	}
 	return &CaseHandler{
-		Backend: be,
-		Config:  config,
+		Config:     config,
+		classifier: c,
 	}, nil
 }
 
-func (ch *CaseHandler) Close() {
-	// Wait for all active backend operations to complete before closing
-	// This prevents the "send on closed channel" panic when goroutines
-	// spawned by ClassifyLicensesWithContext are still running
-	ch.activeOps.Wait()
-	ch.Backend.Close()
-}
+// Close is a no-op, kept so callers can keep deferring it.
+func (ch *CaseHandler) Close() {}
 
 // A valid userRequest can be:
 // - a container image -> (ubuntu:latest)
@@ -273,35 +271,17 @@ func (ch *CaseHandler) handleFile(path string) (c Case, err error) {
 
 func (ch *CaseHandler) handleLicenseFile(path string) ([]License, error) {
 	// alright we couldn't get an SBOM, let's see if the bytes are just a LICENSE (google license classifier)
-
-	// Track this operation to prevent premature backend closure
-	ch.activeOps.Add(1)
-	defer ch.activeOps.Done()
-
-	// google license classifier is noisy, so we'll silence it for now
-	golog.SetOutput(io.Discard)
-
-	ch.backendMutex.Lock()
-	errs := ch.Backend.ClassifyLicensesWithContext(
-		context.Background(),
-		1000,
-		[]string{path},
-		false,
-	)
-	if errs != nil {
-		ch.backendMutex.Unlock()
-		for _, err := range errs {
-			log.Errorf("unable to classify license: %+v", err)
-		}
-		return nil, fmt.Errorf("unable to classify license: %+v", errs)
+	contents, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, fmt.Errorf("unable to classify license: unable to read %q: %w", path, err)
 	}
 
-	classifierResults := ch.Backend.GetResults()
-	ch.backendMutex.Unlock()
+	// match is not documented as safe for concurrent use, and handleDir classifies concurrently
+	ch.classifierMu.Lock()
+	classifierResults := ch.classifier.Match(contents)
+	ch.classifierMu.Unlock()
 
-	// re-enable logging for the rest of the application
-	golog.SetOutput(os.Stdout)
-	if len(classifierResults) == 0 {
+	if len(classifierResults.Matches) == 0 {
 		return nil, fmt.Errorf("no classifierResults from license classifier")
 	}
 
@@ -543,9 +523,9 @@ func getReadSeeker(path string) (io.ReadSeeker, error) {
 	return file, nil
 }
 
-func grantLicenseFromClassifierResults(r results.LicenseTypes) []License {
+func grantLicenseFromClassifierResults(r classifier.Results) []License {
 	licenses := make([]License, 0)
-	for _, license := range r {
+	for _, license := range r.Matches {
 		// TODO: sometimes the license classifier gives us more information than just the name.
 		// How do we want to handle this or include it in the grant.License?
 		if license.MatchType == "License" {
