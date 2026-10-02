@@ -199,7 +199,7 @@ snapshot_assets_archive_count() {
   #  ../../snapshot/grant_0.2.1-SNAPSHOT-e5e847a_linux_amd64.tar.gz
   #  ../../snapshot/grant_0.2.1-SNAPSHOT-e5e847a_darwin_amd64.tar.gz
 
-  echo "$(find ../../snapshot -maxdepth 1  -type f | grep 'grant_' | grep 'tar' | wc -l | tr -d '[:space:]')"
+  echo "$(find ../../snapshot -maxdepth 1  -type f | grep 'grant_' | grep 'tar\|zip' | wc -l | tr -d '[:space:]')"
 }
 
 
