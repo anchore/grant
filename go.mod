@@ -3,12 +3,12 @@ module github.com/anchore/grant
 go 1.26.8
 
 require (
-	github.com/anchore/clio v0.1.1
-	github.com/anchore/go-collections v0.1.1
+	github.com/anchore/clio v0.1.2-0.20261002204411-24bafbd9b0ee
+	github.com/anchore/go-collections v0.1.2-0.20260921135714-c0f67964e595
 	github.com/anchore/go-logger v0.2.0
-	github.com/anchore/packageurl-go v0.2.0
-	github.com/anchore/stereoscope v0.3.3
-	github.com/anchore/syft v1.54.0
+	github.com/anchore/packageurl-go v0.2.1-0.20260921141036-1a9c4d209963
+	github.com/anchore/stereoscope v0.3.4-0.20261002204323-f942062aeb3a
+	github.com/anchore/syft v1.54.1-0.20261002133002-bc68299565d1
 	github.com/cyphar/filepath-securejoin v0.7.0
 	github.com/github/go-spdx/v2 v2.7.0
 	github.com/google/licenseclassifier/v2 v2.0.0
@@ -55,13 +55,13 @@ require (
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
-	github.com/anchore/fangs v0.1.1 // indirect
-	github.com/anchore/go-homedir v0.1.1 // indirect
-	github.com/anchore/go-lzo v0.1.1 // indirect
-	github.com/anchore/go-macholibre v0.1.1 // indirect
-	github.com/anchore/go-rpmdb v0.2.1 // indirect
+	github.com/anchore/fangs v0.1.2-0.20261002223621-c66dbbee7f74 // indirect
+	github.com/anchore/go-homedir v0.1.2-0.20260921140901-a2025e1604a9 // indirect
+	github.com/anchore/go-lzo v0.1.2-0.20260921140633-dd485a18f3ab // indirect
+	github.com/anchore/go-macholibre v0.1.2-0.20260921134154-c7e390be1274 // indirect
+	github.com/anchore/go-rpmdb v0.2.2-0.20261002172926-a488674d6c87 // indirect
 	github.com/anchore/go-struct-converter v0.2.0-rc2 // indirect
-	github.com/anchore/go-sync v0.1.2 // indirect
+	github.com/anchore/go-sync v0.1.3-0.20260918235526-5c0edfbae654 // indirect
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
@@ -126,7 +126,7 @@ require (
 	github.com/deitch/magic v0.0.0-20230404182410-1ff89d7342da // indirect
 	github.com/diskfs/go-diskfs v1.9.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/cli v29.8.1+incompatible // indirect
+	github.com/docker/cli v29.8.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.8 // indirect
 	github.com/docker/go-connections v0.8.1 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -180,7 +180,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kastenhq/goversion v0.0.0-20230811215019-93b2f8823953 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/klauspost/compress v1.20.0 // indirect
+	github.com/klauspost/compress v1.20.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
@@ -238,12 +238,12 @@ require (
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sassoftware/go-rpmutils v0.4.0 // indirect
 	github.com/scylladb/go-set v1.0.3-0.20200225121959-cc7b2070d91e // indirect
-	github.com/secure-systems-lab/go-securesystemslib v0.11.0 // indirect
+	github.com/secure-systems-lab/go-securesystemslib v0.11.1 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sigstore/fulcio v1.8.7 // indirect
-	github.com/sigstore/protobuf-specs v0.5.1 // indirect
-	github.com/sigstore/sigstore v1.10.8 // indirect
+	github.com/sigstore/protobuf-specs v0.5.2 // indirect
+	github.com/sigstore/sigstore v1.10.11 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/smallnest/ringbuffer v0.0.0-20241116012123-461381446e3d // indirect
@@ -259,7 +259,7 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.7.0 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/sylabs/sif/v2 v2.24.1 // indirect
+	github.com/sylabs/sif/v2 v2.24.2 // indirect
 	github.com/sylabs/squashfs v1.0.6 // indirect
 	github.com/tailscale/hujson v0.0.0-20260302212456-ecc657c15afd // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
