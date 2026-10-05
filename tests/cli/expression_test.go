@@ -252,3 +252,46 @@ func TestCheckCmdExpressionsSyftJSON(t *testing.T) {
 		{pkg: "value-only", wantDecision: "deny", wantLicenses: []string{"MIT OR Apache-2.0"}},
 	})
 }
+
+// the expressions and policies from https://github.com/mxmehl/grant-policy-testcases, one package per test
+const policyTestcasesSBOM = `{"bomFormat":"CycloneDX","specVersion":"1.5","components":[
+{"type":"library","name":"test-1-or","version":"1.0.0","licenses":[{"expression":"Apache-2.0 OR GPL-3.0-or-later"}]},
+{"type":"library","name":"test-2-with","version":"1.0.0","licenses":[{"expression":"GPL-2.0-only WITH Classpath-exception-2.0"}]},
+{"type":"library","name":"test-3-with-and","version":"1.0.0","licenses":[{"expression":"GPL-2.0-only WITH Classpath-exception-2.0 AND MIT"}]},
+{"type":"library","name":"test-4-nested","version":"1.0.0","licenses":[{"expression":"(Apache-2.0 AND (MIT OR GPL-2.0-only)) OR (EPL-2.0 AND 0BSD)"}]}
+]}`
+
+func TestCheckCmdPolicyTestcases(t *testing.T) {
+	allow := "allow:\n  - MIT\n  - Apache-2.0\n  - BSD-2-Clause\n  - BSD-3-Clause\n  - 0BSD\n  - Unlicense\n  - PSF-2.0\n  - MPL-2.0\n"
+	permissive := allow + "require-license: true\n"
+	withGPL := allow + "  - GPL-2.0-only\n  - GPL-2.0-only WITH Classpath-exception-2.0\nrequire-license: true\n"
+
+	t.Run("permissive policy (tests 1 and 4)", func(t *testing.T) {
+		findings, _ := findingsByName(t, policyTestcasesSBOM, permissive)
+		assertFindings(t, findings, []expressionCase{
+			{pkg: "test-1-or", wantDecision: "allow"},
+			{pkg: "test-4-nested", wantDecision: "allow"},
+			// the exception form is not on this allow list
+			{pkg: "test-2-with", wantDecision: "deny"},
+			{pkg: "test-3-with-and", wantDecision: "deny", wantLicenses: []string{"GPL-2.0-only WITH Classpath-exception-2.0"}},
+		})
+	})
+
+	t.Run("policy allowing the exception (tests 2 and 3)", func(t *testing.T) {
+		findings, rc := findingsByName(t, policyTestcasesSBOM, withGPL)
+		assert.Zero(t, rc)
+		assertFindings(t, findings, []expressionCase{
+			{pkg: "test-1-or", wantDecision: "allow"},
+			{pkg: "test-2-with", wantDecision: "allow"},
+			{pkg: "test-3-with-and", wantDecision: "allow"},
+			{pkg: "test-4-nested", wantDecision: "allow"},
+		})
+	})
+
+	t.Run("test 4 is denied when neither side can be chosen", func(t *testing.T) {
+		findings, _ := findingsByName(t, policyTestcasesSBOM, "allow:\n  - Apache-2.0\n  - 0BSD\n")
+		assertFindings(t, findings, []expressionCase{
+			{pkg: "test-4-nested", wantDecision: "deny", wantLicenses: []string{"MIT", "GPL-2.0-only", "EPL-2.0"}},
+		})
+	})
+}
