@@ -102,6 +102,8 @@ func TestConvertSyftLicenses_SPDXExpressionWithException(t *testing.T) {
 		SPDXExpression: "MIT WITH Classpath-exception-2.0",
 	}))}
 	c := &Case{}
-	assert.Len(t, c.evaluatePackage(&pkg, &Policy{Allow: []string{"MIT"}, RequireKnownLicense: true}).DeniedLicenses, 1)
-	assert.Equal(t, "all licenses allowed", c.evaluatePackage(&pkg, &Policy{Allow: []string{"MIT*"}, RequireKnownLicense: true}).Reason)
+	exact := &Policy{Allow: []string{"MIT"}, RequireKnownLicense: true}
+	glob := &Policy{Allow: []string{"MIT*"}, RequireKnownLicense: true}
+	assert.Len(t, c.evaluatePackage(&pkg, nil, exact, newLicenseMatcher(exact)).DeniedLicenses, 1)
+	assert.Equal(t, "all licenses allowed", c.evaluatePackage(&pkg, nil, glob, newLicenseMatcher(glob)).Reason)
 }

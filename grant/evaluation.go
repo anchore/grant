@@ -2,9 +2,19 @@ package grant
 
 import (
 	"fmt"
+	"strings"
 )
 
 const reasonPackageIgnored = "package ignored per policy"
+
+// reasonPackageDenied prefixes every denied reason, so a package is categorized by the decision made
+// in evaluatePackage even when it has no denied licenses to list
+const reasonPackageDenied = "package denied"
+
+// declarations holds, per package, one term tree for each license declaration its licenses were
+// flattened from (see license_expression.go). Every tree must pass for the package to pass. It is
+// kept beside Package rather than on it so Package stays plain data.
+type declarations map[*Package][]licenseTerm
 
 // EvaluationResult represents the result of evaluating a Case against a Policy
 type EvaluationResult struct {
@@ -59,18 +69,20 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 	}
 
 	// Get all licenses and packages from the case
-	licensePackages, _, packagesNoLicenses := c.GetLicenses()
+	licensePackages, _, packagesNoLicenses, declared := c.getLicenses()
 
 	// An SBOM can catalog the same package more than once: the same
 	// version may appear with a license from one source and without a license from
 	// another(syft gap). We merge those entries into a single package, unioning their licenses,
 	// so each real package is evaluated and counted exactly once.
-	for _, pkg := range mergeDuplicatePackages(licensePackages, packagesNoLicenses) {
+	matcher := newLicenseMatcher(policy)
+	packages, mergedDeclared := mergeDuplicatePackages(licensePackages, packagesNoLicenses, declared)
+	for _, pkg := range packages {
 		var packageResult PackageResult
 		if len(pkg.Licenses) == 0 {
 			packageResult = c.evaluatePackageNoLicense(pkg, policy)
 		} else {
-			packageResult = c.evaluatePackage(pkg, policy)
+			packageResult = c.evaluatePackage(pkg, mergedDeclared[pkg], policy, matcher)
 		}
 		c.categorizePackageResult(&packageResult, result)
 	}
@@ -105,14 +117,15 @@ func packageKey(group, name, version, pkgType string) string {
 
 // mergeDuplicatePackages collapses every cataloged entry for a given package
 // (see packageKey) into a single package, unioning licenses and locations (each
-// de-duplicated).
-func mergeDuplicatePackages(licensePackages map[string][]*Package, packagesNoLicenses []Package) []*Package {
+// de-duplicated). Declarations are carried over to the merged package.
+func mergeDuplicatePackages(licensePackages map[string][]*Package, packagesNoLicenses []Package, declared declarations) ([]*Package, declarations) {
 	order := make([]string, 0)
 	merged := make(map[string]*Package)
+	mergedDeclared := make(declarations)
 	seenLicenses := make(map[string]map[string]bool)
 	seenLocations := make(map[string]map[string]bool)
 
-	add := func(pkg Package) {
+	add := func(pkg Package, terms []licenseTerm) {
 		key := packageKey(pkg.Group, pkg.Name, pkg.Version, pkg.Type)
 		current, ok := merged[key]
 		if !ok {
@@ -125,8 +138,11 @@ func mergeDuplicatePackages(licensePackages map[string][]*Package, packagesNoLic
 			order = append(order, key)
 			current = &clone
 		}
+		// every declaration of every entry must pass, so all of them are kept (a duplicate just
+		// evaluates the same way twice)
+		mergedDeclared[current] = append(mergedDeclared[current], terms...)
 		for _, license := range pkg.Licenses {
-			id := license.String()
+			id := license.key()
 			if seenLicenses[key][id] {
 				continue
 			}
@@ -146,24 +162,31 @@ func mergeDuplicatePackages(licensePackages map[string][]*Package, packagesNoLic
 		}
 	}
 
+	// licensePackages files a package under each of its licenses, so the same pointer shows up once
+	// per license. Merging it again would repeat its declarations (quadratic in the license count).
+	visited := make(map[*Package]bool)
 	for _, packages := range licensePackages {
 		for _, pkg := range packages {
-			add(*pkg)
+			if visited[pkg] {
+				continue
+			}
+			visited[pkg] = true
+			add(*pkg, declared[pkg])
 		}
 	}
 	for _, pkg := range packagesNoLicenses {
-		add(pkg)
+		add(pkg, nil)
 	}
 
 	unique := make([]*Package, 0, len(order))
 	for _, key := range order {
 		unique = append(unique, merged[key])
 	}
-	return unique
+	return unique, mergedDeclared
 }
 
 // evaluatePackage evaluates a single package with licenses against the policy
-func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
+func (c *Case) evaluatePackage(pkg *Package, declared []licenseTerm, policy *Policy, matcher *licenseMatcher) PackageResult {
 	// Check if package should be ignored
 	if policy.isPackageIgnored(*pkg) {
 		return PackageResult{
@@ -177,18 +200,62 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 	var deniedLicenses []License
 	var unknownLicenses []License
 
+	byID := make(map[string]License, len(pkg.Licenses))
 	for _, license := range pkg.Licenses {
-		licenseStr := license.String()
+		byID[license.key()] = license
+	}
 
-		// Check if RequireKnownLicense is enabled and license is not SPDX
+	// the package passes only when every declaration passes. Licenses are reported per leaf: a leaf
+	// that passes is allowed, a leaf that made a declaration fail is denied, and the rest (alternatives
+	// a passing OR did not need, or an OR that passed inside a failed AND) are neither. Two leaves can
+	// share one license ("MPL-1.1+" and "MPL-1.1" both flatten to MPL-1.1), so a license any failing
+	// leaf denies is denied.
+	leafAllowed := func(leaf licenseTerm) bool {
+		license, ok := byID[leaf.key()]
+		return ok && matcher.leafAllowed(license, leaf.atom)
+	}
+	failedDeclarations := 0
+	covered := make(map[string]bool)
+	allowedKeys := make(map[string]bool)
+	deniedKeys := make(map[string]bool)
+	for _, declaration := range declared {
+		if !declaration.satisfied(leafAllowed) {
+			failedDeclarations++
+			declaration.failedLeaves(leafAllowed, func(leaf licenseTerm) {
+				deniedKeys[leaf.key()] = true
+			})
+		}
+		declaration.leaves(func(leaf licenseTerm) {
+			key := leaf.key()
+			covered[key] = true
+			if leafAllowed(leaf) {
+				allowedKeys[key] = true
+			}
+		})
+	}
+
+	for _, license := range pkg.Licenses {
+		key := license.key()
+
 		switch {
-		case policy.RequireKnownLicense && !license.IsSPDX():
-			unknownLicenses = append(unknownLicenses, license)
+		case !covered[key]:
+			// not from a declaration, so judged on its own (strict)
+			switch {
+			case policy.RequireKnownLicense && !license.IsSPDX():
+				unknownLicenses = append(unknownLicenses, license)
+				deniedLicenses = append(deniedLicenses, license)
+			case matcher.allowed(license):
+				allowedLicenses = append(allowedLicenses, license)
+			default:
+				deniedLicenses = append(deniedLicenses, license)
+			}
+		case deniedKeys[key]:
+			if policy.RequireKnownLicense && !license.IsSPDX() {
+				unknownLicenses = append(unknownLicenses, license)
+			}
 			deniedLicenses = append(deniedLicenses, license)
-		case policy.IsLicensePermitted(licenseStr):
+		case allowedKeys[key]:
 			allowedLicenses = append(allowedLicenses, license)
-		default:
-			deniedLicenses = append(deniedLicenses, license)
 		}
 	}
 
@@ -200,15 +267,15 @@ func (c *Case) evaluatePackage(pkg *Package, policy *Policy) PackageResult {
 			Package:         *pkg,
 			AllowedLicenses: allowedLicenses,
 			DeniedLicenses:  deniedLicenses,
-			Reason:          fmt.Sprintf("package denied due to %d unknown licenses", len(unknownLicenses)),
+			Reason:          fmt.Sprintf(reasonPackageDenied+" due to %d unknown licenses", len(unknownLicenses)),
 		}
-	case len(deniedLicenses) > 0:
-		// If any license is denied, the whole package is denied
+	case failedDeclarations > 0 || len(deniedLicenses) > 0:
+		// If any declaration fails or any license is denied, the whole package is denied
 		return PackageResult{
 			Package:         *pkg,
 			AllowedLicenses: allowedLicenses,
 			DeniedLicenses:  deniedLicenses,
-			Reason:          fmt.Sprintf("package denied due to %d denied licenses", len(deniedLicenses)),
+			Reason:          fmt.Sprintf(reasonPackageDenied+" due to %d denied licenses", len(deniedLicenses)),
 		}
 	case len(allowedLicenses) > 0:
 		// All licenses are allowed
@@ -241,7 +308,7 @@ func (c *Case) evaluatePackageNoLicense(pkg *Package, policy *Policy) PackageRes
 		// Deny packages without licenses when RequireLicense is true
 		return PackageResult{
 			Package: *pkg,
-			Reason:  "package denied - no licenses found",
+			Reason:  reasonPackageDenied + " - no licenses found",
 		}
 	}
 
@@ -257,7 +324,7 @@ func (c *Case) categorizePackageResult(packageResult *PackageResult, result *Eva
 	switch {
 	case packageResult.Reason == reasonPackageIgnored:
 		result.IgnoredPackages = append(result.IgnoredPackages, *packageResult)
-	case len(packageResult.DeniedLicenses) > 0 || packageResult.Reason == "package denied - no licenses found":
+	case len(packageResult.DeniedLicenses) > 0 || strings.HasPrefix(packageResult.Reason, reasonPackageDenied):
 		result.DeniedPackages = append(result.DeniedPackages, *packageResult)
 	case packageResult.Reason == "package allowed - no license requirement":
 		result.AllowedPackages = append(result.AllowedPackages, *packageResult)
