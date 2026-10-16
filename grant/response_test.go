@@ -3,6 +3,9 @@ package grant
 import (
 	"testing"
 
+	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
+	"github.com/anchore/syft/syft/source"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -66,4 +69,19 @@ func TestBuildEvaluationFindingsAllAllowedStaysAllowed(t *testing.T) {
 	findings := buildEvaluationFindings(evalResult)
 	require.Len(t, findings.Packages, 1)
 	assert.Equal(t, DecisionAllow, findings.Packages[0].Decision)
+}
+
+func TestConvertEvaluationToTarget_LicenseCountsFollowDecisions(t *testing.T) {
+	sb := sbom.SBOM{Source: source.Description{Name: "test"}, Artifacts: sbom.Artifacts{Packages: pkg.NewCollection()}}
+	// allowed through MIT, so GPL-3.0-only is an unused alternative
+	sb.Artifacts.Packages.Add(pkg.Package{Name: "or", Version: "1.0.0", Licenses: pkg.NewLicenseSet(spdx("MIT OR GPL-3.0-only"))})
+	// denied for ISC only, the OR passed
+	sb.Artifacts.Packages.Add(pkg.Package{Name: "and", Version: "1.0.0", Licenses: pkg.NewLicenseSet(spdx("(MIT OR Apache-2.0) AND ISC"))})
+
+	policy := &Policy{Allow: []string{"MIT"}}
+	evalResult, err := (&Case{SBOMS: []sbom.SBOM{sb}}).Evaluate(policy)
+	require.NoError(t, err)
+
+	target := ConvertEvaluationToTarget(evalResult, policy)
+	assert.Equal(t, LicenseSummary{Unique: 4, Allowed: 1, Denied: 1}, target.Summary.Licenses)
 }

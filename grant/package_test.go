@@ -174,7 +174,7 @@ func TestMergeDuplicatePackages_KeepsDistinctGroupsSeparate(t *testing.T) {
 		{Name: "core", Group: "com.bar", Version: "1.0.0", Type: "java-archive"},
 	}
 
-	merged := mergeDuplicatePackages(nil, packages)
+	merged, _ := mergeDuplicatePackages(nil, packages, nil)
 
 	assert.Len(t, merged, 2, "same artifact id under different groups must not be merged")
 }

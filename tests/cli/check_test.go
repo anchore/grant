@@ -288,3 +288,46 @@ func TestCheckCmdStdin(t *testing.T) {
 		})
 	}
 }
+
+// orExpressionSBOM declares licenses as SPDX expressions. OR is a choice between licenses
+// (SPDX 2.3 Annex D.4.2), so a policy allowing one alternative must pass the package.
+const orExpressionSBOM = `{"bomFormat":"CycloneDX","specVersion":"1.4","components":[` +
+	`{"type":"library","name":"or-pkg","version":"1.0.0","licenses":[{"expression":"MIT OR GPL-3.0-only"}]}` +
+	`]}`
+
+func TestCheckCmdORExpression(t *testing.T) {
+	tests := []struct {
+		name       string
+		config     string
+		assertions []traitAssertion
+	}{
+		{
+			name:   "one allowed alternative passes",
+			config: "allow:\n  - MIT\n",
+			assertions: []traitAssertion{
+				assertJSONReport,
+				assertInOutput(`"status": "compliant"`),
+				assertNotInOutput(`"decision": "deny"`),
+				assertSuccessfulReturnCode,
+			},
+		},
+		{
+			name:   "no allowed alternative is denied",
+			config: "allow:\n  - Apache-2.0\n",
+			assertions: []traitAssertion{
+				assertJSONReport,
+				assertInOutput(`"status": "noncompliant"`),
+				assertInOutput("GPL-3.0-only"),
+				assertFailingReturnCode,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stdout, stderr, rc := runGrant(t, orExpressionSBOM, "-c", writeConfig(t, tt.config), "-o", "json", "check", "-")
+			for _, assert := range tt.assertions {
+				assert(t, stdout, stderr, rc)
+			}
+		})
+	}
+}
