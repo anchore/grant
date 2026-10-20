@@ -42,20 +42,28 @@ func qualifyName(group, name string) string {
 }
 
 func ConvertSyftPackage(p syftPkg.Package) *Package {
+	pkg, _ := convertSyftPackage(p)
+	return pkg
+}
+
+// convertSyftPackage also returns one term tree per license declaration the package's licenses were
+// flattened from (see license_expression.go)
+func convertSyftPackage(p syftPkg.Package) (*Package, []licenseTerm) {
 	locations := p.Locations.ToSlice()
 	packageLocations := make([]string, 0)
 	for _, location := range locations {
 		packageLocations = append(packageLocations, location.RealPath)
 	}
 
+	licenses, declared := convertSyftLicenses(p.Licenses)
 	return &Package{
 		Name:      p.Name,
 		Group:     packageGroupFromSyft(p),
 		Version:   p.Version,
 		Type:      string(p.Type),
-		Licenses:  ConvertSyftLicenses(p.Licenses),
+		Licenses:  licenses,
 		Locations: packageLocations,
-	}
+	}, declared
 }
 
 func packageGroupFromSyft(p syftPkg.Package) string {
