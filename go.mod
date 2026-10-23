@@ -12,7 +12,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.7.0
 	github.com/github/go-spdx/v2 v2.7.1
 	github.com/google/licenseclassifier/v2 v2.0.0
-	github.com/gookit/color v1.6.2
+	github.com/gookit/color v1.6.3
 	github.com/jedib0t/go-pretty/v6 v6.8.3
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
