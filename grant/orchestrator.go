@@ -131,8 +131,12 @@ func (o *Orchestrator) processListTarget(target string) TargetEvaluation {
 	}
 
 	licensePackages, licenses, packagesNoLicenses := c.GetLicenses()
-	findings := buildListFindings(licensePackages, packagesNoLicenses)
-	summary := buildListSummary(licensePackages, licenses, packagesNoLicenses)
+	// GetLicenses keys packages by license, so a package with more than one
+	// license appears under each of them. Merge first, the same way Evaluate
+	// does, so each real package is listed and counted exactly once.
+	packages := mergeDuplicatePackages(licensePackages, packagesNoLicenses)
+	findings := buildListFindings(packages)
+	summary := buildListSummary(packages, licenses)
 
 	return TargetEvaluation{
 		Status:   StatusUnevaluated,
@@ -155,21 +159,14 @@ func createErrorTargetEvaluation() TargetEvaluation {
 	}
 }
 
-// buildListFindings creates findings from license packages
-func buildListFindings(licensePackages map[string][]*Package, packagesNoLicenses []Package) EvaluationFindings {
+// buildListFindings creates one finding per merged package
+func buildListFindings(packages []*Package) EvaluationFindings {
 	findings := EvaluationFindings{
 		Packages: []PackageFinding{},
 	}
 
-	for _, packages := range licensePackages {
-		for _, pkg := range packages {
-			finding := packageToFinding(*pkg, DecisionUnevaluated)
-			findings.Packages = append(findings.Packages, finding)
-		}
-	}
-
-	for _, pkg := range packagesNoLicenses {
-		finding := packageToFinding(pkg, DecisionUnevaluated)
+	for _, pkg := range packages {
+		finding := packageToFinding(*pkg, DecisionUnevaluated)
 		findings.Packages = append(findings.Packages, finding)
 	}
 
@@ -177,16 +174,18 @@ func buildListFindings(licensePackages map[string][]*Package, packagesNoLicenses
 }
 
 // buildListSummary creates summary statistics for list operation
-func buildListSummary(licensePackages map[string][]*Package, licenses map[string]License, packagesNoLicenses []Package) EvaluationSummaryJSON {
-	totalPackages := len(packagesNoLicenses)
-	for _, packages := range licensePackages {
-		totalPackages += len(packages)
+func buildListSummary(packages []*Package, licenses map[string]License) EvaluationSummaryJSON {
+	unlicensed := 0
+	for _, pkg := range packages {
+		if len(pkg.Licenses) == 0 {
+			unlicensed++
+		}
 	}
 
 	return EvaluationSummaryJSON{
 		Packages: PackageSummary{
-			Total:      totalPackages,
-			Unlicensed: len(packagesNoLicenses),
+			Total:      len(packages),
+			Unlicensed: unlicensed,
 		},
 		Licenses: LicenseSummary{
 			Unique: len(licenses),
