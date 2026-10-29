@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 
 	. "github.com/anchore/go-make"
+	"github.com/anchore/go-make/config"
 	"github.com/anchore/go-make/file"
 	"github.com/anchore/go-make/lang"
 	"github.com/anchore/go-make/run"
@@ -35,7 +38,7 @@ func main() {
 
 		staticAnalysisTask(),
 		licenseValidationTask(),
-		cliTestTask(),
+		cliTestTasks(),
 		installTestTasks(),
 
 		generateTasks(),
@@ -43,17 +46,60 @@ func main() {
 	)
 }
 
-// cliTestTask runs the end-to-end CLI tests under tests/cli, which the unit task
-// excludes. The suite builds the grant binary on demand (and honors a prebuilt
-// one via GRANT_BINARY_LOCATION), so no separate build step is needed here.
-func cliTestTask() Task {
+// cliTestTasks runs the end-to-end CLI tests under tests/cli (which the unit task excludes) against the
+// snapshot binary. The snapshot is built only when missing: in CI it is downloaded from the snapshot job, and
+// rebuilding would burn time and clobber it. The tests exec that binary, so -race would only instrument the test
+// harness; cli:race-smoke covers the binary itself.
+func cliTestTasks() Task {
 	return Task{
 		Name:        "cli",
-		Description: "run CLI tests against the grant binary",
+		Description: "run CLI tests against the snapshot binary",
+		RunsOn:      lang.List("test"),
 		Run: func() {
-			Run("go test -count=1 -timeout=15m ./tests/cli/...")
+			bin := snapshotBinPath()
+			if !file.Exists(bin) {
+				Log("snapshot binary not found at %s, building a single-target snapshot", bin)
+				Run("make snapshot:single-target")
+			}
+			Log("testing binary: %s", bin)
+			Run("go test -count=1 -timeout=15m ./tests/cli/...", run.Env("GRANT_BINARY_LOCATION", bin), run.Stdout(os.Stderr))
+		},
+		Tasks: []Task{
+			{
+				Name:        "cli:race-smoke",
+				Description: "exercise the CLI with the race detector",
+				RunsOn:      lang.List("cli"),
+				Run: func() {
+					if !raceEnabled() {
+						Log("race detector disabled, skipping race smoke")
+						return
+					}
+					// --dry-run keeps the exit code at 0 even though the fixture has denied licenses
+					Run("go run -race ./cmd/grant check --dry-run fixtures/alpine.tagvalue.spdx", run.Stdout(os.Stderr))
+				},
+			},
 		},
 	}
+}
+
+// snapshotBinPath is where goreleaser writes the snapshot binary for the current OS and arch.
+func snapshotBinPath() string {
+	arch := runtime.GOARCH
+	switch arch {
+	case "amd64":
+		arch = "amd64_v1"
+	case "arm64":
+		arch = "arm64_v8.0"
+	}
+	return filepath.Join(RootDir(), "snapshot", runtime.GOOS+"-build_"+runtime.GOOS+"_"+arch, "grant")
+}
+
+// raceEnabled defaults to on in CI (off on windows) and can be forced either way with RACE=true|false.
+func raceEnabled() bool {
+	if enabled, err := strconv.ParseBool(config.Env("RACE", "")); err == nil {
+		return enabled
+	}
+	return config.CI && !config.Windows
 }
 
 // installTestTasks drives the install.sh test suite under tests/install (unit tests plus acceptance

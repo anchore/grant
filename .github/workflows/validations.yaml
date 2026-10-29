@@ -123,6 +123,33 @@ jobs:
           path: snapshot/
           retention-days: 30
 
+  CLI-Tests:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "CLI tests"
+    needs: [Build-Snapshot-Artifacts]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Bootstrap environment
+        uses: anchore/go-make/.github/actions/setup@cf465259f4c9f0b0b0bcb35164ede11f7dc6d9f6 # v0.9.6
+
+      - name: Download snapshot build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 #v8.0.2
+        with:
+          name: snapshot
+          path: snapshot
+
+      - name: Restore executable permissions
+        run: chmod -R +x snapshot/**/grant
+
+      - name: Run CLI tests
+        run: make cli
+
   Acceptance-Linux:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Acceptance tests (Linux)"
