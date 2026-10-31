@@ -62,7 +62,7 @@ jobs:
           persist-credentials: true
 
       - name: Bootstrap environment
-        uses: anchore/go-make/.github/actions/setup@cf465259f4c9f0b0b0bcb35164ede11f7dc6d9f6 # v0.9.6
+        uses: anchore/go-make/.github/actions/setup@c051958abd8b88361870902ed6282b070ef47d3d # v0.9.7-0.20261030012656-c051958abd8b
 
       # dockers_v2 builds multi-platform manifests in a single buildx invocation, which requires a
       # docker-container driver builder (the default builder on the runner cannot build multi-platform).
