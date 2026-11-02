@@ -64,7 +64,7 @@ func TestBuildList_CountsEachPackageOnce(t *testing.T) {
 			c := createCaseFromPackages(tt.packages)
 
 			licensePackages, licenses, packagesNoLicenses := c.GetLicenses()
-			merged := mergeDuplicatePackages(licensePackages, packagesNoLicenses)
+			merged, _ := mergeDuplicatePackages(licensePackages, packagesNoLicenses, nil)
 			findings := buildListFindings(merged)
 			summary := buildListSummary(merged, licenses)
 
