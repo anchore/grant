@@ -134,7 +134,7 @@ func (o *Orchestrator) processListTarget(target string) TargetEvaluation {
 	// GetLicenses keys packages by license, so a package with more than one
 	// license appears under each of them. Merge first, the same way Evaluate
 	// does, so each real package is listed and counted exactly once.
-	packages := mergeDuplicatePackages(licensePackages, packagesNoLicenses)
+	packages, _ := mergeDuplicatePackages(licensePackages, packagesNoLicenses, nil)
 	findings := buildListFindings(packages)
 	summary := buildListSummary(packages, licenses)
 
