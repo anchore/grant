@@ -82,7 +82,7 @@ jobs:
 
   Unit-Test-Mac:
     name: "Unit tests (Mac)"
-    runs-on: macos-14
+    runs-on: macos-latest
     permissions:
       contents: read
     steps:
