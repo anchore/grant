@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Grant!
 
-Please see the [contribution guide](https://oss.anchore.com/docs/contributing/grant/) for development requirements and helpful tips to get started developing in the repo. For a deeper dive, please see the [architecture docs](https://oss.anchore.com/docs/architecture/grant/).
+Please see the [contribution guide](https://oss.anchore.com/docs/contributing/grant/) for development requirements and helpful tips to get started developing in the repo. For a deeper dive, please see the [architecture docs](https://oss.anchore.com/docs/architecture/).
 
 **Have a question or need help?** Check out our [issues and discussions guide](https://oss.anchore.com/docs/contributing/issues-and-discussions/) to find the right place to start a conversation.
 
