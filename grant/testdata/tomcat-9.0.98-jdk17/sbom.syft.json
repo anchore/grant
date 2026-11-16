@@ -1,0 +1,120 @@
+{
+  "artifacts": [
+    {
+      "id": "39255e9e59685b5f",
+      "name": "fontconfig",
+      "version": "2.15.0-1.1ubuntu2",
+      "type": "deb",
+      "foundBy": "dpkg-db-cataloger",
+      "locations": [],
+      "licenses": [
+        {
+          "value": "HPND-sell-variant",
+          "spdxExpression": "HPND-sell-variant",
+          "type": "concluded",
+          "urls": [],
+          "locations": []
+        }
+      ],
+      "language": "",
+      "cpes": [],
+      "purl": "pkg:deb/ubuntu/fontconfig@2.15.0-1.1ubuntu2?arch=amd64&distro=ubuntu-24.04"
+    },
+    {
+      "id": "8736998fcaef3ad3",
+      "name": "libapr1t64",
+      "version": "1.7.2-3.1ubuntu0.1",
+      "type": "deb",
+      "foundBy": "dpkg-db-cataloger",
+      "locations": [],
+      "licenses": [
+        {
+          "value": "Apache-2.0",
+          "spdxExpression": "Apache-2.0",
+          "type": "concluded",
+          "urls": [],
+          "locations": []
+        },
+        {
+          "value": "BSD-4-Clause-UC",
+          "spdxExpression": "BSD-4-Clause-UC",
+          "type": "concluded",
+          "urls": [],
+          "locations": []
+        },
+        {
+          "value": "ISC",
+          "spdxExpression": "ISC",
+          "type": "concluded",
+          "urls": [],
+          "locations": []
+        },
+        {
+          "value": "Zlib",
+          "spdxExpression": "Zlib",
+          "type": "concluded",
+          "urls": [],
+          "locations": []
+        }
+      ],
+      "language": "",
+      "cpes": [],
+      "purl": "pkg:deb/ubuntu/libapr1t64@1.7.2-3.1ubuntu0.1?arch=amd64&distro=ubuntu-24.04&upstream=apr"
+    },
+    {
+      "id": "786e451bdf925775",
+      "name": "libexpat1",
+      "version": "2.6.1-2ubuntu0.2",
+      "type": "deb",
+      "foundBy": "dpkg-db-cataloger",
+      "locations": [],
+      "licenses": [
+        {
+          "value": "MIT",
+          "spdxExpression": "MIT",
+          "type": "declared",
+          "urls": [],
+          "locations": []
+        }
+      ],
+      "language": "",
+      "cpes": [],
+      "purl": "pkg:deb/ubuntu/libexpat1@2.6.1-2ubuntu0.2?arch=amd64&distro=ubuntu-24.04&upstream=expat"
+    },
+    {
+      "id": "a53bac2593393e6b",
+      "name": "openssl",
+      "version": "3.0.13-0ubuntu3.4",
+      "type": "deb",
+      "foundBy": "dpkg-db-cataloger",
+      "locations": [],
+      "licenses": [],
+      "language": "",
+      "cpes": [],
+      "purl": "pkg:deb/ubuntu/openssl@3.0.13-0ubuntu3.4?arch=amd64&distro=ubuntu-24.04"
+    }
+  ],
+  "source": {
+    "id": "0be2baad519781bb554e880e706235dc0bdd78a8c80a04b6563b62390fdc6fdf",
+    "name": "tomcat",
+    "version": "9.0.98-jdk17",
+    "type": "image",
+    "metadata": {
+      "userInput": "tomcat:9.0.98-jdk17"
+    }
+  },
+  "distro": {
+    "name": "Ubuntu",
+    "id": "ubuntu",
+    "version": "24.04.1 LTS (Noble Numbat)",
+    "versionID": "24.04"
+  },
+  "descriptor": {
+    "name": "syft",
+    "version": "1.51.1"
+  },
+  "schema": {
+    "version": "16.1.10",
+    "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-16.1.10.json"
+  }
+}

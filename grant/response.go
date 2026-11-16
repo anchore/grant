@@ -40,6 +40,8 @@ type PolicyConfig struct {
 	Rules               PolicyRules `json:"rules"`
 	RequireLicense      bool        `json:"requireLicense"`
 	RequireKnownLicense bool        `json:"requireKnownLicense"`
+	// IgnoreConcludedLicenses is only present when the option is set
+	IgnoreConcludedLicenses bool `json:"ignoreConcludedLicenses,omitempty"`
 }
 
 // PolicyRules contains the allow and ignore rules
@@ -142,8 +144,9 @@ func NewRunResponse(argv []string, policy *Policy) *RunResponse {
 					Allow:          policy.Allow,
 					IgnorePackages: policy.IgnorePackages,
 				},
-				RequireLicense:      policy.RequireLicense,
-				RequireKnownLicense: policy.RequireKnownLicense,
+				RequireLicense:          policy.RequireLicense,
+				RequireKnownLicense:     policy.RequireKnownLicense,
+				IgnoreConcludedLicenses: policy.IgnoreConcludedLicenses,
 			},
 			Targets: []TargetResult{},
 		},

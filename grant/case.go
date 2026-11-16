@@ -75,20 +75,33 @@ type Pair struct {
 	Package *Package
 }
 
+// GetLicenses returns the packages of the case keyed by license, the licenses by name, and the
+// packages without licenses. It takes no policy, so it always includes concluded licenses:
+// Policy.IgnoreConcludedLicenses is applied by Case.Evaluate, Orchestrator.Check and
+// Orchestrator.List.
 func (c Case) GetLicenses() (map[string][]*Package, map[string]License, []Package) {
-	licensePackages, licenses, packagesNoLicenses, _ := c.getLicenses()
+	licensePackages, licenses, packagesNoLicenses, _ := c.getLicenses(false)
 	return licensePackages, licenses, packagesNoLicenses
 }
 
 // getLicenses is GetLicenses plus the license declarations of each package with licenses, which
-// evaluation needs to apply SPDX expression operators
-func (c Case) getLicenses() (map[string][]*Package, map[string]License, []Package, declarations) {
+// evaluation needs to apply SPDX expression operators. With ignoreConcluded, concluded licenses are
+// dropped before conversion (see Policy.IgnoreConcludedLicenses), so a package whose only licenses
+// are concluded is returned as a package without licenses. What was dropped is logged, since nothing
+// in the result records it.
+func (c Case) getLicenses(ignoreConcluded bool) (map[string][]*Package, map[string]License, []Package, declarations) {
+	var ignored ignoredConcluded
 	declared := make(declarations)
 	licensePackages := make(map[string][]*Package)
 	licenses := make(map[string]License)
 	packagesNoLicenses := make([]Package, 0)
 	for _, sb := range c.SBOMS {
 		for pkg := range sb.Artifacts.Packages.Enumerate() {
+			if ignoreConcluded {
+				var dropped int
+				pkg.Licenses, dropped = withoutConcludedLicenses(pkg.Licenses)
+				ignored.add(dropped, pkg.Licenses.Empty())
+			}
 			grantPkg, terms := convertSyftPackage(pkg)
 			// TODO: how do we express packages without licenses in list
 			if len(grantPkg.Licenses) == 0 {
@@ -99,8 +112,43 @@ func (c Case) getLicenses() (map[string][]*Package, map[string]License, []Packag
 			buildLicenseMaps(licensePackages, licenses, grantPkg)
 		}
 	}
+	ignored.log()
 
 	return licensePackages, licenses, packagesNoLicenses, declared
+}
+
+// ignoredConcluded counts what Policy.IgnoreConcludedLicenses removed from a case
+type ignoredConcluded struct {
+	// licenses is the number of concluded licenses dropped
+	licenses int
+	// packages is the number of packages that had a concluded license dropped
+	packages int
+	// unlicensed is the number of those packages left with no licenses
+	unlicensed int
+}
+
+func (i *ignoredConcluded) add(dropped int, leftUnlicensed bool) {
+	if dropped == 0 {
+		return
+	}
+	i.licenses += dropped
+	i.packages++
+	if leftUnlicensed {
+		i.unlicensed++
+	}
+}
+
+func (i ignoredConcluded) String() string {
+	return fmt.Sprintf("ignored %d concluded licenses on %d packages, %d of which are left with no licenses",
+		i.licenses, i.packages, i.unlicensed)
+}
+
+// log reports what was ignored: the output of a run does not otherwise show that a package had
+// licenses that were dropped
+func (i ignoredConcluded) log() {
+	if i.licenses > 0 {
+		log.Infof("ignore-concluded-licenses: %s", i)
+	}
 }
 
 func buildLicenseMaps(licensePackages map[string][]*Package, licenses map[string]License, pkg *Package) {

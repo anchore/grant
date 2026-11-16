@@ -20,10 +20,11 @@ type FullConfig struct {
 	Verbose bool   `yaml:"verbose"`
 
 	// Core policy configuration (fields from grant.Policy but without omitempty for booleans)
-	Allow               []string `yaml:"allow,omitempty"`
-	IgnorePackages      []string `yaml:"ignore-packages"`
-	RequireLicense      bool     `yaml:"require-license"`
-	RequireKnownLicense bool     `yaml:"require-known-license"`
+	Allow                   []string `yaml:"allow,omitempty"`
+	IgnorePackages          []string `yaml:"ignore-packages"`
+	RequireLicense          bool     `yaml:"require-license"`
+	RequireKnownLicense     bool     `yaml:"require-known-license"`
+	IgnoreConcludedLicenses bool     `yaml:"ignore-concluded-licenses"`
 
 	// Command-specific options
 	DisableFileSearch bool `yaml:"disable-file-search"`
@@ -93,12 +94,13 @@ func generateConfig() (string, error) {
 			"Apache-2.0",
 			"BSD-3-Clause",
 		},
-		IgnorePackages:      []string{},
-		RequireLicense:      true,
-		RequireKnownLicense: false,
-		DisableFileSearch:   false,
-		Summary:             false,
-		OnlyUnlicensed:      false,
+		IgnorePackages:          []string{},
+		RequireLicense:          true,
+		RequireKnownLicense:     false,
+		IgnoreConcludedLicenses: false,
+		DisableFileSearch:       false,
+		Summary:                 false,
+		OnlyUnlicensed:          false,
 	}
 
 	// Generate YAML with comments
@@ -176,6 +178,8 @@ func processConfigLine(result *strings.Builder, line string, fullConfig *FullCon
 ` + line + " # When true, deny packages with no detected licenses\n")
 	case "require-known-license:":
 		result.WriteString(line + " # When true, deny non-SPDX / unparsable licenses\n")
+	case "ignore-concluded-licenses:":
+		result.WriteString(line + " # When true, ignore concluded licenses and only consider declared licenses\n")
 	case "disable-file-search:":
 		result.WriteString(`
 # ============================================================================
@@ -196,7 +200,7 @@ func processConfigLine(result *strings.Builder, line string, fullConfig *FullCon
 func getFieldName(line string) string {
 	for _, prefix := range []string{
 		"config:", "format:", "quiet:", "verbose:", "allow:", "ignore-packages:",
-		"require-license:", "require-known-license:", "disable-file-search:",
+		"require-license:", "require-known-license:", "ignore-concluded-licenses:", "disable-file-search:",
 		"summary:", "only-unlicensed:",
 	} {
 		if strings.HasPrefix(line, prefix) {

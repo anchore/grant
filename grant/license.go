@@ -8,6 +8,7 @@ import (
 
 	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/grant/internal/spdxlicense"
+	syftLicense "github.com/anchore/syft/syft/license"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -264,4 +265,18 @@ func check(checked map[string]bool, license string) bool {
 		return false
 	}
 	return true
+}
+
+// withoutConcludedLicenses returns the licenses of the set that are not concluded, and how many were
+// dropped. A concluded license is what a scanner or the author of the SBOM determined, for example
+// by classifying license text, as opposed to what the package's metadata declares.
+func withoutConcludedLicenses(set syftPkg.LicenseSet) (syftPkg.LicenseSet, int) {
+	all := set.ToUnorderedSlice()
+	kept := make([]syftPkg.License, 0, len(all))
+	for _, l := range all {
+		if l.Type != syftLicense.Concluded {
+			kept = append(kept, l)
+		}
+	}
+	return syftPkg.NewLicenseSet(kept...), len(all) - len(kept)
 }

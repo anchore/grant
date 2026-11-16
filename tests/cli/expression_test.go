@@ -28,6 +28,12 @@ type packageFinding struct {
 func findingsByName(t *testing.T, sbom, policy string) (map[string]packageFinding, int) {
 	t.Helper()
 	stdout, stderr, rc := runGrant(t, sbom, "-c", writeConfig(t, policy), "-o", "json", "check", "-")
+	return parseFindings(t, stdout, stderr), rc
+}
+
+// parseFindings reads the package findings of the single target in a JSON report
+func parseFindings(t *testing.T, stdout, stderr string) map[string]packageFinding {
+	t.Helper()
 
 	var report struct {
 		Run struct {
@@ -57,7 +63,7 @@ func findingsByName(t *testing.T, sbom, policy string) (map[string]packageFindin
 		}
 		findings[p.Name] = f
 	}
-	return findings, rc
+	return findings
 }
 
 type expressionCase struct {

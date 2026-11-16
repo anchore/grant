@@ -1,0 +1,49 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "tomcat",
+  "documentNamespace": "https://anchore.com/syft/image/tomcat-557e69a9-b4b0-43e1-bf44-7f2d8a9d16ba",
+  "creationInfo": {
+    "licenseListVersion": "3.28",
+    "creators": [
+      "Organization: Anchore, Inc",
+      "Tool: syft-1.51.1"
+    ],
+    "created": "2026-11-16T14:57:58Z"
+  },
+  "packages": [
+    {
+      "name": "fontconfig",
+      "SPDXID": "SPDXRef-Package-deb-fontconfig-39255e9e59685b5f",
+      "versionInfo": "2.15.0-1.1ubuntu2",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "HPND-sell-variant",
+      "licenseDeclared": "NOASSERTION"
+    },
+    {
+      "name": "libapr1t64",
+      "SPDXID": "SPDXRef-Package-deb-libapr1t64-8736998fcaef3ad3",
+      "versionInfo": "1.7.2-3.1ubuntu0.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "Apache-2.0 AND BSD-4-Clause-UC AND ISC AND Zlib",
+      "licenseDeclared": "NOASSERTION"
+    },
+    {
+      "name": "libexpat1",
+      "SPDXID": "SPDXRef-Package-deb-libexpat1-786e451bdf925775",
+      "versionInfo": "2.6.1-2ubuntu0.2",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "MIT"
+    },
+    {
+      "name": "openssl",
+      "SPDXID": "SPDXRef-Package-deb-openssl-a53bac2593393e6b",
+      "versionInfo": "3.0.13-0ubuntu3.4",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION"
+    }
+  ]
+}

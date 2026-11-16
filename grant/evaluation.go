@@ -69,7 +69,7 @@ func (c *Case) Evaluate(policy *Policy) (*EvaluationResult, error) {
 	}
 
 	// Get all licenses and packages from the case
-	licensePackages, _, packagesNoLicenses, declared := c.getLicenses()
+	licensePackages, _, packagesNoLicenses, declared := c.getLicenses(policy.IgnoreConcludedLicenses)
 
 	// An SBOM can catalog the same package more than once: the same
 	// version may appear with a license from one source and without a license from
