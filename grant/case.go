@@ -143,11 +143,11 @@ func (i ignoredConcluded) String() string {
 		i.licenses, i.packages, i.unlicensed)
 }
 
-// log warns when anything was ignored: the output of a run does not otherwise show that a package
-// had licenses that were dropped
+// log reports what was ignored: the output of a run does not otherwise show that a package had
+// licenses that were dropped
 func (i ignoredConcluded) log() {
 	if i.licenses > 0 {
-		log.Warnf("ignore-concluded-licenses: %s", i)
+		log.Infof("ignore-concluded-licenses: %s", i)
 	}
 }
 

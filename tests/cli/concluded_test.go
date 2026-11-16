@@ -47,6 +47,12 @@ func TestCheckCmdIgnoreConcludedLicenses(t *testing.T) {
 		assert.Zero(t, rc)
 		assertFindings(t, parseFindings(t, stdout, stderr), concludedIgnored)
 		assert.Contains(t, stdout, `"ignoreConcludedLicenses": true`)
+		assert.NotContains(t, stderr, "concluded")
+	})
+
+	t.Run("verbose logs what was ignored", func(t *testing.T) {
+		_, stderr, rc := runGrant(t, "", "-v", "-c", writeConfig(t, ignoreConcluded), "-o", "json", "check", sbom)
+		assert.Zero(t, rc)
 		assert.Contains(t, stderr, "ignored 2 concluded licenses on 2 packages, 2 of which are left with no licenses")
 	})
 
