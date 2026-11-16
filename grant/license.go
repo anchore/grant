@@ -8,6 +8,7 @@ import (
 
 	"github.com/anchore/grant/internal/log"
 	"github.com/anchore/grant/internal/spdxlicense"
+	syftLicense "github.com/anchore/syft/syft/license"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -264,4 +265,16 @@ func check(checked map[string]bool, license string) bool {
 		return false
 	}
 	return true
+}
+
+// withoutConcludedLicenses returns the licenses of the set that are not concluded. Concluded licenses
+// are a conclusion drawn from scanning license text, not what the package's metadata declares.
+func withoutConcludedLicenses(set syftPkg.LicenseSet) syftPkg.LicenseSet {
+	kept := make([]syftPkg.License, 0, len(set.ToSlice()))
+	for _, l := range set.ToSlice() {
+		if l.Type != syftLicense.Concluded {
+			kept = append(kept, l)
+		}
+	}
+	return syftPkg.NewLicenseSet(kept...)
 }

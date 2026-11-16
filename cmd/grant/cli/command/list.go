@@ -118,6 +118,7 @@ This command always returns exit code 0 unless there are processing errors.`,
 
 	// Add command-specific flags
 	cmd.Flags().Bool("disable-file-search", false, "disable filesystem license file search")
+	cmd.Flags().Bool("ignore-concluded-licenses", false, "ignore concluded licenses and only consider declared licenses")
 	cmd.Flags().Bool("unlicensed", false, "show only packages without licenses")
 	cmd.Flags().String("pkg", "", "show detailed information for a specific package (requires license filter)")
 	cmd.Flags().String("group-by", "", "group results by specified field (risk)")
@@ -179,6 +180,7 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Get command-specific flags
 	disableFileSearch, _ := cmd.Flags().GetBool("disable-file-search")
+	ignoreConcludedLicenses, _ := cmd.Flags().GetBool("ignore-concluded-licenses")
 	packageDetail, _ := cmd.Flags().GetString("pkg")
 	groupBy, _ := cmd.Flags().GetString("group-by")
 
@@ -190,7 +192,7 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create orchestrator and perform list operation
-	result, err := performListOperation(target, licenseFilters, disableFileSearch, globalConfig)
+	result, err := performListOperation(target, licenseFilters, disableFileSearch, ignoreConcludedLicenses, globalConfig)
 	if err != nil {
 		return err
 	}
@@ -233,11 +235,15 @@ func runList(cmd *cobra.Command, args []string) error {
 }
 
 // performListOperation creates orchestrator and executes the list command
-func performListOperation(target string, licenseFilters []string, disableFileSearch bool, globalConfig *GlobalConfig) (*grant.RunResponse, error) {
+func performListOperation(target string, licenseFilters []string, disableFileSearch, ignoreConcludedLicenses bool, globalConfig *GlobalConfig) (*grant.RunResponse, error) {
 	// Load policy (needed for orchestrator, but not used for evaluation)
 	policy, err := LoadPolicyFromConfig(globalConfig)
 	if err != nil {
 		return nil, err
+	}
+	// the flag can only turn the option on, so a config file that sets it is never overridden
+	if ignoreConcludedLicenses {
+		policy.IgnoreConcludedLicenses = true
 	}
 
 	// Create orchestrator with configuration

@@ -76,19 +76,24 @@ type Pair struct {
 }
 
 func (c Case) GetLicenses() (map[string][]*Package, map[string]License, []Package) {
-	licensePackages, licenses, packagesNoLicenses, _ := c.getLicenses()
+	licensePackages, licenses, packagesNoLicenses, _ := c.getLicenses(false)
 	return licensePackages, licenses, packagesNoLicenses
 }
 
 // getLicenses is GetLicenses plus the license declarations of each package with licenses, which
-// evaluation needs to apply SPDX expression operators
-func (c Case) getLicenses() (map[string][]*Package, map[string]License, []Package, declarations) {
+// evaluation needs to apply SPDX expression operators. With ignoreConcluded, concluded licenses are
+// dropped before conversion (see Policy.IgnoreConcludedLicenses), so a package whose only licenses
+// are concluded is returned as a package without licenses.
+func (c Case) getLicenses(ignoreConcluded bool) (map[string][]*Package, map[string]License, []Package, declarations) {
 	declared := make(declarations)
 	licensePackages := make(map[string][]*Package)
 	licenses := make(map[string]License)
 	packagesNoLicenses := make([]Package, 0)
 	for _, sb := range c.SBOMS {
 		for pkg := range sb.Artifacts.Packages.Enumerate() {
+			if ignoreConcluded {
+				pkg.Licenses = withoutConcludedLicenses(pkg.Licenses)
+			}
 			grantPkg, terms := convertSyftPackage(pkg)
 			// TODO: how do we express packages without licenses in list
 			if len(grantPkg.Licenses) == 0 {

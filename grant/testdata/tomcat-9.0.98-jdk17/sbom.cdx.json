@@ -1,0 +1,399 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.7",
+  "serialNumber": "urn:uuid:e79ddd89-c3ce-46dc-9155-d7814aa0b754",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-16T09:57:58-05:00",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "author": "anchore",
+          "name": "syft",
+          "version": "1.51.1"
+        }
+      ]
+    },
+    "component": {
+      "bom-ref": "ca03ef8431c44cdb",
+      "type": "container",
+      "name": "tomcat",
+      "version": "9.0.98-jdk17"
+    },
+    "properties": [
+      {
+        "name": "syft:image:labels:org.opencontainers.image.ref.name",
+        "value": "ubuntu"
+      },
+      {
+        "name": "syft:image:labels:org.opencontainers.image.version",
+        "value": "24.04"
+      }
+    ]
+  },
+  "components": [
+    {
+      "bom-ref": "pkg:maven/org.apache.tomcat-catalina/catalina@9.0.98?package-id=a86d34f5c7c86862",
+      "type": "library",
+      "name": "catalina",
+      "version": "9.0.98",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:apache:tomcat-catalina:9.0.98:*:*:*:*:*:*:*",
+      "purl": "pkg:maven/org.apache.tomcat-catalina/catalina@9.0.98",
+      "externalReferences": [
+        {
+          "url": "",
+          "hashes": [
+            {
+              "alg": "SHA-1",
+              "content": "cef7880f49e154aeaa30c4c2655d92a7cf17757b"
+            }
+          ],
+          "type": "build-meta"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "java-archive-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "java"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "java-archive"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "java-archive"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:apache:tomcat_catalina:9.0.98:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:apache:catalina:9.0.98:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/usr/local/tomcat/lib/catalina.jar"
+        },
+        {
+          "name": "syft:metadata:virtualPath",
+          "value": "/usr/local/tomcat/lib/catalina.jar"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/ubuntu/fontconfig@2.15.0-1.1ubuntu2?arch=amd64&distro=ubuntu-24.04&package-id=39255e9e59685b5f",
+      "type": "library",
+      "publisher": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+      "name": "fontconfig",
+      "version": "2.15.0-1.1ubuntu2",
+      "licenses": [
+        {
+          "license": {
+            "id": "HPND-sell-variant"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:fontconfig:fontconfig:2.15.0-1.1ubuntu2:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/ubuntu/fontconfig@2.15.0-1.1ubuntu2?arch=amd64&distro=ubuntu-24.04",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:location:1:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:1:path",
+          "value": "/usr/share/doc/fontconfig/copyright"
+        },
+        {
+          "name": "syft:location:2:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:2:path",
+          "value": "/var/lib/dpkg/info/fontconfig.md5sums"
+        },
+        {
+          "name": "syft:location:3:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:3:path",
+          "value": "/var/lib/dpkg/info/fontconfig.list"
+        },
+        {
+          "name": "syft:location:4:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:4:path",
+          "value": "/var/lib/dpkg/info/fontconfig.postinst"
+        },
+        {
+          "name": "syft:location:5:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:5:path",
+          "value": "/var/lib/dpkg/info/fontconfig.postrm"
+        },
+        {
+          "name": "syft:location:6:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:6:path",
+          "value": "/var/lib/dpkg/info/fontconfig.triggers"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "468"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/ubuntu/libapr1t64@1.7.2-3.1ubuntu0.1?arch=amd64&distro=ubuntu-24.04&package-id=8736998fcaef3ad3&upstream=apr",
+      "type": "library",
+      "publisher": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+      "name": "libapr1t64",
+      "version": "1.7.2-3.1ubuntu0.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "BSD-4-Clause-UC"
+          }
+        },
+        {
+          "license": {
+            "id": "ISC"
+          }
+        },
+        {
+          "license": {
+            "id": "Zlib"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:libapr1t64:libapr1t64:1.7.2-3.1ubuntu0.1:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/ubuntu/libapr1t64@1.7.2-3.1ubuntu0.1?arch=amd64&distro=ubuntu-24.04&upstream=apr",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:location:1:layerID",
+          "value": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a"
+        },
+        {
+          "name": "syft:location:1:path",
+          "value": "/usr/share/doc/libapr1t64/copyright"
+        },
+        {
+          "name": "syft:location:2:layerID",
+          "value": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a"
+        },
+        {
+          "name": "syft:location:2:path",
+          "value": "/var/lib/dpkg/info/libapr1t64:amd64.md5sums"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "283"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "apr"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/ubuntu/libexpat1@2.6.1-2ubuntu0.2?arch=amd64&distro=ubuntu-24.04&package-id=786e451bdf925775&upstream=expat",
+      "type": "library",
+      "publisher": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+      "name": "libexpat1",
+      "version": "2.6.1-2ubuntu0.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:libexpat1:libexpat1:2.6.1-2ubuntu0.2:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/ubuntu/libexpat1@2.6.1-2ubuntu0.2?arch=amd64&distro=ubuntu-24.04&upstream=expat",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:location:1:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:1:path",
+          "value": "/usr/share/doc/libexpat1/copyright"
+        },
+        {
+          "name": "syft:location:2:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:2:path",
+          "value": "/var/lib/dpkg/info/libexpat1:amd64.md5sums"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "384"
+        },
+        {
+          "name": "syft:metadata:source",
+          "value": "expat"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/ubuntu/openssl@3.0.13-0ubuntu3.4?arch=amd64&distro=ubuntu-24.04&package-id=a53bac2593393e6b",
+      "type": "library",
+      "publisher": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+      "name": "openssl",
+      "version": "3.0.13-0ubuntu3.4",
+      "cpe": "cpe:2.3:a:openssl:openssl:3.0.13-0ubuntu3.4:*:*:*:*:*:*:*",
+      "purl": "pkg:deb/ubuntu/openssl@3.0.13-0ubuntu3.4?arch=amd64&distro=ubuntu-24.04",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "dpkg-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "dpkg-db-entry"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/var/lib/dpkg/status"
+        },
+        {
+          "name": "syft:location:1:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:1:path",
+          "value": "/var/lib/dpkg/info/openssl.conffiles"
+        },
+        {
+          "name": "syft:location:2:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:2:path",
+          "value": "/var/lib/dpkg/info/openssl.md5sums"
+        },
+        {
+          "name": "syft:location:3:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:3:path",
+          "value": "/var/lib/dpkg/info/openssl.list"
+        },
+        {
+          "name": "syft:location:4:layerID",
+          "value": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9"
+        },
+        {
+          "name": "syft:location:4:path",
+          "value": "/var/lib/dpkg/info/openssl.postinst"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "1885"
+        }
+      ]
+    }
+  ]
+}

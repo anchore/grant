@@ -59,6 +59,14 @@ Check licenses against a policy:
 grant check redis:latest
 ```
 
+Some licenses in an SBOM are concluded from scanning license text rather than declared by the package. To only consider declared licenses:
+
+```bash
+grant check --ignore-concluded-licenses redis:latest
+```
+
+The same can be set with `ignore-concluded-licenses: true` in the config file. A package whose only licenses are concluded is then treated as having no licenses. SPDX and Syft JSON SBOMs record which licenses are concluded. Grant cannot tell them apart in a CycloneDX SBOM, so the option has no effect there.
+
 > [!TIP]
 > **Check out the [Getting Started guide](https://oss.anchore.com/docs/guides/license/getting-started)** to explore all of the capabilities and features.
 >

@@ -31,6 +31,12 @@ type Policy struct {
 
 	// RequireKnownLicense when true, denies non-SPDX / unparsable licenses
 	RequireKnownLicense bool `yaml:"require-known-license,omitempty"`
+
+	// IgnoreConcludedLicenses when true, leaves concluded licenses (SPDX licenseConcluded, syft license
+	// type "concluded") out of listing and evaluation, so only declared licenses are considered. A
+	// package whose only licenses are concluded is then treated as having no licenses. SBOM formats
+	// that do not record the distinction (CycloneDX as decoded by syft) are read as declared.
+	IgnoreConcludedLicenses bool `yaml:"ignore-concluded-licenses,omitempty"`
 }
 
 // IsLicensePermitted checks if a license string matches an allow entry, literally or as a glob. It

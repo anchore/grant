@@ -130,8 +130,8 @@ func (o *Orchestrator) processListTarget(target string) TargetEvaluation {
 		return createErrorTargetEvaluation()
 	}
 
-	licensePackages, licenses, packagesNoLicenses := c.GetLicenses()
-	// GetLicenses keys packages by license, so a package with more than one
+	licensePackages, licenses, packagesNoLicenses, _ := c.getLicenses(o.Policy.IgnoreConcludedLicenses)
+	// getLicenses keys packages by license, so a package with more than one
 	// license appears under each of them. Merge first, the same way Evaluate
 	// does, so each real package is listed and counted exactly once.
 	packages, _ := mergeDuplicatePackages(licensePackages, packagesNoLicenses, nil)
