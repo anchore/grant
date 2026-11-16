@@ -1,237 +1,24 @@
 {
   "artifacts": [
     {
-      "id": "a86d34f5c7c86862",
-      "name": "catalina",
-      "version": "9.0.98",
-      "type": "java-archive",
-      "foundBy": "java-archive-cataloger",
-      "locations": [
-        {
-          "path": "/usr/local/tomcat/lib/catalina.jar",
-          "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-          "accessPath": "/usr/local/tomcat/lib/catalina.jar",
-          "annotations": {
-            "evidence": "primary"
-          }
-        }
-      ],
-      "licenses": [
-        {
-          "value": "https://www.apache.org/licenses/LICENSE-2.0.txt",
-          "spdxExpression": "Apache-2.0",
-          "type": "declared",
-          "urls": [],
-          "locations": [
-            {
-              "path": "/usr/local/tomcat/lib/catalina.jar",
-              "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-              "accessPath": "/usr/local/tomcat/lib/catalina.jar",
-              "annotations": {
-                "evidence": "primary"
-              }
-            }
-          ]
-        }
-      ],
-      "language": "java",
-      "cpes": [
-        {
-          "cpe": "cpe:2.3:a:apache:tomcat-catalina:9.0.98:*:*:*:*:*:*:*",
-          "source": "syft-generated"
-        },
-        {
-          "cpe": "cpe:2.3:a:apache:tomcat_catalina:9.0.98:*:*:*:*:*:*:*",
-          "source": "syft-generated"
-        },
-        {
-          "cpe": "cpe:2.3:a:apache:catalina:9.0.98:*:*:*:*:*:*:*",
-          "source": "syft-generated"
-        }
-      ],
-      "purl": "pkg:maven/org.apache.tomcat-catalina/catalina@9.0.98",
-      "metadataType": "java-archive",
-      "metadata": {
-        "virtualPath": "/usr/local/tomcat/lib/catalina.jar",
-        "manifest": {
-          "main": [
-            {
-              "key": "Manifest-Version",
-              "value": "1.0"
-            },
-            {
-              "key": "Bundle-License",
-              "value": "https://www.apache.org/licenses/LICENSE-2.0.txt"
-            },
-            {
-              "key": "Bundle-ManifestVersion",
-              "value": "2"
-            },
-            {
-              "key": "Bundle-Name",
-              "value": "tomcat-catalina"
-            },
-            {
-              "key": "Bundle-SymbolicName",
-              "value": "org.apache.tomcat-catalina"
-            },
-            {
-              "key": "Bundle-Version",
-              "value": "9.0.98"
-            },
-            {
-              "key": "Export-Package",
-              "value": "org.apache.catalina.authenticator;uses:=\"javax.security.auth.message.config,javax.servlet,javax.servlet.http,org.apache.catalina,org.apache.catalina.connector,org.apache.catalina.util,org.apache.catalina.valves,org.apache.tomcat.util.buf,org.apache.tomcat.util.descriptor.web,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.authenticator.jaspic;uses:=\"javax.security.auth,javax.security.auth.callback,javax.security.auth.message,javax.security.auth.message.config,javax.security.auth.message.module,javax.servlet.http,org.apache.catalina,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.connector;uses:=\"javax.security.auth,javax.servlet,javax.servlet.http,org.apache.catalina,org.apache.catalina.core,org.apache.catalina.mapper,org.apache.catalina.util,org.apache.coyote,org.apache.tomcat.util.buf,org.apache.tomcat.util.http,org.apache.tomcat.util.net,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.core;uses:=\"javax.management,javax.naming,javax.servlet,javax.servlet.descriptor,javax.servlet.http,org.apache.catalina,org.apache.catalina.connector,org.apache.catalina.deploy,org.apache.catalina.mapper,org.apache.catalina.startup,org.apache.catalina.util,org.apache.coyote,org.apache.juli.logging,org.apache.naming,org.apache.tomcat,org.apache.tomcat.util.descriptor.web,org.apache.tomcat.util.http,org.apache.tomcat.util.http.fileupload,org.apache.tomcat.util.res,org.apache.tomcat.util.threads\";version=\"9.0.98\",org.apache.catalina.deploy;uses:=\"org.apache.catalina,org.apache.catalina.util,org.apache.tomcat.util.descriptor.web\";version=\"9.0.98\",org.apache.catalina.filters;uses:=\"javax.servlet,javax.servlet.http,org.apache.juli.logging,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.loader;uses:=\"org.apache.catalina,org.apache.catalina.util,org.apache.juli,org.apache.tomcat,org.apache.tomcat.util.res,org.apache.tomcat.util.security\";version=\"9.0.98\",org.apache.catalina.manager;uses:=\"javax.management,javax.naming,javax.servlet,javax.servlet.http,org.apache.catalina,org.apache.catalina.util,org.apache.tomcat.util.modeler,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.manager.host;uses:=\"javax.servlet,javax.servlet.http,org.apache.catalina,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.mapper;uses:=\"javax.servlet.http,org.apache.catalina,org.apache.catalina.util,org.apache.tomcat.util.buf\";version=\"9.0.98\",org.apache.catalina.mbeans;uses:=\"javax.management,javax.naming,org.apache.catalina,org.apache.catalina.connector,org.apache.catalina.core,org.apache.tomcat.util.descriptor.web,org.apache.tomcat.util.modeler,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.realm;uses:=\"javax.management,javax.naming,javax.naming.directory,javax.net.ssl,javax.security.auth,javax.security.auth.callback,javax.security.auth.login,javax.security.auth.spi,org.apache.catalina,org.apache.catalina.connector,org.apache.catalina.util,org.apache.juli.logging,org.apache.tomcat.util.collections,org.apache.tomcat.util.descriptor.web,org.apache.tomcat.util.digester,org.apache.tomcat.util.res,org.ietf.jgss\";version=\"9.0.98\",org.apache.catalina.security;uses:=\"javax.servlet,org.apache.catalina\";version=\"9.0.98\",org.apache.catalina.servlets;uses:=\"javax.servlet,javax.servlet.http,javax.sql,javax.xml.parsers,javax.xml.transform,org.apache.catalina,org.apache.catalina.util,org.apache.tomcat,org.apache.tomcat.util.http,org.apache.tomcat.util.res,org.w3c.dom\";version=\"9.0.98\",org.apache.catalina.session;uses:=\"javax.servlet,javax.servlet.http,javax.sql,org.apache.catalina,org.apache.catalina.util,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.startup;uses:=\"javax.annotation,javax.management,javax.servlet,javax.servlet.descriptor,org.apache.catalina,org.apache.catalina.connector,org.apache.catalina.core,org.apache.catalina.deploy,org.apache.catalina.util,org.apache.juli.logging,org.apache.tomcat,org.apache.tomcat.util.bcel.classfile,org.apache.tomcat.util.descriptor.web,org.apache.tomcat.util.digester,org.apache.tomcat.util.file,org.apache.tomcat.util.http,org.apache.tomcat.util.res,org.xml.sax\";version=\"9.0.98\",org.apache.catalina.users;uses:=\"javax.naming,javax.naming.spi,javax.sql,org.apache.catalina\";version=\"9.0.98\",org.apache.catalina.util;uses:=\"javax.management,javax.servlet,javax.servlet.http,org.apache.catalina,org.apache.juli.logging,org.apache.tomcat.util.descriptor.web,org.w3c.dom\";version=\"9.0.98\",org.apache.catalina.valves;uses:=\"javax.servlet,org.apache.catalina,org.apache.catalina.connector,org.apache.catalina.util,org.apache.juli.logging,org.apache.tomcat.util.descriptor.web,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.valves.rewrite;uses:=\"javax.servlet,org.apache.catalina,org.apache.catalina.connector,org.apache.catalina.valves,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.catalina.webresources;uses:=\"org.apache.catalina,org.apache.catalina.util,org.apache.juli.logging,org.apache.tomcat.util.res\";version=\"9.0.98\",org.apache.naming;uses:=\"javax.naming\";version=\"9.0.98\",org.apache.naming.factory;uses:=\"javax.naming,javax.naming.spi,javax.sql,org.apache.naming\";version=\"9.0.98\",org.apache.naming.java;uses:=\"javax.naming,javax.naming.spi\";version=\"9.0.98\",org.apache.catalina.webresources.war;version=\"9.0.98\",org.apache.catalina.manager.util;uses:=\"javax.servlet.http,org.apache.catalina\";version=\"9.0.98\",org.apache.catalina;uses:=\"javax.management,javax.naming,javax.servlet,javax.servlet.descriptor,javax.servlet.http,org.apache.catalina.connector,org.apache.catalina.deploy,org.apache.catalina.mapper,org.apache.catalina.startup,org.apache.juli.logging,org.apache.tomcat,org.apache.tomcat.util.descriptor.web,org.apache.tomcat.util.file,org.apache.tomcat.util.http,org.ietf.jgss\";version=\"9.0.98\""
-            },
-            {
-              "key": "Implementation-Title",
-              "value": "Apache Tomcat"
-            },
-            {
-              "key": "Implementation-Vendor",
-              "value": "Apache Software Foundation"
-            },
-            {
-              "key": "Implementation-Version",
-              "value": "9.0.98"
-            },
-            {
-              "key": "Import-Package",
-              "value": "java.awt,java.beans,java.io,java.lang,java.lang.annotation,java.lang.instrument,java.lang.invoke,java.lang.management,java.lang.ref,java.lang.reflect,java.math,java.net,java.nio,java.nio.channels,java.nio.charset,java.nio.file,java.nio.file.attribute,java.rmi,java.security,java.security.cert,java.security.spec,java.sql,java.text,java.util,java.util.concurrent,java.util.concurrent.atomic,java.util.concurrent.locks,java.util.function,java.util.jar,java.util.logging,java.util.regex,java.util.stream,java.util.zip,javax.annotation,javax.annotation.security,javax.crypto,javax.crypto.spec,javax.ejb,javax.imageio,javax.mail,javax.mail.internet,javax.management,javax.management.modelmbean,javax.management.openmbean,javax.naming,javax.naming.directory,javax.naming.ldap,javax.naming.spi,javax.net.ssl,javax.persistence,javax.security.auth,javax.security.auth.callback,javax.security.auth.login,javax.security.auth.message,javax.security.auth.message.callback,javax.security.auth.message.config,javax.security.auth.message.module,javax.security.auth.spi,javax.security.auth.x500,javax.servlet,javax.servlet.annotation,javax.servlet.descriptor,javax.servlet.http,javax.sql,javax.wsdl,javax.wsdl.extensions,javax.wsdl.extensions.soap,javax.wsdl.factory,javax.wsdl.xml,javax.xml.namespace,javax.xml.parsers,javax.xml.rpc,javax.xml.rpc.handler,javax.xml.transform,javax.xml.transform.dom,javax.xml.transform.stream,javax.xml.ws,org.apache.coyote;version=\"[9.0,10)\",org.apache.coyote.ajp;version=\"[9.0,10)\",org.apache.coyote.http11;version=\"[9.0,10)\",org.apache.coyote.http11.upgrade;version=\"[9.0,10)\",org.apache.juli;version=\"[9.0,10)\",org.apache.juli.logging;version=\"[9.0,10)\",org.apache.tomcat;version=\"[9.0,10)\",org.apache.tomcat.jni;version=\"[9.0,10)\",org.apache.tomcat.util;version=\"[9.0,10)\",org.apache.tomcat.util.bcel.classfile;version=\"[9.0,10)\",org.apache.tomcat.util.buf;version=\"[9.0,10)\",org.apache.tomcat.util.collections;version=\"[9.0,10)\",org.apache.tomcat.util.compat;version=\"[9.0,10)\",org.apache.tomcat.util.descriptor;version=\"[9.0,10)\",org.apache.tomcat.util.descriptor.web;version=\"[9.0,10)\",org.apache.tomcat.util.digester;version=\"[9.0,10)\",org.apache.tomcat.util.file;version=\"[9.0,10)\",org.apache.tomcat.util.http;version=\"[9.0,10)\",org.apache.tomcat.util.http.fileupload;version=\"[9.0,10)\",org.apache.tomcat.util.http.fileupload.disk;version=\"[9.0,10)\",org.apache.tomcat.util.http.fileupload.impl;version=\"[9.0,10)\",org.apache.tomcat.util.http.fileupload.servlet;version=\"[9.0,10)\",org.apache.tomcat.util.http.parser;version=\"[9.0,10)\",org.apache.tomcat.util.json,org.apache.tomcat.util.log;version=\"[9.0,10)\",org.apache.tomcat.util.modeler;version=\"[9.0,10)\",org.apache.tomcat.util.net;version=\"[9.0,10)\",org.apache.tomcat.util.net.jsse;version=\"[9.0,10)\",org.apache.tomcat.util.net.openssl;version=\"[9.0,10)\",org.apache.tomcat.util.net.openssl.ciphers;version=\"[9.0,10)\",org.apache.tomcat.util.res;version=\"[9.0,10)\",org.apache.tomcat.util.scan;version=\"[9.0,10)\",org.apache.tomcat.util.security;version=\"[9.0,10)\",org.apache.tomcat.util.threads;version=\"[9.0,10)\",org.ietf.jgss,org.w3c.dom,org.w3c.dom.ls,org.xml.sax,org.xml.sax.ext"
-            },
-            {
-              "key": "Private-Package",
-              "value": "org.apache.naming.factory.webservices"
-            },
-            {
-              "key": "Require-Capability",
-              "value": "osgi.contract;osgi.contract=JavaAnnotation;filter:=\"(&(osgi.contract=JavaAnnotation)(version=1.3.0))\",osgi.contract;osgi.contract=JavaJASPIC;filter:=\"(&(osgi.contract=JavaJASPIC)(version=1.1.0))\",osgi.contract;osgi.contract=JavaServlet;filter:=\"(&(osgi.contract=JavaServlet)(version=4.0.0))\",osgi.ee;filter:=\"(&(osgi.ee=JavaSE)(version=1.8))\""
-            },
-            {
-              "key": "Specification-Title",
-              "value": "Apache Tomcat"
-            },
-            {
-              "key": "Specification-Vendor",
-              "value": "Apache Software Foundation"
-            },
-            {
-              "key": "Specification-Version",
-              "value": "9.0"
-            },
-            {
-              "key": "X-Compile-Source-JDK",
-              "value": "8"
-            },
-            {
-              "key": "X-Compile-Target-JDK",
-              "value": "8"
-            }
-          ]
-        },
-        "digest": [
-          {
-            "algorithm": "sha1",
-            "value": "cef7880f49e154aeaa30c4c2655d92a7cf17757b"
-          }
-        ]
-      }
-    },
-    {
       "id": "39255e9e59685b5f",
       "name": "fontconfig",
       "version": "2.15.0-1.1ubuntu2",
       "type": "deb",
       "foundBy": "dpkg-db-cataloger",
-      "locations": [
-        {
-          "path": "/var/lib/dpkg/status",
-          "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-          "accessPath": "/var/lib/dpkg/status",
-          "annotations": {
-            "evidence": "primary"
-          }
-        },
-        {
-          "path": "/usr/share/doc/fontconfig/copyright",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/usr/share/doc/fontconfig/copyright",
-          "annotations": {
-            "evidence": "supporting"
-          }
-        },
-        {
-          "path": "/var/lib/dpkg/info/fontconfig.md5sums",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/fontconfig.md5sums",
-          "annotations": {
-            "evidence": "supporting"
-          }
-        },
-        {
-          "path": "/var/lib/dpkg/info/fontconfig.list",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/fontconfig.list"
-        },
-        {
-          "path": "/var/lib/dpkg/info/fontconfig.postinst",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/fontconfig.postinst"
-        },
-        {
-          "path": "/var/lib/dpkg/info/fontconfig.postrm",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/fontconfig.postrm"
-        },
-        {
-          "path": "/var/lib/dpkg/info/fontconfig.triggers",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/fontconfig.triggers"
-        }
-      ],
+      "locations": [],
       "licenses": [
         {
           "value": "HPND-sell-variant",
           "spdxExpression": "HPND-sell-variant",
           "type": "concluded",
           "urls": [],
-          "locations": [
-            {
-              "path": "/usr/share/doc/fontconfig/copyright",
-              "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-              "accessPath": "/usr/share/doc/fontconfig/copyright",
-              "annotations": {
-                "evidence": "supporting"
-              }
-            }
-          ]
+          "locations": []
         }
       ],
       "language": "",
-      "cpes": [
-        {
-          "cpe": "cpe:2.3:a:fontconfig:fontconfig:2.15.0-1.1ubuntu2:*:*:*:*:*:*:*",
-          "source": "syft-generated"
-        }
-      ],
-      "purl": "pkg:deb/ubuntu/fontconfig@2.15.0-1.1ubuntu2?arch=amd64&distro=ubuntu-24.04",
-      "metadataType": "dpkg-db-entry",
-      "metadata": {
-        "package": "fontconfig",
-        "source": "",
-        "version": "2.15.0-1.1ubuntu2",
-        "sourceVersion": "",
-        "architecture": "amd64",
-        "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
-        "installedSize": 468,
-        "depends": [
-          "libc6 (>= 2.38)",
-          "libfontconfig1 (>= 2.13.0)",
-          "libfreetype6 (>= 2.2.1)",
-          "fontconfig-config"
-        ],
-        "files": []
-      }
+      "cpes": [],
+      "purl": "pkg:deb/ubuntu/fontconfig@2.15.0-1.1ubuntu2?arch=amd64&distro=ubuntu-24.04"
     },
     {
       "id": "8736998fcaef3ad3",
@@ -239,124 +26,40 @@
       "version": "1.7.2-3.1ubuntu0.1",
       "type": "deb",
       "foundBy": "dpkg-db-cataloger",
-      "locations": [
-        {
-          "path": "/var/lib/dpkg/status",
-          "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-          "accessPath": "/var/lib/dpkg/status",
-          "annotations": {
-            "evidence": "primary"
-          }
-        },
-        {
-          "path": "/usr/share/doc/libapr1t64/copyright",
-          "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-          "accessPath": "/usr/share/doc/libapr1t64/copyright",
-          "annotations": {
-            "evidence": "supporting"
-          }
-        },
-        {
-          "path": "/var/lib/dpkg/info/libapr1t64:amd64.md5sums",
-          "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-          "accessPath": "/var/lib/dpkg/info/libapr1t64:amd64.md5sums",
-          "annotations": {
-            "evidence": "supporting"
-          }
-        }
-      ],
+      "locations": [],
       "licenses": [
         {
           "value": "Apache-2.0",
           "spdxExpression": "Apache-2.0",
           "type": "concluded",
           "urls": [],
-          "locations": [
-            {
-              "path": "/usr/share/doc/libapr1t64/copyright",
-              "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-              "accessPath": "/usr/share/doc/libapr1t64/copyright",
-              "annotations": {
-                "evidence": "supporting"
-              }
-            }
-          ]
+          "locations": []
         },
         {
           "value": "BSD-4-Clause-UC",
           "spdxExpression": "BSD-4-Clause-UC",
           "type": "concluded",
           "urls": [],
-          "locations": [
-            {
-              "path": "/usr/share/doc/libapr1t64/copyright",
-              "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-              "accessPath": "/usr/share/doc/libapr1t64/copyright",
-              "annotations": {
-                "evidence": "supporting"
-              }
-            }
-          ]
+          "locations": []
         },
         {
           "value": "ISC",
           "spdxExpression": "ISC",
           "type": "concluded",
           "urls": [],
-          "locations": [
-            {
-              "path": "/usr/share/doc/libapr1t64/copyright",
-              "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-              "accessPath": "/usr/share/doc/libapr1t64/copyright",
-              "annotations": {
-                "evidence": "supporting"
-              }
-            }
-          ]
+          "locations": []
         },
         {
           "value": "Zlib",
           "spdxExpression": "Zlib",
           "type": "concluded",
           "urls": [],
-          "locations": [
-            {
-              "path": "/usr/share/doc/libapr1t64/copyright",
-              "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-              "accessPath": "/usr/share/doc/libapr1t64/copyright",
-              "annotations": {
-                "evidence": "supporting"
-              }
-            }
-          ]
+          "locations": []
         }
       ],
       "language": "",
-      "cpes": [
-        {
-          "cpe": "cpe:2.3:a:libapr1t64:libapr1t64:1.7.2-3.1ubuntu0.1:*:*:*:*:*:*:*",
-          "source": "syft-generated"
-        }
-      ],
-      "purl": "pkg:deb/ubuntu/libapr1t64@1.7.2-3.1ubuntu0.1?arch=amd64&distro=ubuntu-24.04&upstream=apr",
-      "metadataType": "dpkg-db-entry",
-      "metadata": {
-        "package": "libapr1t64",
-        "source": "apr",
-        "version": "1.7.2-3.1ubuntu0.1",
-        "sourceVersion": "",
-        "architecture": "amd64",
-        "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
-        "installedSize": 283,
-        "provides": [
-          "libapr1 (= 1.7.2-3.1ubuntu0.1)"
-        ],
-        "depends": [
-          "libc6 (>= 2.38)",
-          "libuuid1 (>= 2.16)"
-        ],
-        "files": []
-      }
+      "cpes": [],
+      "purl": "pkg:deb/ubuntu/libapr1t64@1.7.2-3.1ubuntu0.1?arch=amd64&distro=ubuntu-24.04&upstream=apr"
     },
     {
       "id": "786e451bdf925775",
@@ -364,69 +67,19 @@
       "version": "2.6.1-2ubuntu0.2",
       "type": "deb",
       "foundBy": "dpkg-db-cataloger",
-      "locations": [
-        {
-          "path": "/var/lib/dpkg/status",
-          "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-          "accessPath": "/var/lib/dpkg/status",
-          "annotations": {
-            "evidence": "primary"
-          }
-        },
-        {
-          "path": "/usr/share/doc/libexpat1/copyright",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/usr/share/doc/libexpat1/copyright",
-          "annotations": {
-            "evidence": "supporting"
-          }
-        },
-        {
-          "path": "/var/lib/dpkg/info/libexpat1:amd64.md5sums",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/libexpat1:amd64.md5sums",
-          "annotations": {
-            "evidence": "supporting"
-          }
-        }
-      ],
+      "locations": [],
       "licenses": [
         {
           "value": "MIT",
           "spdxExpression": "MIT",
           "type": "declared",
           "urls": [],
-          "locations": [
-            {
-              "path": "/usr/share/doc/libexpat1/copyright",
-              "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-              "accessPath": "/usr/share/doc/libexpat1/copyright"
-            }
-          ]
+          "locations": []
         }
       ],
       "language": "",
-      "cpes": [
-        {
-          "cpe": "cpe:2.3:a:libexpat1:libexpat1:2.6.1-2ubuntu0.2:*:*:*:*:*:*:*",
-          "source": "syft-generated"
-        }
-      ],
-      "purl": "pkg:deb/ubuntu/libexpat1@2.6.1-2ubuntu0.2?arch=amd64&distro=ubuntu-24.04&upstream=expat",
-      "metadataType": "dpkg-db-entry",
-      "metadata": {
-        "package": "libexpat1",
-        "source": "expat",
-        "version": "2.6.1-2ubuntu0.2",
-        "sourceVersion": "",
-        "architecture": "amd64",
-        "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
-        "installedSize": 384,
-        "depends": [
-          "libc6 (>= 2.38)"
-        ],
-        "files": []
-      }
+      "cpes": [],
+      "purl": "pkg:deb/ubuntu/libexpat1@2.6.1-2ubuntu0.2?arch=amd64&distro=ubuntu-24.04&upstream=expat"
     },
     {
       "id": "a53bac2593393e6b",
@@ -434,154 +87,27 @@
       "version": "3.0.13-0ubuntu3.4",
       "type": "deb",
       "foundBy": "dpkg-db-cataloger",
-      "locations": [
-        {
-          "path": "/var/lib/dpkg/status",
-          "layerID": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-          "accessPath": "/var/lib/dpkg/status",
-          "annotations": {
-            "evidence": "primary"
-          }
-        },
-        {
-          "path": "/var/lib/dpkg/info/openssl.conffiles",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/openssl.conffiles",
-          "annotations": {
-            "evidence": "supporting"
-          }
-        },
-        {
-          "path": "/var/lib/dpkg/info/openssl.md5sums",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/openssl.md5sums",
-          "annotations": {
-            "evidence": "supporting"
-          }
-        },
-        {
-          "path": "/var/lib/dpkg/info/openssl.list",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/openssl.list"
-        },
-        {
-          "path": "/var/lib/dpkg/info/openssl.postinst",
-          "layerID": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "accessPath": "/var/lib/dpkg/info/openssl.postinst"
-        }
-      ],
+      "locations": [],
       "licenses": [],
       "language": "",
-      "cpes": [
-        {
-          "cpe": "cpe:2.3:a:openssl:openssl:3.0.13-0ubuntu3.4:*:*:*:*:*:*:*",
-          "source": "syft-generated"
-        }
-      ],
-      "purl": "pkg:deb/ubuntu/openssl@3.0.13-0ubuntu3.4?arch=amd64&distro=ubuntu-24.04",
-      "metadataType": "dpkg-db-entry",
-      "metadata": {
-        "package": "openssl",
-        "source": "",
-        "version": "3.0.13-0ubuntu3.4",
-        "sourceVersion": "",
-        "architecture": "amd64",
-        "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
-        "installedSize": 1885,
-        "depends": [
-          "libc6 (>= 2.34)",
-          "libssl3t64 (>= 3.0.9)"
-        ],
-        "files": []
-      }
+      "cpes": [],
+      "purl": "pkg:deb/ubuntu/openssl@3.0.13-0ubuntu3.4?arch=amd64&distro=ubuntu-24.04"
     }
   ],
-  "artifactRelationships": [],
-  "files": [],
   "source": {
     "id": "0be2baad519781bb554e880e706235dc0bdd78a8c80a04b6563b62390fdc6fdf",
     "name": "tomcat",
     "version": "9.0.98-jdk17",
     "type": "image",
     "metadata": {
-      "userInput": "tomcat:9.0.98-jdk17",
-      "imageID": "sha256:0d8e438bdae14b66f6be2401e1e8dd488b2c9f87010c10cdd5e3b218f420cf49",
-      "manifestDigest": "sha256:0be2baad519781bb554e880e706235dc0bdd78a8c80a04b6563b62390fdc6fdf",
-      "mediaType": "application/vnd.oci.image.manifest.v1+json",
-      "tags": [],
-      "imageSize": 448398787,
-      "layers": [
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:4b7c01ed0534d4f9be9cf97d068da1598c6c20b26cb6134fad066defdb6d541d",
-          "size": 78127075
-        },
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:479a1d8f9a9bc4d0bdbfddae8a7d3f07810aa39213c340f4978d161f93ce17a9",
-          "size": 62770843
-        },
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:e11ffcce38cdaeb73816cd04425e8bd8065a6f16ecdbbc271ff03824a69aa2d2",
-          "size": 278603835
-        },
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:d69a85e978ba6bb300a833b58caa41e4c469cb34f206a7f19f11fe84e55f86a5",
-          "size": 0
-        },
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:c25422af2aa3ac10a326977d048e8dc6e56bbdcf221c760d2c8ceb521d225c53",
-          "size": 5309
-        },
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:acd162b01d779caf6ba6ad4d7496a8ec28c475db1f8d8e57d4e14d6933777f50",
-          "size": 0
-        },
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
-          "size": 0
-        },
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:69f8f9d7f0549c51bf8dc71e01b71192a649046e37255dffbcfd7851d2045b5a",
-          "size": 28891725
-        },
-        {
-          "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-          "digest": "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
-          "size": 0
-        }
-      ],
-      "repoDigests": [
-        "index.docker.io/library/tomcat@sha256:baafc39d5598aac501d7b5e0d25ea0db46c1736fe598b2232e76c3de4ddbacac"
-      ],
-      "architecture": "amd64",
-      "os": "linux",
-      "labels": {
-        "org.opencontainers.image.ref.name": "ubuntu",
-        "org.opencontainers.image.version": "24.04"
-      }
+      "userInput": "tomcat:9.0.98-jdk17"
     }
   },
   "distro": {
-    "prettyName": "Ubuntu 24.04.1 LTS",
     "name": "Ubuntu",
     "id": "ubuntu",
-    "idLike": [
-      "debian"
-    ],
     "version": "24.04.1 LTS (Noble Numbat)",
-    "versionID": "24.04",
-    "versionCodename": "noble",
-    "homeURL": "https://www.ubuntu.com/",
-    "supportURL": "https://help.ubuntu.com/",
-    "bugReportURL": "https://bugs.launchpad.net/ubuntu/",
-    "privacyPolicyURL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+    "versionID": "24.04"
   },
   "descriptor": {
     "name": "syft",

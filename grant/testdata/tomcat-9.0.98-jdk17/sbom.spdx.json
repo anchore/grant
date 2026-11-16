@@ -14,210 +14,36 @@
   },
   "packages": [
     {
-      "name": "catalina",
-      "SPDXID": "SPDXRef-Package-java-archive-catalina-a86d34f5c7c86862",
-      "versionInfo": "9.0.98",
-      "supplier": "Organization: Apache Software Foundation",
-      "originator": "Organization: Apache Software Foundation",
-      "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": false,
-      "checksums": [
-        {
-          "algorithm": "SHA1",
-          "checksumValue": "cef7880f49e154aeaa30c4c2655d92a7cf17757b"
-        }
-      ],
-      "sourceInfo": "acquired package info from installed java archive: /usr/local/tomcat/lib/catalina.jar",
-      "licenseConcluded": "NOASSERTION",
-      "licenseDeclared": "Apache-2.0",
-      "copyrightText": "NOASSERTION",
-      "externalRefs": [
-        {
-          "referenceCategory": "SECURITY",
-          "referenceType": "cpe23Type",
-          "referenceLocator": "cpe:2.3:a:apache:tomcat-catalina:9.0.98:*:*:*:*:*:*:*"
-        },
-        {
-          "referenceCategory": "SECURITY",
-          "referenceType": "cpe23Type",
-          "referenceLocator": "cpe:2.3:a:apache:tomcat_catalina:9.0.98:*:*:*:*:*:*:*"
-        },
-        {
-          "referenceCategory": "SECURITY",
-          "referenceType": "cpe23Type",
-          "referenceLocator": "cpe:2.3:a:apache:catalina:9.0.98:*:*:*:*:*:*:*"
-        },
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:maven/org.apache.tomcat-catalina/catalina@9.0.98"
-        }
-      ]
-    },
-    {
       "name": "fontconfig",
       "SPDXID": "SPDXRef-Package-deb-fontconfig-39255e9e59685b5f",
       "versionInfo": "2.15.0-1.1ubuntu2",
-      "supplier": "NOASSERTION",
       "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": true,
-      "packageVerificationCode": {
-        "packageVerificationCodeValue": "f8fb689282637f5929acd35c66275ac0925f2df0"
-      },
-      "sourceInfo": "acquired package info from DPKG DB: /var/lib/dpkg/status, /usr/share/doc/fontconfig/copyright, /var/lib/dpkg/info/fontconfig.md5sums, /var/lib/dpkg/info/fontconfig.list, /var/lib/dpkg/info/fontconfig.postinst, /var/lib/dpkg/info/fontconfig.postrm, /var/lib/dpkg/info/fontconfig.triggers",
       "licenseConcluded": "HPND-sell-variant",
-      "licenseDeclared": "NOASSERTION",
-      "copyrightText": "NOASSERTION",
-      "externalRefs": [
-        {
-          "referenceCategory": "SECURITY",
-          "referenceType": "cpe23Type",
-          "referenceLocator": "cpe:2.3:a:fontconfig:fontconfig:2.15.0-1.1ubuntu2:*:*:*:*:*:*:*"
-        },
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:deb/ubuntu/fontconfig@2.15.0-1.1ubuntu2?arch=amd64&distro=ubuntu-24.04"
-        }
-      ]
+      "licenseDeclared": "NOASSERTION"
     },
     {
       "name": "libapr1t64",
       "SPDXID": "SPDXRef-Package-deb-libapr1t64-8736998fcaef3ad3",
       "versionInfo": "1.7.2-3.1ubuntu0.1",
-      "supplier": "NOASSERTION",
       "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": true,
-      "packageVerificationCode": {
-        "packageVerificationCodeValue": "97abdf78f8041f36a298bd70a7e21eb715fa4b75"
-      },
-      "sourceInfo": "acquired package info from DPKG DB: /var/lib/dpkg/status, /usr/share/doc/libapr1t64/copyright, /var/lib/dpkg/info/libapr1t64:amd64.md5sums",
       "licenseConcluded": "Apache-2.0 AND BSD-4-Clause-UC AND ISC AND Zlib",
-      "licenseDeclared": "NOASSERTION",
-      "copyrightText": "NOASSERTION",
-      "externalRefs": [
-        {
-          "referenceCategory": "SECURITY",
-          "referenceType": "cpe23Type",
-          "referenceLocator": "cpe:2.3:a:libapr1t64:libapr1t64:1.7.2-3.1ubuntu0.1:*:*:*:*:*:*:*"
-        },
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:deb/ubuntu/libapr1t64@1.7.2-3.1ubuntu0.1?arch=amd64&distro=ubuntu-24.04&upstream=apr"
-        }
-      ]
+      "licenseDeclared": "NOASSERTION"
     },
     {
       "name": "libexpat1",
       "SPDXID": "SPDXRef-Package-deb-libexpat1-786e451bdf925775",
       "versionInfo": "2.6.1-2ubuntu0.2",
-      "supplier": "NOASSERTION",
       "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": true,
-      "packageVerificationCode": {
-        "packageVerificationCodeValue": "10d9e07fe3cbcbf45330468d2f96fbb1b01c29a7"
-      },
-      "sourceInfo": "acquired package info from DPKG DB: /var/lib/dpkg/status, /usr/share/doc/libexpat1/copyright, /var/lib/dpkg/info/libexpat1:amd64.md5sums",
       "licenseConcluded": "NOASSERTION",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "externalRefs": [
-        {
-          "referenceCategory": "SECURITY",
-          "referenceType": "cpe23Type",
-          "referenceLocator": "cpe:2.3:a:libexpat1:libexpat1:2.6.1-2ubuntu0.2:*:*:*:*:*:*:*"
-        },
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:deb/ubuntu/libexpat1@2.6.1-2ubuntu0.2?arch=amd64&distro=ubuntu-24.04&upstream=expat"
-        }
-      ]
+      "licenseDeclared": "MIT"
     },
     {
       "name": "openssl",
       "SPDXID": "SPDXRef-Package-deb-openssl-a53bac2593393e6b",
       "versionInfo": "3.0.13-0ubuntu3.4",
-      "supplier": "NOASSERTION",
       "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": true,
-      "packageVerificationCode": {
-        "packageVerificationCodeValue": "848c89d3c666936237c7ad40e4a7ba69fe2a1ff2"
-      },
-      "sourceInfo": "acquired package info from DPKG DB: /var/lib/dpkg/status, /var/lib/dpkg/info/openssl.conffiles, /var/lib/dpkg/info/openssl.md5sums, /var/lib/dpkg/info/openssl.list, /var/lib/dpkg/info/openssl.postinst",
       "licenseConcluded": "NOASSERTION",
-      "licenseDeclared": "NOASSERTION",
-      "copyrightText": "NOASSERTION",
-      "externalRefs": [
-        {
-          "referenceCategory": "SECURITY",
-          "referenceType": "cpe23Type",
-          "referenceLocator": "cpe:2.3:a:openssl:openssl:3.0.13-0ubuntu3.4:*:*:*:*:*:*:*"
-        },
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:deb/ubuntu/openssl@3.0.13-0ubuntu3.4?arch=amd64&distro=ubuntu-24.04"
-        }
-      ]
-    },
-    {
-      "name": "tomcat",
-      "SPDXID": "SPDXRef-DocumentRoot-Image-tomcat",
-      "versionInfo": "9.0.98-jdk17",
-      "supplier": "NOASSERTION",
-      "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": false,
-      "checksums": [
-        {
-          "algorithm": "SHA256",
-          "checksumValue": "0be2baad519781bb554e880e706235dc0bdd78a8c80a04b6563b62390fdc6fdf"
-        }
-      ],
-      "licenseConcluded": "NOASSERTION",
-      "licenseDeclared": "NOASSERTION",
-      "copyrightText": "NOASSERTION",
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:oci/tomcat@sha256%3A0be2baad519781bb554e880e706235dc0bdd78a8c80a04b6563b62390fdc6fdf?arch=amd64&tag=9.0.98-jdk17"
-        }
-      ],
-      "primaryPackagePurpose": "CONTAINER"
-    }
-  ],
-  "relationships": [
-    {
-      "spdxElementId": "SPDXRef-DocumentRoot-Image-tomcat",
-      "relatedSpdxElement": "SPDXRef-Package-java-archive-catalina-a86d34f5c7c86862",
-      "relationshipType": "CONTAINS"
-    },
-    {
-      "spdxElementId": "SPDXRef-DocumentRoot-Image-tomcat",
-      "relatedSpdxElement": "SPDXRef-Package-deb-fontconfig-39255e9e59685b5f",
-      "relationshipType": "CONTAINS"
-    },
-    {
-      "spdxElementId": "SPDXRef-DocumentRoot-Image-tomcat",
-      "relatedSpdxElement": "SPDXRef-Package-deb-libapr1t64-8736998fcaef3ad3",
-      "relationshipType": "CONTAINS"
-    },
-    {
-      "spdxElementId": "SPDXRef-DocumentRoot-Image-tomcat",
-      "relatedSpdxElement": "SPDXRef-Package-deb-libexpat1-786e451bdf925775",
-      "relationshipType": "CONTAINS"
-    },
-    {
-      "spdxElementId": "SPDXRef-DocumentRoot-Image-tomcat",
-      "relatedSpdxElement": "SPDXRef-Package-deb-openssl-a53bac2593393e6b",
-      "relationshipType": "CONTAINS"
-    },
-    {
-      "spdxElementId": "SPDXRef-DOCUMENT",
-      "relatedSpdxElement": "SPDXRef-DocumentRoot-Image-tomcat",
-      "relationshipType": "DESCRIBES"
+      "licenseDeclared": "NOASSERTION"
     }
   ]
 }
