@@ -16,11 +16,10 @@ import (
 )
 
 type checkFlags struct {
-	DisableFileSearch       bool
-	IgnoreConcludedLicenses bool
-	Summary                 bool
-	Unlicensed              bool
-	DryRun                  bool
+	DisableFileSearch bool
+	Summary           bool
+	Unlicensed        bool
+	DryRun            bool
 }
 
 // ErrViolations indicates the check found policy violations that warrant
@@ -68,7 +67,6 @@ Exit codes:
 
 	// Add command-specific flags
 	cmd.Flags().Bool("disable-file-search", false, "disable filesystem license file search")
-	cmd.Flags().Bool("ignore-concluded-licenses", false, "ignore concluded licenses and only consider declared licenses")
 	cmd.Flags().Bool("summary", false, "show only summary information")
 	cmd.Flags().Bool("unlicensed", false, "show only packages without licenses")
 	cmd.Flags().Bool("dry-run", false, "run check without returning non-zero exit code on violations")
@@ -113,7 +111,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	realtimeUI := setupRealtimeUI(globalConfig, targets)
-	orchestrator, err := setupOrchestrator(globalConfig, flags.DisableFileSearch, flags.IgnoreConcludedLicenses)
+	orchestrator, err := setupOrchestrator(globalConfig, flags.DisableFileSearch)
 	if err != nil {
 		return err
 	}
@@ -131,17 +129,15 @@ func runCheck(cmd *cobra.Command, args []string) error {
 // parseCheckFlags extracts and validates command-specific flags
 func parseCheckFlags(cmd *cobra.Command) *checkFlags {
 	disableFileSearch, _ := cmd.Flags().GetBool("disable-file-search")
-	ignoreConcludedLicenses, _ := cmd.Flags().GetBool("ignore-concluded-licenses")
 	summary, _ := cmd.Flags().GetBool("summary")
 	unlicensed, _ := cmd.Flags().GetBool("unlicensed")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 	return &checkFlags{
-		DisableFileSearch:       disableFileSearch,
-		IgnoreConcludedLicenses: ignoreConcludedLicenses,
-		Summary:                 summary,
-		Unlicensed:              unlicensed,
-		DryRun:                  dryRun,
+		DisableFileSearch: disableFileSearch,
+		Summary:           summary,
+		Unlicensed:        unlicensed,
+		DryRun:            dryRun,
 	}
 }
 
@@ -159,14 +155,10 @@ func setupRealtimeUI(globalConfig *GlobalConfig, args []string) *internal.Realti
 }
 
 // setupOrchestrator creates and configures the orchestrator
-func setupOrchestrator(globalConfig *GlobalConfig, disableFileSearch, ignoreConcludedLicenses bool) (*grant.Orchestrator, error) {
+func setupOrchestrator(globalConfig *GlobalConfig, disableFileSearch bool) (*grant.Orchestrator, error) {
 	policy, err := LoadPolicyFromConfig(globalConfig)
 	if err != nil {
 		return nil, err
-	}
-	// the flag can only turn the option on, so a config file that sets it is never overridden
-	if ignoreConcludedLicenses {
-		policy.IgnoreConcludedLicenses = true
 	}
 
 	caseConfig := grant.CaseConfig{

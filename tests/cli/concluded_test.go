@@ -19,6 +19,7 @@ func tomcatSPDXSBOM(t *testing.T) string {
 
 func TestCheckCmdIgnoreConcludedLicenses(t *testing.T) {
 	const policy = "allow:\n  - MIT\n  - Apache-2.0\n"
+	const ignoreConcluded = policy + "ignore-concluded-licenses: true\n"
 	sbom := tomcatSPDXSBOM(t)
 
 	concludedIgnored := []expressionCase{
@@ -42,21 +43,15 @@ func TestCheckCmdIgnoreConcludedLicenses(t *testing.T) {
 		assert.NotContains(t, stdout, "ignoreConcludedLicenses", "the report only names the option when it is set")
 	})
 
-	t.Run("flag", func(t *testing.T) {
-		stdout, stderr, rc := runGrant(t, "", "-c", writeConfig(t, policy), "-o", "json", "check", "--ignore-concluded-licenses", sbom)
+	t.Run("config", func(t *testing.T) {
+		stdout, stderr, rc := runGrant(t, "", "-c", writeConfig(t, ignoreConcluded), "-o", "json", "check", sbom)
 		assert.Zero(t, rc)
 		assertFindings(t, parseFindings(t, stdout, stderr), concludedIgnored)
 		assert.Contains(t, stdout, `"ignoreConcludedLicenses": true`)
 	})
 
-	t.Run("config", func(t *testing.T) {
-		stdout, stderr, rc := runGrant(t, "", "-c", writeConfig(t, policy+"ignore-concluded-licenses: true\n"), "-o", "json", "check", sbom)
-		assert.Zero(t, rc)
-		assertFindings(t, parseFindings(t, stdout, stderr), concludedIgnored)
-	})
-
 	t.Run("a package left without licenses is subject to require-license", func(t *testing.T) {
-		stdout, stderr, rc := runGrant(t, "", "-c", writeConfig(t, policy+"require-license: true\n"), "-o", "json", "check", "--ignore-concluded-licenses", sbom)
+		stdout, stderr, rc := runGrant(t, "", "-c", writeConfig(t, ignoreConcluded+"require-license: true\n"), "-o", "json", "check", sbom)
 		assert.NotZero(t, rc)
 		assertFindings(t, parseFindings(t, stdout, stderr), []expressionCase{
 			{pkg: "catalina", wantDecision: "allow"},
@@ -70,7 +65,7 @@ func TestCheckCmdIgnoreConcludedLicenses(t *testing.T) {
 		assert.NotZero(t, rc)
 		assertInOutput("HPND-sell-variant")(t, stdout, stderr, rc)
 
-		stdout, stderr, rc = runGrant(t, "", "-c", writeConfig(t, policy), "check", "--ignore-concluded-licenses", sbom)
+		stdout, stderr, rc = runGrant(t, "", "-c", writeConfig(t, ignoreConcluded), "check", sbom)
 		assert.Zero(t, rc)
 		assertNotInOutput("HPND-sell-variant")(t, stdout, stderr, rc)
 	})
@@ -78,17 +73,16 @@ func TestCheckCmdIgnoreConcludedLicenses(t *testing.T) {
 	t.Run("stdin", func(t *testing.T) {
 		content, err := os.ReadFile(sbom)
 		require.NoError(t, err)
-		stdout, stderr, rc := runGrant(t, string(content), "-c", writeConfig(t, policy), "-o", "json", "check", "--ignore-concluded-licenses", "-")
+		findings, rc := findingsByName(t, string(content), ignoreConcluded)
 		assert.Zero(t, rc)
-		assertFindings(t, parseFindings(t, stdout, stderr), concludedIgnored)
+		assertFindings(t, findings, concludedIgnored)
 	})
 }
 
 func TestListCmdIgnoreConcludedLicenses(t *testing.T) {
 	sbom := tomcatSPDXSBOM(t)
-	cfg := emptyConfig(t)
 
-	stdout, stderr, rc := runGrant(t, "", "-c", cfg, "-o", "json", "list", sbom)
+	stdout, stderr, rc := runGrant(t, "", "-c", emptyConfig(t), "-o", "json", "list", sbom)
 	assert.Zero(t, rc)
 	assertFindings(t, parseFindings(t, stdout, stderr), []expressionCase{
 		{pkg: "libexpat1", wantDecision: "unevaluated", wantLicenses: []string{"MIT"}},
@@ -96,7 +90,7 @@ func TestListCmdIgnoreConcludedLicenses(t *testing.T) {
 		{pkg: "libapr1t64", wantDecision: "unevaluated", wantLicenses: []string{"Apache-2.0", "BSD-4-Clause-UC", "ISC", "Zlib"}},
 	})
 
-	stdout, stderr, rc = runGrant(t, "", "-c", cfg, "-o", "json", "list", "--ignore-concluded-licenses", sbom)
+	stdout, stderr, rc = runGrant(t, "", "-c", writeConfig(t, "ignore-concluded-licenses: true\n"), "-o", "json", "list", sbom)
 	assert.Zero(t, rc)
 	assertFindings(t, parseFindings(t, stdout, stderr), []expressionCase{
 		{pkg: "libexpat1", wantDecision: "unevaluated", wantLicenses: []string{"MIT"}},
