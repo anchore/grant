@@ -33,9 +33,11 @@ type Policy struct {
 	RequireKnownLicense bool `yaml:"require-known-license,omitempty"`
 
 	// IgnoreConcludedLicenses when true, leaves concluded licenses (SPDX licenseConcluded, syft license
-	// type "concluded") out of listing and evaluation, so only declared licenses are considered. A
-	// package whose only licenses are concluded is then treated as having no licenses. SBOM formats
-	// that do not record the distinction (CycloneDX as decoded by syft) are read as declared.
+	// type "concluded") out of Case.Evaluate, Orchestrator.Check and Orchestrator.List, so only declared
+	// licenses are considered. Case.GetLicenses takes no policy and still returns them. A package
+	// whose only licenses are concluded is then treated as having no licenses, which RequireLicense
+	// decides. SBOM formats that do not record the distinction (CycloneDX as decoded by syft) are read
+	// as declared.
 	IgnoreConcludedLicenses bool `yaml:"ignore-concluded-licenses,omitempty"`
 }
 

@@ -166,8 +166,8 @@ ignore-packages:
   # - "mycompany-*"
 
 # Policy options
-require-license: true        # Deny packages with no detected licenses
-require-known-license: false # Deny non-SPDX / unparsable licenses
+require-license: true            # Deny packages with no detected licenses
+require-known-license: false     # Deny non-SPDX / unparsable licenses
 ignore-concluded-licenses: false # Ignore concluded licenses and only consider declared licenses
 `
 

@@ -267,14 +267,16 @@ func check(checked map[string]bool, license string) bool {
 	return true
 }
 
-// withoutConcludedLicenses returns the licenses of the set that are not concluded. Concluded licenses
-// are a conclusion drawn from scanning license text, not what the package's metadata declares.
-func withoutConcludedLicenses(set syftPkg.LicenseSet) syftPkg.LicenseSet {
-	kept := make([]syftPkg.License, 0, len(set.ToSlice()))
-	for _, l := range set.ToSlice() {
+// withoutConcludedLicenses returns the licenses of the set that are not concluded, and how many were
+// dropped. A concluded license is what a scanner or the author of the SBOM determined, for example
+// by classifying license text, as opposed to what the package's metadata declares.
+func withoutConcludedLicenses(set syftPkg.LicenseSet) (syftPkg.LicenseSet, int) {
+	all := set.ToUnorderedSlice()
+	kept := make([]syftPkg.License, 0, len(all))
+	for _, l := range all {
 		if l.Type != syftLicense.Concluded {
 			kept = append(kept, l)
 		}
 	}
-	return syftPkg.NewLicenseSet(kept...)
+	return syftPkg.NewLicenseSet(kept...), len(all) - len(kept)
 }

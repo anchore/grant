@@ -41,6 +41,7 @@ func TestCheckCmdIgnoreConcludedLicenses(t *testing.T) {
 			{pkg: "libapr1t64", wantDecision: "deny", wantLicenses: []string{"BSD-4-Clause-UC", "ISC", "Zlib"}},
 		})
 		assert.NotContains(t, stdout, "ignoreConcludedLicenses", "the report only names the option when it is set")
+		assert.NotContains(t, stderr, "concluded")
 	})
 
 	t.Run("config", func(t *testing.T) {
@@ -48,6 +49,7 @@ func TestCheckCmdIgnoreConcludedLicenses(t *testing.T) {
 		assert.Zero(t, rc)
 		assertFindings(t, parseFindings(t, stdout, stderr), concludedIgnored)
 		assert.Contains(t, stdout, `"ignoreConcludedLicenses": true`)
+		assert.Contains(t, stderr, "ignored 2 concluded licenses on 2 packages, 2 of which are left with no licenses")
 	})
 
 	t.Run("a package left without licenses is subject to require-license", func(t *testing.T) {
@@ -102,12 +104,14 @@ func TestListCmdIgnoreConcludedLicenses(t *testing.T) {
 // a package can carry both a concluded and a declared license, which the tomcat SBOM has no example of
 func TestCheckCmdIgnoreConcludedLicensesKeepsDeclared(t *testing.T) {
 	sbom := spdxJSONSBOM(spdxJSONPackage("concluded-and-declared", "GPL-3.0-only", "MIT OR GPL-3.0-only") + "," +
+		spdxJSONPackage("concluded-same-as-declared", "MIT", "MIT") + "," +
 		spdxJSONPackage("declared-and", "NOASSERTION", "MIT AND GPL-3.0-only"))
 
 	findings, rc := findingsByName(t, sbom, "allow:\n  - MIT\n")
 	assert.NotZero(t, rc)
 	assertFindings(t, findings, []expressionCase{
 		{pkg: "concluded-and-declared", wantDecision: "deny", wantLicenses: []string{"GPL-3.0-only"}},
+		{pkg: "concluded-same-as-declared", wantDecision: "allow", wantLicenses: []string{"MIT"}},
 		{pkg: "declared-and", wantDecision: "deny", wantLicenses: []string{"GPL-3.0-only"}},
 	})
 
@@ -115,6 +119,14 @@ func TestCheckCmdIgnoreConcludedLicensesKeepsDeclared(t *testing.T) {
 	assert.NotZero(t, rc, "a declared license that is not allowed still denies")
 	assertFindings(t, findings, []expressionCase{
 		{pkg: "concluded-and-declared", wantDecision: "allow", wantLicenses: []string{"MIT", "GPL-3.0-only"}},
+		// the declared entry of a license that is also concluded stays
+		{pkg: "concluded-same-as-declared", wantDecision: "allow", wantLicenses: []string{"MIT"}},
 		{pkg: "declared-and", wantDecision: "deny", wantLicenses: []string{"GPL-3.0-only"}},
 	})
+}
+
+func TestConfigCmdListsIgnoreConcludedLicenses(t *testing.T) {
+	stdout, stderr, rc := runGrant(t, "", "config")
+	assert.Zero(t, rc)
+	assertInOutput("ignore-concluded-licenses: false # When true, ignore concluded licenses and only consider declared licenses")(t, stdout, stderr, rc)
 }

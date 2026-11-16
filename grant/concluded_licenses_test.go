@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/anchore/syft/syft/license"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -258,4 +260,66 @@ func TestRunResponse_PolicyJSON_IgnoreConcludedLicenses(t *testing.T) {
 	assert.JSONEq(t,
 		`{"rules":{"allow":["MIT"],"ignorePackages":null},"requireLicense":true,"requireKnownLicense":false,"ignoreConcludedLicenses":true}`,
 		policyJSON(&Policy{Allow: []string{"MIT"}, RequireLicense: true, IgnoreConcludedLicenses: true}))
+}
+
+func TestWithoutConcludedLicenses(t *testing.T) {
+	declared := func(value string) pkg.License {
+		return pkg.License{Value: value, SPDXExpression: value, Type: license.Declared}
+	}
+	concluded := func(value string) pkg.License {
+		return pkg.License{Value: value, SPDXExpression: value, Type: license.Concluded}
+	}
+
+	tests := []struct {
+		name        string
+		licenses    []pkg.License
+		want        []pkg.License
+		wantDropped int
+	}{
+		{
+			name: "no licenses",
+			want: []pkg.License{},
+		},
+		{
+			name:     "declared only",
+			licenses: []pkg.License{declared("MIT")},
+			want:     []pkg.License{declared("MIT")},
+		},
+		{
+			name:        "concluded only",
+			licenses:    []pkg.License{concluded("MIT"), concluded("ISC")},
+			want:        []pkg.License{},
+			wantDropped: 2,
+		},
+		{
+			// the same license declared and concluded is two entries, and the declared one stays
+			name:        "same license declared and concluded",
+			licenses:    []pkg.License{declared("MIT"), concluded("MIT")},
+			want:        []pkg.License{declared("MIT")},
+			wantDropped: 1,
+		},
+		{
+			// only an explicit concluded type is dropped
+			name:     "no type",
+			licenses: []pkg.License{{Value: "MIT", SPDXExpression: "MIT"}},
+			want:     []pkg.License{{Value: "MIT", SPDXExpression: "MIT"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, dropped := withoutConcludedLicenses(pkg.NewLicenseSet(tt.licenses...))
+			assert.Equal(t, tt.wantDropped, dropped)
+			assert.ElementsMatch(t, pkg.NewLicenseSet(tt.want...).ToSlice(), got.ToSlice())
+		})
+	}
+}
+
+func TestIgnoredConcluded(t *testing.T) {
+	var ignored ignoredConcluded
+	ignored.add(0, true) // a package with no licenses to begin with is not counted
+	ignored.add(2, true)
+	ignored.add(1, false)
+
+	assert.Equal(t, ignoredConcluded{licenses: 3, packages: 2, unlicensed: 1}, ignored)
+	assert.Equal(t, "ignored 3 concluded licenses on 2 packages, 1 of which are left with no licenses", ignored.String())
 }

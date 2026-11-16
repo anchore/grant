@@ -59,13 +59,21 @@ Check licenses against a policy:
 grant check redis:latest
 ```
 
-Some licenses in an SBOM are concluded from scanning license text rather than declared by the package. To only consider declared licenses, set this in the config file:
+An SBOM can hold two kinds of license for a package: a declared license is what the package states about itself, and a concluded license is what a scanner or the author of the SBOM determined, for example by matching the text of a license file. To only consider declared licenses, set this in the config file:
 
 ```yaml
 ignore-concluded-licenses: true
+require-license: true
 ```
 
-A package whose only licenses are concluded is then treated as having no licenses. SPDX and Syft JSON SBOMs record which licenses are concluded. Grant cannot tell them apart in a CycloneDX SBOM, so the option has no effect there.
+Before you turn this on:
+
+- A package whose only licenses are concluded is treated as having no licenses. It is denied only when `require-license` is `true`. A config file that leaves `require-license` out allows it, so a package that was denied for a concluded license can become allowed.
+- When Grant scans an image or directory itself, every license it reads from a license file is concluded. That is the only license source for Go modules, and a common one for Debian packages and Java archives, so those packages can lose all of their licenses.
+- In an SPDX SBOM, every `licenseConcluded` value is ignored, including one that a person set to correct the declared license.
+- SPDX and Syft JSON SBOMs record which licenses are concluded. Grant reads every license in a CycloneDX SBOM as declared, so the option has no effect there.
+
+Grant logs a warning with the number of licenses it ignored and the number of packages left with no licenses.
 
 > [!TIP]
 > **Check out the [Getting Started guide](https://oss.anchore.com/docs/guides/license/getting-started)** to explore all of the capabilities and features.

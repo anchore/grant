@@ -94,12 +94,13 @@ func generateConfig() (string, error) {
 			"Apache-2.0",
 			"BSD-3-Clause",
 		},
-		IgnorePackages:      []string{},
-		RequireLicense:      true,
-		RequireKnownLicense: false,
-		DisableFileSearch:   false,
-		Summary:             false,
-		OnlyUnlicensed:      false,
+		IgnorePackages:          []string{},
+		RequireLicense:          true,
+		RequireKnownLicense:     false,
+		IgnoreConcludedLicenses: false,
+		DisableFileSearch:       false,
+		Summary:                 false,
+		OnlyUnlicensed:          false,
 	}
 
 	// Generate YAML with comments
