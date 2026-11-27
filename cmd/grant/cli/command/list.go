@@ -224,12 +224,24 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Handle group-by risk view
-	if groupBy == "risk" {
+	if groupBy != "" {
+		if err := validateGroupBy(groupBy); err != nil {
+			return err
+		}
 		return handleGroupByRiskOutput(result, globalConfig)
 	}
 
 	// Handle output based on configuration
 	return handleListOutput(result, licenseFilters, globalConfig)
+}
+
+// validateGroupBy returns an error for a --group-by field that has no grouping view behind it,
+// which would otherwise silently fall through to the default, ungrouped output.
+func validateGroupBy(groupBy string) error {
+	if groupBy == "risk" {
+		return nil
+	}
+	return fmt.Errorf("unsupported group-by field %q - must be one of: risk", groupBy)
 }
 
 // performListOperation creates orchestrator and executes the list command
