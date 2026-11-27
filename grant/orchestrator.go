@@ -3,6 +3,8 @@ package grant
 import (
 	"fmt"
 	"os"
+
+	"github.com/anchore/grant/internal/log"
 )
 
 // Orchestrator coordinates grant operations across multiple targets
@@ -127,6 +129,7 @@ func (o *Orchestrator) List(argv []string, targets ...string) (*RunResponse, err
 func (o *Orchestrator) processListTarget(target string) TargetEvaluation {
 	c, err := o.CaseHandler.determineRequestCase(target)
 	if err != nil {
+		log.Errorf("unable to determine case for %s: %+v", target, err)
 		return createErrorTargetEvaluation()
 	}
 

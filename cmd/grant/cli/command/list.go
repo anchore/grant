@@ -204,6 +204,17 @@ func runList(cmd *cobra.Command, args []string) error {
 		ui.ShowScanComplete(target, sourceType)
 	}
 
+	if err := renderListResult(result, licenseFilters, packageDetail, groupBy, globalConfig); err != nil {
+		return err
+	}
+
+	// A target that could not be loaded is reported in the output above, but
+	// the command must still fail, as check does for the same status.
+	return failedListTargetsError(result)
+}
+
+// renderListResult filters the list result and writes it in the requested view
+func renderListResult(result *grant.RunResponse, licenseFilters []string, packageDetail, groupBy string, globalConfig *GlobalConfig) error {
 	// Apply license filtering if specified
 	if len(licenseFilters) > 0 {
 		result = filterGrantJSONByLicenses(result, licenseFilters)
@@ -230,6 +241,21 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Handle output based on configuration
 	return handleListOutput(result, licenseFilters, globalConfig)
+}
+
+// failedListTargetsError returns an error naming every target that could not be
+// loaded, or nil when all of them were
+func failedListTargetsError(result *grant.RunResponse) error {
+	var failed []string
+	for _, target := range result.Run.Targets {
+		if target.Evaluation.Status == grant.StatusError {
+			failed = append(failed, target.Source.Ref)
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+	return fmt.Errorf("unable to list licenses for: %s", strings.Join(failed, ", "))
 }
 
 // performListOperation creates orchestrator and executes the list command
